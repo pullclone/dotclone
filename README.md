@@ -116,7 +116,7 @@ The bindings are normalized so muscle memory works regardless of which profile i
 `kitty`, `alacritty`, `eza` (ls), `bat` (cat), `fzf`, `zoxide`, `starship`, `ripgrep`, `jq`, `fastfetch`, `macchina`, `btop`.
 
 **Gaming**
-`steam` (via program), `mangohud`, `latencyflex-vulkan`, `libratbag`.
+`mangohud`, `latencyflex-vulkan`, `libratbag`.
 
 **AI & Data**
 `python3` (numpy, pandas), `rocmPackages`, `aichat`.
