@@ -1,0 +1,26 @@
+/etc/nixos/
+├── flake.nix
+├── configuration.nix
+├── hardware-configuration.nix  (Your existing hardware file)
+├── home-ashy.nix
+└── modules
+    ├── zram-lz4.nix
+    ├── zram-writeback.nix
+    ├── zram-ztsd-aggressive.nix
+    ├── zram-ztsd-balanced.nix
+    ├── home
+    │   ├── niri-shared.nix
+    │   ├── options.nix
+    │   ├── shells.nix
+    │   ├── apps
+    │   │  ├── brave-webapps.nix
+    │   │  ├── btop.nix
+    │   │  └── cava.nix
+    │   └── terminals
+    │       └── kitty.nix
+    ├── noctalia
+    │   └── default.nix
+    └── waybar
+        ├── default.nix
+        ├── dynamic-island.nix
+        └── scripts.nix
