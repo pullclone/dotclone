@@ -107,7 +107,7 @@ The bindings are normalized so muscle memory works regardless of which profile i
 ## 📦 Core Package List
 
 **System & Utils**
-`git`, `curl`, `wget`, `micro`, `unzip`, `unrar`, `p7zip`, `libnotify`, `wl-clipboard`, `cliphist`, `grim`, `slurp`, `udiskie`, `socat`.
+`git`, `curl`, `wget`, `micro`, `unzip`, `unrar`, `p7zip`, `libnotify`, `wl-clipboard`, `cliphist`, `grim`, `slurp`, `udiskie`.
 
 **Audio & Video**
 `pipewire`, `wireplumber`, `pwvucontrol`, `playerctl`, `ffmpeg`, `mpv`, `gstreamer` (full plugins).
