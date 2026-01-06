@@ -1099,15 +1099,23 @@ in
 
   # Performance monitoring tools
   environment.systemPackages = with pkgs; [
+    # Core system utilities
+    util-linux
+    procps
+    iputils
+    iproute2
+    mkpasswd
+
+    # Benchmarking tools
+    stress-ng
+    iperf3
     sysstat
     iotop
     iftop
     nmon
     bpytop
     powertop
-  ];
 
-  services.udev.packages = [ pkgs.game-devices-udev-rules ];
 
   # Timezone configuration
   time.timeZone = "UTC";

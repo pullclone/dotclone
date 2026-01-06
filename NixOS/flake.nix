@@ -64,7 +64,8 @@
 
       # ISO output using the correct method
       packages.${system}.iso = let
-        iso = nixpkgs.lib.nixosSystem {
+        pkgs = nixpkgs.legacyPackages.${system};
+        iso = pkgs.lib.nixosSystem {
           inherit system;
           modules = [
             ({ config, pkgs, ... }: {
@@ -95,7 +96,7 @@
             })
           ];
         };
-      in pkgs.writeIsoImage {
+      in nixpkgs.writeIsoImage {
         name = "nyxos-installer";
         contents = [
           (pkgs.writeText "iso-config" ""

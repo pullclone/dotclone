@@ -21,7 +21,7 @@ default:
 check:
     #!/usr/bin/env bash
     set -euo pipefail
-    nix flake check
+    nix flake check ./NixOS
 
 [group('Nix')]
 build:
