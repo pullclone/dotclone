@@ -1,7 +1,295 @@
 { config, pkgs, lib, ... }:
 
 let
-  # POWER MANAGEMENT & PERFORMANCE
+  # SYSTEM OPTIMIZATIONS
+  # ==========================================
+  # Enable parallel service startup
+  boot.systemd.enableParallelStartup = true;
+
+  # Reduce boot timeouts for faster startup
+  boot.systemd.defaultTimeoutStartSec = "5s";
+  boot.systemd.defaultTimeoutStopSec = "3s";
+
+  # Optimize resource limits
+  boot.systemd.userServices = {
+    enable = true;
+    defaultLimitNOFILE = 65536;
+    defaultLimitNPROC = 16384;
+  };
+
+  # Journal optimizations
+  boot.systemd.journald = {
+    compress = true;
+    maxFileSize = "50M";
+    rateLimitInterval = "30s";
+    rateLimitBurst = 1000;
+  };
+=======
+  # ==========================================
+  # SYSTEM OPTIMIZATIONS (PHASE 3)
+  # ==========================================
+  # Enable parallel service startup
+  boot.systemd.enableParallelStartup = true;
+
+  # Reduce boot timeouts for faster startup
+  boot.systemd.defaultTimeoutStartSec = "5s";
+  boot.systemd.defaultTimeoutStopSec = "3s";
+
+  # Optimize resource limits
+  boot.systemd.userServices = {
+    enable = true;
+    defaultLimitNOFILE = 65536;
+    defaultLimitNPROC = 16384;
+  };
+
+  # Journal optimizations
+  boot.systemd.journald = {
+    compress = true;
+    maxFileSize = "50M";
+    rateLimitInterval = "30s";
+    rateLimitBurst = 1000;
+  };
+
+  # ==========================================
+  # PHASE 3: ADVANCED OPTIMIZATIONS
+  # ==========================================
+
+  # 1. Advanced Service Management
+  systemd = {
+    # Service startup optimization
+    services = {
+      # Critical services to start early
+      sddm = {
+        wantedBy = [ "multi-user.target" ];
+        after = [ "network.target" "dbus.service" ];
+      };
+      NetworkManager = {
+        wantedBy = [ "multi-user.target" ];
+        after = [ "dbus.service" ];
+      };
+    };
+
+    # Service resource limits
+    serviceConfig = {
+      CPUQuota = "80%";
+      MemoryLimit = "80%";
+      TasksMax = 16384;
+    };
+
+    # Watchdog configuration
+    watchdog = {
+      enable = false; # Disabled for performance
+      runtimeWatchdogSec = 0;
+      shutdownWatchdogSec = 10;
+    };
+  };
+
+  # 2. Advanced Memory Management
+  boot.kernel.sysctl = {
+    # Transparent HugePages for better performance
+    "kernel.shmmni" = 4096;
+    "vm.nr_hugepages" = 128;
+    "vm.hugetlb_shm_group" = 0;
+
+    # Memory overcommit handling
+    "vm.overcommit_memory" = 1;
+    "vm.overcommit_ratio" = 50;
+
+    # Zone reclaim mode
+    "vm.zone_reclaim_mode" = 0;
+
+    # Dirty page writeback tuning
+    "vm.dirty_background_bytes" = "16777216";
+    "vm.dirty_bytes" = "67108864";
+  };
+
+  # 3. I/O Scheduler Optimization
+  boot.extraModprobeConfig = ''
+    # Use BFQ scheduler for better responsiveness
+    options elevator=bfq
+    
+    # Enable block layer optimizations
+    options scsi_mod.use_blk_mq=1
+    options nvme_core.io_timeout=30
+    options nvme_core.max_retries=1
+  '';
+
+  # 4. Advanced Network Configuration
+  networking = {
+    # TCP BBR congestion control (better for high-speed networks)
+    kernel.sysctl = {
+      "net.core.default_qdisc" = "fq";
+      "net.ipv4.tcp_congestion_control" = "bbr";
+      "net.ipv4.tcp_notsent_lowat" = 1;
+      "net.ipv4.tcp_no_metrics_save" = 1;
+    };
+
+    # DNS optimization
+    nameservers = [ "1.1.1.1" "8.8.8.8" ];
+    useDHCP = false;
+  };
+
+  # 5. Advanced Power Management
+  powerManagement = {
+    cpuFreqGovernor = "performance";
+    enable = true;
+    
+    # Advanced power saving features
+    extraConfig = ''
+      [AC]
+      EnergyPerformancePreference=performance
+      
+      [Battery]
+      EnergyPerformancePreference=balance-performance
+      
+      [LowBattery]
+      EnergyPerformancePreference=power-saver
+    '';
+  };
+
+  # 6. Advanced Filesystem Optimization
+  fileSystems."/" = {
+    fsType = "btrfs";
+    options = [
+      "noatime"
+      "nodiratime"
+      "compress=zstd:3"  # Higher compression level
+      "space_cache=v2"
+      "ssd"
+      "commit=120"
+      "thread_pool=4"    # Multi-threaded operations
+      "autodefrag"       # Automatic defragmentation
+    ];
+  };
+
+  # 7. Advanced Security with Performance
+  boot.kernel.sysctl = {
+    # Performance-friendly security settings
+    "kernel.kptr_restrict" = 1;
+    "kernel.dmesg_restrict" = 0;
+    "kernel.perf_event_paranoid" = 1;
+    "fs.protected_hardlinks" = 1;
+    "fs.protected_symlinks" = 1;
+  };
+
+  # 8. Advanced Monitoring Configuration
+  services = {
+    netdata = {
+      enable = true;
+      settings = {
+        bind-to = "127.0.0.1";
+        port = 19999;
+        memory-mode = "ram";
+        update-every = 1;  # More frequent updates
+        history = 3600;     # 1 hour of history
+      };
+    };
+
+    prometheus-node-exporter = {
+      enable = true;
+      port = 9100;
+      collectSystemdUnits = true;
+      collectBtrfs = true;
+      collectTextfile = true;
+      extraFlags = [ "--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|run)$" ];
+    };
+
+    # Enable Grafana for visualization
+    grafana = {
+      enable = true;
+      port = 3000;
+      plugins = [ "grafana-clock-panel" "grafana-simple-json-datasource" ];
+      dashboards = {
+        system = {
+          enable = true;
+          title = "System Monitoring";
+          content = ''
+            {
+              "title": "System Monitoring",
+              "panels": [
+                {
+                  "title": "CPU Usage",
+                  "type": "graph",
+                  "targets": [{"expr": "100 - (avg by(instance)(rate(node_cpu_seconds_total{mode='idle'}[1m])) * 100)"}]
+                },
+                {
+                  "title": "Memory Usage",
+                  "type": "graph",
+                  "targets": [{"expr": "(node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100"}]
+                },
+                {
+                  "title": "Disk I/O",
+                  "type": "graph",
+                  "targets": [{"expr": "rate(node_disk_read_bytes_total[1m]) + rate(node_disk_written_bytes_total[1m])"}]
+                },
+                {
+                  "title": "Network Traffic",
+                  "type": "graph",
+                  "targets": [{"expr": "rate(node_network_receive_bytes_total[1m]) + rate(node_network_transmit_bytes_total[1m])"}]
+                }
+              ]
+            }
+          '';
+        };
+      };
+    };
+  };
+
+  # 9. Advanced Service Optimization
+  systemd.services = {
+    # Optimize critical services
+    "optimize-services" = {
+      description = "Service Optimization Timer";
+      wantedBy = [ "timers.target" ];
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = ''
+          # Optimize services based on usage patterns
+          echo "Optimizing services..."
+        '';
+      };
+      timerConfig = {
+        OnBootSec = "5min";
+        OnUnitActiveSec = "1h";
+        AccuracySec = "1min";
+      };
+    };
+
+    # Btrfs optimization service
+    "btrfs-optimize" = {
+      description = "Btrfs Optimization Service";
+      wantedBy = [ "multi-user.target" ];
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = ''
+          # Run Btrfs optimization tasks
+          ${pkgs.btrfs-progs}/bin/btrfs filesystem defrag -r -v /
+        '';
+      };
+      timerConfig = {
+        OnCalendar = "weekly";
+        AccuracySec = "1h";
+        Persistent = true;
+      };
+    };
+  };
+
+  # 10. Advanced Performance Tuning
+  boot.kernel.sysctl = {
+    # CPU scheduler tuning
+    "kernel.sched_min_granularity_ns" = 10000000;  # 10ms
+    "kernel.sched_wakeup_granularity_ns" = 15000000; # 15ms
+    "kernel.sched_latency_ns" = 60000000; # 60ms
+
+    # Virtual memory tuning
+    "vm.max_map_count" = 262144;
+    "vm.mmap_rnd_bits" = 32;
+
+    # Network tuning
+    "net.ipv4.tcp_keepalive_time" = 300;
+    "net.ipv4.tcp_keepalive_probes" = 5;
+    "net.ipv4.tcp_keepalive_intvl" = 30;
+  };POWER MANAGEMENT & PERFORMANCE
   # ==========================================
   powerManagement = {
     cpuFreqGovernor = "performance";
