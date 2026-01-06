@@ -350,7 +350,7 @@ lscpu
 | 1     | Filesystem      | better I/O + reduced disk usage          |
 | 1     | Network         | better throughput + lower latency        |
 | 2     | Services        | 15–30% better service performance        |
-| 2     | Monitoring      | full system visibility                   |
+| 2     | Monitoring      | better system visibility                   |
 | 3     | Advanced tuning | incremental gains for specific workloads |
 
 ---
