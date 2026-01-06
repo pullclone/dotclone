@@ -125,7 +125,18 @@ let
     };
 
     # DNS optimization
-    nameservers = [ "1.1.1.1" "8.8.8.8" ];
+    # Privacy-focused DNS servers
+    nameservers = [
+      "142.242.2.2"      # Mullvad
+      "94.140.14.14"     # AdGuard
+      "94.140.15.15"     # AdGuard
+      "149.112.112.112"  # Quad9
+      "9.9.9.9"          # Quad9
+      "1.1.1.2"          # Cloudflare
+      "1.0.0.2"          # Cloudflare
+      "1.1.1.1"          # Cloudflare
+      "1.0.0.1"          # Cloudflare
+    ];
     useDHCP = false;
   };
 
@@ -438,6 +449,11 @@ let
       };
     };
     enableIPv6 = false;
+
+    # Timezone - can be overridden by installation script
+    # Default: UTC
+    # time.timeZone = "UTC";
+  };
 
     # Custom Mac Address
     # interfaces.wlp1s0.useDHCP = true;
@@ -1092,5 +1108,9 @@ in
   ];
 
   services.udev.packages = [ pkgs.game-devices-udev-rules ];
+
+  # Timezone configuration
+  time.timeZone = "UTC";
+
   system.stateVersion = "25.11";
 }
