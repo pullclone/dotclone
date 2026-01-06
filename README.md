@@ -1,4 +1,3 @@
-````markdown
 # ❄️ NyxOS (NixOS 25.11) — Framework 13 AMD (AI 300 / Strix Point) + Niri
 
 A declarative, modular, opinionated **NixOS 25.11** flake for the **Framework 13 AMD (AI 300 / Strix Point)**.
