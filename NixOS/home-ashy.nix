@@ -45,5 +45,18 @@
 
     # AI
     aichat
+
+    # Btrfs management tools
+    btrfs-progs
+    btrbk  # Btrfs backup tool
+    snapper # Btrfs snapshot management
+
+    # Performance monitoring tools
+    sysstat
+    iotop
+    iftop
+    nmon
+    bpytop
+    powertop
   ];
 }

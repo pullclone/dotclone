@@ -33,7 +33,7 @@
     in {
       nixosConfigurations.nyx = nixpkgs.lib.nixosSystem {
         inherit system;
-        specialArgs = { inherit inputs pkgsUnstable; };
+        specialArgs = { inherit inputs pkgsUnstable stylix; };
         modules = [
           ./configuration.nix
 
@@ -51,9 +51,14 @@
           {
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = true;
-            home-manager.extraSpecialArgs = { inherit inputs pkgsUnstable; };
+            home-manager.extraSpecialArgs = { inherit inputs pkgsUnstable stylix; };
             home-manager.users.ashy = import ./home-ashy.nix;
           }
+          {
+            nixpkgs.overlays = [ (self: super: { stylix = stylix.lib; }) ];
+          }
+
+
         ];
       };
     };

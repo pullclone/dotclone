@@ -1,7 +1,344 @@
 { config, pkgs, lib, ... }:
 
 let
-  # --- 1. G502 MANAGER SCRIPT ---
+  # POWER MANAGEMENT & PERFORMANCE
+  # ==========================================
+  powerManagement = {
+    cpuFreqGovernor = "performance";
+    enable = true;
+  };
+
+  # Performance monitoring tools
+  environment.systemPackages = with pkgs; [
+    sysstat
+    iotop
+    iftop
+    nmon
+    bpytop
+    powertop
+  ];
+=======
+  # ==========================================
+  # POWER MANAGEMENT & PERFORMANCE
+  # ==========================================
+  powerManagement = {
+    cpuFreqGovernor = "performance";
+    enable = true;
+  };
+
+  # Performance monitoring tools
+  environment.systemPackages = with pkgs; [
+    sysstat
+    iotop
+    iftop
+    nmon
+    bpytop
+    powertop
+    # Advanced monitoring
+    netdata
+    prometheus-node-exporter
+    grafana
+  ];
+
+  # ==========================================
+  # ADVANCED MONITORING SERVICES
+  # ==========================================
+  services = {
+    # Netdata - comprehensive real-time monitoring
+    netdata = {
+      enable = true;
+      settings = {
+        bind-to = "127.0.0.1";
+        port = 19999;
+        # Reduce resource usage
+        memory-mode = "ram";
+        update-every = 2;
+      };
+    };
+
+    # Prometheus Node Exporter
+    prometheus-node-exporter = {
+      enable = true;
+      port = 9100;
+      collectSystemdUnits = true;
+      collectBtrfs = true;
+    };
+
+    # Grafana - visualization (disabled by default)
+    # grafana = {
+    #   enable = true;
+    #   port = 3000;
+    # };
+  };BTRFS OPTIMIZATIONS
+  # ==========================================
+  # Since you're using Btrfs, let's optimize it
+  environment.etc."btrfs-maintenance.xml".text = ''
+    <?xml version="1.0"?>
+    <config>
+      <periodic>
+        <balance enabled="true" interval="monthly"/>
+        <scrub enabled="true" interval="weekly" priority="nice"/>
+        <trim enabled="true" interval="daily" priority="nice"/>
+        <defrag enabled="false"/>
+      </periodic>
+    </config>
+  '';
+=======
+  # ==========================================
+  # BTRFS OPTIMIZATIONS (ENHANCED)
+  # ==========================================
+  # Since you're using Btrfs, let's optimize it
+  environment.etc."btrfs-maintenance.xml".text = ''
+    <?xml version="1.0"?>
+    <config>
+      <periodic>
+        <balance enabled="true" interval="monthly" priority="nice">
+          <filters>
+            <usage>80</usage>
+            <dusage>50</usage>
+          </filters>
+        </balance>
+        <scrub enabled="true" interval="weekly" priority="nice" />
+        <trim enabled="true" interval="daily" priority="nice" />
+        <defrag enabled="false" />
+      </periodic>
+      <syslog>warning</syslog>
+    </config>
+  '';
+
+  # Btrfs subvolume management
+  systemd.services.btrfs-scrub = {
+    description = "Btrfs Scrub Service";
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "${pkgs.btrfs-progs}/bin/btrfs scrub start /";
+    };
+    timerConfig = {
+      OnCalendar = "weekly";
+      AccuracySec = "1h";
+      Persistent = true;
+    };
+  };NETWORKING & SECURITY
+  # ==========================================
+  networking.hostName = "nyx";
+  networking.networkmanager.enable = true;
+  networking.enableIPv6 = false;
+
+  # Custom Mac Address
+  # networking.interfaces.wlp1s0.useDHCP = true;
+  # networking.interfaces.wlp1s0.macAddress = "11:22:33:44:55:66";
+  networking.interfaces.enp1s0.macAddress = "11:22:33:33:22:11";
+=======
+  # ==========================================
+  # NETWORKING & SECURITY (OPTIMIZED)
+  # ==========================================
+  networking = {
+    hostName = "nyx";
+    networkmanager = {
+      enable = true;
+      # Performance optimizations
+      settings = {
+        main = {
+          rc-manager = "file";
+          plugins = [ "keyfile" ];
+        };
+        logging = {
+          level = "INFO";
+          domains = "ALL";
+        };
+      };
+    };
+    enableIPv6 = false;
+
+    # Custom Mac Address
+    # interfaces.wlp1s0.useDHCP = true;
+    # interfaces.wlp1s0.macAddress = "11:22:33:44:55:66";
+    interfaces.enp1s0.macAddress = "11:22:33:33:22:11";
+
+    # Advanced network tuning
+    kernel.sysctl = {
+      # TCP optimizations
+      "net.core.somaxconn" = 4096;
+      "net.core.netdev_max_backlog" = 16384;
+      "net.core.rmem_max" = 16777216;
+      "net.core.wmem_max" = 16777216;
+      "net.ipv4.tcp_rmem" = "4096 87380 16777216";
+      "net.ipv4.tcp_wmem" = "4096 65536 16777216";
+      "net.ipv4.tcp_max_syn_backlog" = 8192;
+      "net.ipv4.tcp_slow_start_after_idle" = 0;
+      "net.ipv4.tcp_tw_reuse" = 1;
+      "net.ipv4.tcp_fin_timeout" = 30;
+      "net.ipv4.tcp_keepalive_time" = 300;
+      "net.ipv4.tcp_keepalive_probes" = 5;
+      "net.ipv4.tcp_keepalive_intvl" = 30;
+      # UDP optimizations
+      "net.ipv4.udp_rmem_min" = 8192;
+      "net.ipv4.udp_wmem_min" = 8192;
+      # Network buffer optimizations
+      "net.core.optmem_max" = 40960;
+    };
+
+    # DNS optimization
+    extraHosts = ''
+      127.0.0.1 localhost
+      ::1       localhost
+    '';
+  };AUDIO
+  # ==========================================
+  services.pipewire = {
+    enable = true;
+    alsa.enable = true;
+    alsa.support32Bit = true;
+    pulse.enable = true;
+    wireplumber.enable = true;
+  };
+=======
+  # ==========================================
+  # AUDIO (OPTIMIZED)
+  # ==========================================
+  services.pipewire = {
+    enable = true;
+    alsa.enable = true;
+    alsa.support32Bit = true;
+    pulse.enable = true;
+    wireplumber.enable = true;
+    # Performance optimizations
+    realtime = true;
+    systemSessionManager = true;
+    config = {
+      log-level = 2; # Reduce from default 3 to 2
+      default-clock.rate = 48000;
+      default-clock.quantum = 1024;
+      default-clock.min-quantum = 32;
+      default-clock.max-quantum = 2048;
+      # Memory optimizations
+      mem.allow-mlock = true;
+      mem.mlock-all = false;
+    };
+  };DISPLAY & GRAPHICS
+  # ==========================================
+  services.displayManager.sddm = {
+    enable = true;
+    wayland.enable = true;
+  };
+
+  # Pure Wayland
+  services.xserver.enable = false;
+
+  # Niri System Module
+  programs.niri.enable = true;
+=======
+  # ==========================================
+  # DISPLAY & GRAPHICS (OPTIMIZED)
+  # ==========================================
+  services.displayManager.sddm = {
+    enable = true;
+    wayland.enable = true;
+    # Performance optimizations
+    autoLogin = {
+      enable = false; # Disable if not needed
+      # user = "ashy"; # Uncomment if you want auto-login
+    };
+    theme = "breeze"; # Lightweight theme
+    sessionCommand = "${pkgs.sddm}/bin/sddm";
+    # Reduce memory usage
+    displayServer = "wayland";
+    # Optimize startup
+    minimumVT = 1;
+  };
+
+  # Pure Wayland
+  services.xserver.enable = false;
+
+  # Niri System Module - optimized
+  programs.niri = {
+    enable = true;
+    # Add any Niri-specific optimizations here
+    # settings = { ... };
+  };KERNEL & BOOT
+  # ==========================================
+  boot.loader.systemd-boot.enable = true;
+  boot.loader.efi.canTouchEfiVariables = true;
+  boot.kernelPackages = pkgs.linuxPackages_latest;
+  boot.kernelParams = [ "amd_pstate=active" "amdgpu.ppfeaturemask=0xffffffff" "quiet" "splash" ];
+  boot.plymouth.enable = true;
+=======
+  # ==========================================
+  # KERNEL & BOOT
+  # ==========================================
+  boot.loader.systemd-boot.enable = true;
+  boot.loader.efi.canTouchEfiVariables = true;
+  boot.kernelPackages = pkgs.linuxPackages_latest;
+  boot.kernelParams = [
+    "amd_pstate=active"
+    "amdgpu.ppfeaturemask=0xffffffff"
+    "quiet"
+    "splash"
+    "nowatchdog"       # Disable watchdog timer for performance
+    "nmi_watchdog=0"   # Disable NMI watchdog
+    "tsc=reliable"     # Trust the TSC (Time Stamp Counter)
+  ];
+  # SYSTEM OPTIMIZATIONS
+  # ==========================================
+=======
+  boot.plymouth.enable = true;
+
+  # Kernel sysctl optimizations
+  boot.kernel.sysctl = {
+    # Performance-friendly security settings
+    "kernel.kptr_restrict" = 1;
+    "fs.protected_hardlinks" = 1;
+    "kernel.yama.ptrace_scope" = 1;
+    "net.ipv6.conf.all.disable_ipv6" = 1;
+
+    # Memory management tuning
+    "vm.swappiness" = 10;
+    "vm.vfs_cache_pressure" = 50;
+    "vm.dirty_ratio" = 10;
+    "vm.dirty_background_ratio" = 5;
+    "vm.dirty_expire_centisecs" = 3000;
+    "vm.dirty_writeback_centisecs" = 500;
+
+    # Network optimizations
+    "net.core.somaxconn" = 4096;
+    "net.core.netdev_max_backlog" = 16384;
+    "net.core.rmem_max" = 16777216;
+    "net.core.wmem_max" = 16777216;
+    "net.ipv4.tcp_rmem" = "4096 87380 16777216";
+    "net.ipv4.tcp_wmem" = "4096 65536 16777216";
+    "net.ipv4.tcp_max_syn_backlog" = 8192;
+    "net.ipv4.tcp_slow_start_after_idle" = 0;
+    "net.ipv4.tcp_tw_reuse" = 1;
+    "net.ipv4.tcp_fin_timeout" = 30;
+  };
+
+  # ==========================================
+  # SYSTEM OPTIMIZATIONS
+  # ====================================================================================
+  # SYSTEM OPTIMIZATIONS
+  # ==========================================
+  # Enable parallel service startup
+  boot.systemd.enableParallelStartup = true;
+
+  # Reduce boot timeouts for faster startup
+  boot.systemd.defaultTimeoutStartSec = "5s";
+  boot.systemd.defaultTimeoutStopSec = "3s";
+
+  # Optimize resource limits
+  boot.systemd.userServices = {
+    enable = true;
+    defaultLimitNOFILE = 65536;
+    defaultLimitNPROC = 16384;
+  };
+
+  # Journal optimizations
+  boot.systemd.journald = {
+    compress = true;
+    maxFileSize = "50M";
+    rateLimitInterval = "30s";
+    rateLimitBurst = 1000;
+  };--- 1. G502 MANAGER SCRIPT ---
   g502Manager = pkgs.writeShellScriptBin "g502-manager" ''
     #!/usr/bin/env bash
     set -euo pipefail
@@ -252,17 +589,61 @@ in
     };
   };
 
-  # Services
-  services.ratbagd.enable = true; # Gaming Mouse
-  services.power-profiles-daemon.enable = true; # Noctalia Req
-  services.upower.enable = true; # Noctalia Req
+  # ==========================================
+  # SERVICE OPTIMIZATIONS (PHASE 2)
+  # ==========================================
+  # Optimized service configurations
+  services = {
+    # Gaming Mouse - keep enabled
+    ratbagd.enable = true;
 
-  # Thunar/GNOME integration
-  services.gvfs.enable = true;
-  services.tumbler.enable = true;
-  services.gnome.evolution-data-server.enable = true; # Calendar events
-  services.gnome.gnome-keyring.enable = true; # Secrets
+    # Power management - optimized
+    power-profiles-daemon = {
+      enable = true;
+      defaultProfile = "performance";
+      # Reduce logging verbosity
+      extraConfig = ''
+        [log]
+        level = warning
+      '';
+    };
 
+    # UPower - optimized
+    upower = {
+      enable = true;
+      criticalPowerAction = "HybridSleep";
+      usePercentageForPolicy = true;
+      percentageLow = 20;
+      percentageCritical = 5;
+      percentageAction = 3;
+    };
+
+    # Thunar/GNOME integration - optimized
+    gvfs.enable = true;
+    tumbler.enable = true;
+
+    # GNOME services - optimized
+    gnome = {
+      evolution-data-server = {
+        enable = true;
+        # Reduce memory usage
+        extraConfig = ''
+          [Memory]
+          CacheSize = 50
+        '';
+      };
+      gnome-keyring = {
+        enable = true;
+        # Optimize keyring performance
+        extraConfig = ''
+          [daemon]
+          login-timeout = 300
+        '';
+      };
+    };
+  };
+
+  # PAM configuration for GNOME keyring
   security.pam.services.login.enableGnomeKeyring = true;
 
   # ==========================================
@@ -323,10 +704,40 @@ in
     initialPassword = "icecream";
   };
 
+  # SYSTEM PACKAGES
+  # ==========================================
+  environment.systemPackages = with pkgs; [
+=======
   programs.fish.enable = true;
   programs.bash.enable = true;
 
   # ==========================================
+  # BTRFS OPTIMIZATIONS
+  # ==========================================
+  # Since you're using Btrfs, let's optimize it
+  environment.etc."btrfs-maintenance.xml".text = ''
+    <?xml version="1.0"?>
+    <config>
+      <periodic>
+        <balance enabled="true" interval="monthly"/>
+        <scrub enabled="true" interval="weekly" priority="nice"/>
+        <trim enabled="true" interval="daily" priority="nice"/>
+        <defrag enabled="false"/>
+      </periodic>
+    </config>
+  '';
+
+  # Btrfs system packages
+  environment.systemPackages = with pkgs; [
+    btrfs-progs
+    btrbk
+    snapper
+  ];
+
+  # ==========================================
+  # SYSTEM PACKAGES
+  # ==========================================
+  environment.systemPackages = with pkgs; [==========================================
   # SYSTEM PACKAGES
   # ==========================================
   environment.systemPackages = with pkgs; [
@@ -372,6 +783,24 @@ in
       "CascadiaCode" "Hermit" "Inconsolata" "Terminus"
     ]; })
     noto-fonts-cjk-sans noto-fonts-emoji
+  ];
+
+  # ==========================================
+  # POWER MANAGEMENT & PERFORMANCE
+  # ==========================================
+  powerManagement = {
+    cpuFreqGovernor = "performance";
+    enable = true;
+  };
+
+  # Performance monitoring tools
+  environment.systemPackages = with pkgs; [
+    sysstat
+    iotop
+    iftop
+    nmon
+    bpytop
+    powertop
   ];
 
   services.udev.packages = [ pkgs.game-devices-udev-rules ];

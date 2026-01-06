@@ -46,7 +46,6 @@
     # --- 3. CORE BINDS (Shared) ---
     binds = with config.lib.niri.actions; {
       "Mod+Shift+Slash".action = show-hotkey-overlay;
-      "Mod+L".action = spawn "swaylock";
 
       # Apps (Terminal/Files determined by system defaults)
       "Mod+Return".action = spawn "kitty";

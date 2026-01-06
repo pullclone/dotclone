@@ -27,13 +27,13 @@ check:
 build:
     #!/usr/bin/env bash
     set -euo pipefail
-    nix build ".#nixosConfigurations.{{ system }}.config.system.build.toplevel"
+    nix build ".#nixosConfigurations.nyx.config.system.build.toplevel"
 
 [group('Nix')]
-switch $host={{ system }}:
+switch:
     #!/usr/bin/env bash
     set -euo pipefail
-    sudo nixos-rebuild switch --flake ".#{{ host }}"
+    sudo nixos-rebuild switch --flake ".#nyx"
 
 [group('Lint')]
 lint-shell:
