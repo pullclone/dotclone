@@ -1,64 +1,31 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, stylix, inputs, ... }:
 
-let
-  # SYSTEM OPTIMIZATIONS
-  # ==========================================
-  # Enable parallel service startup
-  boot.systemd.enableParallelStartup = true;
+{
+  imports = [ ./hardware-configuration.nix ];
 
-  # Reduce boot timeouts for faster startup
-  boot.systemd.defaultTimeoutStartSec = "5s";
-  boot.systemd.defaultTimeoutStopSec = "3s";
+  # Kernel and boot settings
+  boot.kernelPackages = pkgs.linuxPackages_latest;
+  boot.kernelParams = [
+    "amd_pstate=active"
+    "amdgpu.ppfeaturemask=0xffffffff"
+    "quiet"
+    "splash"
+  ];
 
-  # Optimize resource limits
-  boot.systemd.userServices = {
-    enable = true;
-    defaultLimitNOFILE = 65536;
-    defaultLimitNPROC = 16384;
-  };
+  boot.plymouth.enable = true;
 
-  # Journal optimizations
-  boot.systemd.journald = {
-    compress = true;
-    maxFileSize = "50M";
-    rateLimitInterval = "30s";
-    rateLimitBurst = 1000;
-  };
-=======
-  # ==========================================
-  # SYSTEM OPTIMIZATIONS (PHASE 3)
-  # ==========================================
-  # Enable parallel service startup
-  boot.systemd.enableParallelStartup = true;
+  # Enable experimental features for Nix
+  nix.settings.experimental-features = [
+    "nix-command"
+    "flakes"
+    "home-manager"
+    "auto-optimize-store"
+    "ca-derivations"
+  ];
 
-  # Reduce boot timeouts for faster startup
-  boot.systemd.defaultTimeoutStartSec = "5s";
-  boot.systemd.defaultTimeoutStopSec = "3s";
-
-  # Optimize resource limits
-  boot.systemd.userServices = {
-    enable = true;
-    defaultLimitNOFILE = 65536;
-    defaultLimitNPROC = 16384;
-  };
-
-  # Journal optimizations
-  boot.systemd.journald = {
-    compress = true;
-    maxFileSize = "50M";
-    rateLimitInterval = "30s";
-    rateLimitBurst = 1000;
-  };
-
-  # ==========================================
-  # PHASE 3: ADVANCED OPTIMIZATIONS
-  # ==========================================
-
-  # 1. Advanced Service Management
+  # Advanced Service Management
   systemd = {
-    # Service startup optimization
     services = {
-      # Critical services to start early
       sddm = {
         wantedBy = [ "multi-user.target" ];
         after = [ "network.target" "dbus.service" ];
@@ -68,64 +35,65 @@ let
         after = [ "dbus.service" ];
       };
     };
-
-    # Service resource limits
-    serviceConfig = {
-      CPUQuota = "80%";
-      MemoryLimit = "80%";
-      TasksMax = 16384;
-    };
-
-    # Watchdog configuration
-    watchdog = {
-      enable = false; # Disabled for performance
-      runtimeWatchdogSec = 0;
-      shutdownWatchdogSec = 10;
-    };
   };
 
-  # 2. Advanced Memory Management
+  # Journal optimizations
+  services.journald.extraConfig = ''
+    Compress=yes
+    SystemMaxFileSize=50M
+    RateLimitIntervalSec=30s
+    RateLimitBurst=1000
+  '';
+
+  # Advanced Memory & Kernel Tuning
   boot.kernel.sysctl = {
-    # Transparent HugePages for better performance
+    # Memory management
     "kernel.shmmni" = 4096;
     "vm.nr_hugepages" = 128;
     "vm.hugetlb_shm_group" = 0;
-
-    # Memory overcommit handling
     "vm.overcommit_memory" = 1;
     "vm.overcommit_ratio" = 50;
-
-    # Zone reclaim mode
     "vm.zone_reclaim_mode" = 0;
-
-    # Dirty page writeback tuning
     "vm.dirty_background_bytes" = "16777216";
     "vm.dirty_bytes" = "67108864";
+    "vm.dirty_ratio" = 10;
+    "vm.max_map_count" = 262144;
+    "vm.mmap_rnd_bits" = 32;
+
+    # Security and hardening
+    "kernel.kptr_restrict" = 2;
+    "kernel.dmesg_restrict" = 0;
+    "kernel.perf_event_paranoid" = 1;
+    "kernel.yama.ptrace_scope" = 1;
+    "fs.protected_hardlinks" = 1;
+    "fs.protected_symlinks" = 1;
+
+    # Scheduler and network behaviour
+    "kernel.sched_min_granularity_ns" = 10000000;
+    "kernel.sched_wakeup_granularity_ns" = 15000000;
+    "kernel.sched_latency_ns" = 60000000;
+    "net.core.default_qdisc" = "fq";
+    "net.ipv4.tcp_congestion_control" = "bbr";
+    "net.ipv4.tcp_notsent_lowat" = 1;
+    "net.ipv4.tcp_no_metrics_save" = 1;
+    "net.ipv4.tcp_keepalive_time" = 300;
+    "net.ipv4.tcp_keepalive_probes" = 5;
+    "net.ipv4.tcp_keepalive_intvl" = 30;
+    "net.ipv6.conf.all.disable_ipv6" = 1;
   };
 
-  # 3. I/O Scheduler Optimization
+  # I/O Scheduler Optimization
   boot.extraModprobeConfig = ''
-    # Use BFQ scheduler for better responsiveness
     options elevator=bfq
-    
-    # Enable block layer optimizations
     options scsi_mod.use_blk_mq=1
     options nvme_core.io_timeout=30
     options nvme_core.max_retries=1
   '';
 
-  # 4. Advanced Network Configuration
-  networking = {
-    # TCP BBR congestion control (better for high-speed networks)
-    kernel.sysctl = {
-      "net.core.default_qdisc" = "fq";
-      "net.ipv4.tcp_congestion_control" = "bbr";
-      "net.ipv4.tcp_notsent_lowat" = 1;
-      "net.ipv4.tcp_no_metrics_save" = 1;
-    };
+  nixpkgs.config.allowUnfree = true;
 
-    # DNS optimization
-    # Privacy-focused DNS servers
+  # Advanced Network Configuration
+  networking = {
     nameservers = [
       "142.242.2.2"      # Mullvad
       "94.140.14.14"     # AdGuard
@@ -140,253 +108,77 @@ let
     useDHCP = false;
   };
 
-  # 5. Advanced Power Management
+  # Advanced Power Management
   powerManagement = {
     cpuFreqGovernor = "performance";
     enable = true;
-    
-    # Advanced power saving features
-    extraConfig = ''
-      [AC]
-      EnergyPerformancePreference=performance
-      
-      [Battery]
-      EnergyPerformancePreference=balance-performance
-      
-      [LowBattery]
-      EnergyPerformancePreference=power-saver
-    '';
   };
 
-  # 6. Advanced Filesystem Optimization
+  # Advanced Filesystem Optimization
   fileSystems."/" = {
     fsType = "btrfs";
     options = [
       "noatime"
       "nodiratime"
-      "compress=zstd:3"  # Higher compression level
+      "compress=zstd:3"
       "space_cache=v2"
       "ssd"
       "commit=120"
-      "thread_pool=4"    # Multi-threaded operations
-      "autodefrag"       # Automatic defragmentation
+      "thread_pool=4"
+      "autodefrag"
     ];
   };
 
-  # 7. Advanced Security with Performance
-  boot.kernel.sysctl = {
-    # Performance-friendly security settings
-    "kernel.kptr_restrict" = 1;
-    "kernel.dmesg_restrict" = 0;
-    "kernel.perf_event_paranoid" = 1;
-    "fs.protected_hardlinks" = 1;
-    "fs.protected_symlinks" = 1;
-  };
-
-  # 8. Advanced Monitoring Configuration
+  # Advanced Monitoring Configuration
   services = {
     netdata = {
       enable = true;
-      settings = {
-        bind-to = "127.0.0.1";
-        port = 19999;
-        memory-mode = "ram";
-        update-every = 1;  # More frequent updates
-        history = 3600;     # 1 hour of history
+    };
+
+    prometheus = {
+      exporters.node = {
+        enable = true;
+        port = 9100;
+        enabledCollectors = [ "systemd" "btrfs" "textfile" ];
+        extraFlags = [
+          "--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|run)$"
+        ];
+        openFirewall = false;
       };
     };
 
-    prometheus-node-exporter = {
-      enable = true;
-      port = 9100;
-      collectSystemdUnits = true;
-      collectBtrfs = true;
-      collectTextfile = true;
-      extraFlags = [ "--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|run)$" ];
-    };
-
-    # Enable Grafana for visualization
     grafana = {
       enable = true;
-      port = 3000;
-      plugins = [ "grafana-clock-panel" "grafana-simple-json-datasource" ];
-      dashboards = {
-        system = {
-          enable = true;
-          title = "System Monitoring";
-          content = ''
-            {
-              "title": "System Monitoring",
-              "panels": [
-                {
-                  "title": "CPU Usage",
-                  "type": "graph",
-                  "targets": [{"expr": "100 - (avg by(instance)(rate(node_cpu_seconds_total{mode='idle'}[1m])) * 100)"}]
-                },
-                {
-                  "title": "Memory Usage",
-                  "type": "graph",
-                  "targets": [{"expr": "(node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100"}]
-                },
-                {
-                  "title": "Disk I/O",
-                  "type": "graph",
-                  "targets": [{"expr": "rate(node_disk_read_bytes_total[1m]) + rate(node_disk_written_bytes_total[1m])"}]
-                },
-                {
-                  "title": "Network Traffic",
-                  "type": "graph",
-                  "targets": [{"expr": "rate(node_network_receive_bytes_total[1m]) + rate(node_network_transmit_bytes_total[1m])"}]
-                }
-              ]
-            }
-          '';
-        };
-      };
+      settings.server.http_port = 3000;
     };
   };
 
-  # 9. Advanced Service Optimization
+  # Advanced Service Optimization
   systemd.services = {
-    # Optimize critical services
     "optimize-services" = {
       description = "Service Optimization Timer";
       wantedBy = [ "timers.target" ];
       serviceConfig = {
         Type = "oneshot";
         ExecStart = ''
-          # Optimize services based on usage patterns
           echo "Optimizing services..."
         '';
       };
-      timerConfig = {
-        OnBootSec = "5min";
-        OnUnitActiveSec = "1h";
-        AccuracySec = "1min";
-      };
     };
 
-    # Btrfs optimization service
     "btrfs-optimize" = {
       description = "Btrfs Optimization Service";
       wantedBy = [ "multi-user.target" ];
       serviceConfig = {
         Type = "oneshot";
         ExecStart = ''
-          # Run Btrfs optimization tasks
           ${pkgs.btrfs-progs}/bin/btrfs filesystem defrag -r -v /
         '';
       };
-      timerConfig = {
-        OnCalendar = "weekly";
-        AccuracySec = "1h";
-        Persistent = true;
-      };
     };
   };
 
-  # 10. Advanced Performance Tuning
-  boot.kernel.sysctl = {
-    # CPU scheduler tuning
-    "kernel.sched_min_granularity_ns" = 10000000;  # 10ms
-    "kernel.sched_wakeup_granularity_ns" = 15000000; # 15ms
-    "kernel.sched_latency_ns" = 60000000; # 60ms
-
-    # Virtual memory tuning
-    "vm.max_map_count" = 262144;
-    "vm.mmap_rnd_bits" = 32;
-
-    # Network tuning
-    "net.ipv4.tcp_keepalive_time" = 300;
-    "net.ipv4.tcp_keepalive_probes" = 5;
-    "net.ipv4.tcp_keepalive_intvl" = 30;
-  };POWER MANAGEMENT & PERFORMANCE
-  # ==========================================
-  powerManagement = {
-    cpuFreqGovernor = "performance";
-    enable = true;
-  };
-
-  # Performance monitoring tools
-  environment.systemPackages = with pkgs; [
-    sysstat
-    iotop
-    iftop
-    nmon
-    bpytop
-    powertop
-  ];
-=======
-  # ==========================================
-  # POWER MANAGEMENT & PERFORMANCE
-  # ==========================================
-  powerManagement = {
-    cpuFreqGovernor = "performance";
-    enable = true;
-  };
-
-  # Performance monitoring tools
-  environment.systemPackages = with pkgs; [
-    sysstat
-    iotop
-    iftop
-    nmon
-    bpytop
-    powertop
-    # Advanced monitoring
-    netdata
-    prometheus-node-exporter
-    grafana
-  ];
-
-  # ==========================================
-  # ADVANCED MONITORING SERVICES
-  # ==========================================
-  services = {
-    # Netdata - comprehensive real-time monitoring
-    netdata = {
-      enable = true;
-      settings = {
-        bind-to = "127.0.0.1";
-        port = 19999;
-        # Reduce resource usage
-        memory-mode = "ram";
-        update-every = 2;
-      };
-    };
-
-    # Prometheus Node Exporter
-    prometheus-node-exporter = {
-      enable = true;
-      port = 9100;
-      collectSystemdUnits = true;
-      collectBtrfs = true;
-    };
-
-    # Grafana - visualization (disabled by default)
-    # grafana = {
-    #   enable = true;
-    #   port = 3000;
-    # };
-  };BTRFS OPTIMIZATIONS
-  # ==========================================
-  # Since you're using Btrfs, let's optimize it
-  environment.etc."btrfs-maintenance.xml".text = ''
-    <?xml version="1.0"?>
-    <config>
-      <periodic>
-        <balance enabled="true" interval="monthly"/>
-        <scrub enabled="true" interval="weekly" priority="nice"/>
-        <trim enabled="true" interval="daily" priority="nice"/>
-        <defrag enabled="false"/>
-      </periodic>
-    </config>
-  '';
-=======
-  # ==========================================
-  # BTRFS OPTIMIZATIONS (ENHANCED)
-  # ==========================================
-  # Since you're using Btrfs, let's optimize it
+  # Btrfs Optimization
   environment.etc."btrfs-maintenance.xml".text = ''
     <?xml version="1.0"?>
     <config>
@@ -405,447 +197,10 @@ let
     </config>
   '';
 
-  # Btrfs subvolume management
-  systemd.services.btrfs-scrub = {
-    description = "Btrfs Scrub Service";
-    wantedBy = [ "multi-user.target" ];
-    serviceConfig = {
-      Type = "oneshot";
-      ExecStart = "${pkgs.btrfs-progs}/bin/btrfs scrub start /";
-    };
-    timerConfig = {
-      OnCalendar = "weekly";
-      AccuracySec = "1h";
-      Persistent = true;
-    };
-  };NETWORKING & SECURITY
-  # ==========================================
+  # Networking & Security
   networking.hostName = "nyx";
   networking.networkmanager.enable = true;
   networking.enableIPv6 = false;
-
-  # Custom Mac Address
-  # networking.interfaces.wlp1s0.useDHCP = true;
-  # networking.interfaces.wlp1s0.macAddress = "11:22:33:44:55:66";
-  networking.interfaces.enp1s0.macAddress = "11:22:33:33:22:11";
-=======
-  # ==========================================
-  # NETWORKING & SECURITY (OPTIMIZED)
-  # ==========================================
-  networking = {
-    hostName = "nyx";
-    networkmanager = {
-      enable = true;
-      # Performance optimizations
-      settings = {
-        main = {
-          rc-manager = "file";
-          plugins = [ "keyfile" ];
-        };
-        logging = {
-          level = "INFO";
-          domains = "ALL";
-        };
-      };
-    };
-    enableIPv6 = false;
-
-    # Timezone - can be overridden by installation script
-    # Default: UTC
-    # time.timeZone = "UTC";
-  };
-
-    # Custom Mac Address
-    # interfaces.wlp1s0.useDHCP = true;
-    # interfaces.wlp1s0.macAddress = "11:22:33:44:55:66";
-    interfaces.enp1s0.macAddress = "11:22:33:33:22:11";
-
-    # Advanced network tuning
-    kernel.sysctl = {
-      # TCP optimizations
-      "net.core.somaxconn" = 4096;
-      "net.core.netdev_max_backlog" = 16384;
-      "net.core.rmem_max" = 16777216;
-      "net.core.wmem_max" = 16777216;
-      "net.ipv4.tcp_rmem" = "4096 87380 16777216";
-      "net.ipv4.tcp_wmem" = "4096 65536 16777216";
-      "net.ipv4.tcp_max_syn_backlog" = 8192;
-      "net.ipv4.tcp_slow_start_after_idle" = 0;
-      "net.ipv4.tcp_tw_reuse" = 1;
-      "net.ipv4.tcp_fin_timeout" = 30;
-      "net.ipv4.tcp_keepalive_time" = 300;
-      "net.ipv4.tcp_keepalive_probes" = 5;
-      "net.ipv4.tcp_keepalive_intvl" = 30;
-      # UDP optimizations
-      "net.ipv4.udp_rmem_min" = 8192;
-      "net.ipv4.udp_wmem_min" = 8192;
-      # Network buffer optimizations
-      "net.core.optmem_max" = 40960;
-    };
-
-    # DNS optimization
-    extraHosts = ''
-      127.0.0.1 localhost
-      ::1       localhost
-    '';
-  };AUDIO
-  # ==========================================
-  services.pipewire = {
-    enable = true;
-    alsa.enable = true;
-    alsa.support32Bit = true;
-    pulse.enable = true;
-    wireplumber.enable = true;
-  };
-=======
-  # ==========================================
-  # AUDIO (OPTIMIZED)
-  # ==========================================
-  services.pipewire = {
-    enable = true;
-    alsa.enable = true;
-    alsa.support32Bit = true;
-    pulse.enable = true;
-    wireplumber.enable = true;
-    # Performance optimizations
-    realtime = true;
-    systemSessionManager = true;
-    config = {
-      log-level = 2; # Reduce from default 3 to 2
-      default-clock.rate = 48000;
-      default-clock.quantum = 1024;
-      default-clock.min-quantum = 32;
-      default-clock.max-quantum = 2048;
-      # Memory optimizations
-      mem.allow-mlock = true;
-      mem.mlock-all = false;
-    };
-  };DISPLAY & GRAPHICS
-  # ==========================================
-  services.displayManager.sddm = {
-    enable = true;
-    wayland.enable = true;
-  };
-
-  # Pure Wayland
-  services.xserver.enable = false;
-
-  # Niri System Module
-  programs.niri.enable = true;
-=======
-  # ==========================================
-  # DISPLAY & GRAPHICS (OPTIMIZED)
-  # ==========================================
-  services.displayManager.sddm = {
-    enable = true;
-    wayland.enable = true;
-    # Performance optimizations
-    autoLogin = {
-      enable = false; # Disable if not needed
-      # user = "ashy"; # Uncomment if you want auto-login
-    };
-    theme = "breeze"; # Lightweight theme
-    sessionCommand = "${pkgs.sddm}/bin/sddm";
-    # Reduce memory usage
-    displayServer = "wayland";
-    # Optimize startup
-    minimumVT = 1;
-  };
-
-  # Pure Wayland
-  services.xserver.enable = false;
-
-  # Niri System Module - optimized
-  programs.niri = {
-    enable = true;
-    # Add any Niri-specific optimizations here
-    # settings = { ... };
-  };KERNEL & BOOT
-  # ==========================================
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.canTouchEfiVariables = true;
-  boot.kernelPackages = pkgs.linuxPackages_latest;
-  boot.kernelParams = [ "amd_pstate=active" "amdgpu.ppfeaturemask=0xffffffff" "quiet" "splash" ];
-  boot.plymouth.enable = true;
-=======
-  # ==========================================
-  # KERNEL & BOOT
-  # ==========================================
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.canTouchEfiVariables = true;
-  boot.kernelPackages = pkgs.linuxPackages_latest;
-  boot.kernelParams = [
-    "amd_pstate=active"
-    "amdgpu.ppfeaturemask=0xffffffff"
-    "quiet"
-    "splash"
-    "nowatchdog"       # Disable watchdog timer for performance
-    "nmi_watchdog=0"   # Disable NMI watchdog
-    "tsc=reliable"     # Trust the TSC (Time Stamp Counter)
-  ];
-  # SYSTEM OPTIMIZATIONS
-  # ==========================================
-=======
-  boot.plymouth.enable = true;
-
-  # Kernel sysctl optimizations
-  boot.kernel.sysctl = {
-    # Performance-friendly security settings
-    "kernel.kptr_restrict" = 1;
-    "fs.protected_hardlinks" = 1;
-    "kernel.yama.ptrace_scope" = 1;
-    "net.ipv6.conf.all.disable_ipv6" = 1;
-
-    # Memory management tuning
-    "vm.swappiness" = 10;
-    "vm.vfs_cache_pressure" = 50;
-    "vm.dirty_ratio" = 10;
-    "vm.dirty_background_ratio" = 5;
-    "vm.dirty_expire_centisecs" = 3000;
-    "vm.dirty_writeback_centisecs" = 500;
-
-    # Network optimizations
-    "net.core.somaxconn" = 4096;
-    "net.core.netdev_max_backlog" = 16384;
-    "net.core.rmem_max" = 16777216;
-    "net.core.wmem_max" = 16777216;
-    "net.ipv4.tcp_rmem" = "4096 87380 16777216";
-    "net.ipv4.tcp_wmem" = "4096 65536 16777216";
-    "net.ipv4.tcp_max_syn_backlog" = 8192;
-    "net.ipv4.tcp_slow_start_after_idle" = 0;
-    "net.ipv4.tcp_tw_reuse" = 1;
-    "net.ipv4.tcp_fin_timeout" = 30;
-  };
-
-  # ==========================================
-  # SYSTEM OPTIMIZATIONS
-  # ====================================================================================
-  # SYSTEM OPTIMIZATIONS
-  # ==========================================
-  # Enable parallel service startup
-  boot.systemd.enableParallelStartup = true;
-
-  # Reduce boot timeouts for faster startup
-  boot.systemd.defaultTimeoutStartSec = "5s";
-  boot.systemd.defaultTimeoutStopSec = "3s";
-
-  # Optimize resource limits
-  boot.systemd.userServices = {
-    enable = true;
-    defaultLimitNOFILE = 65536;
-    defaultLimitNPROC = 16384;
-  };
-
-  # Journal optimizations
-  boot.systemd.journald = {
-    compress = true;
-    maxFileSize = "50M";
-    rateLimitInterval = "30s";
-    rateLimitBurst = 1000;
-  };--- 1. G502 MANAGER SCRIPT ---
-  g502Manager = pkgs.writeShellScriptBin "g502-manager" ''
-    #!/usr/bin/env bash
-    set -euo pipefail
-
-    # Configuration
-    MOUSE_NAME="Logitech G502"
-    TOTAL_PROFILES=5
-    CONFIG_DIR="''${XDG_CONFIG_HOME:-$HOME/.config}/g502-profiles"
-    STATE_FILE="$CONFIG_DIR/current_profile"
-
-    mkdir -p "$CONFIG_DIR"
-    if [[ ! -f "$STATE_FILE" ]]; then echo "1" > "$STATE_FILE"; fi
-
-    get_current_profile() {
-        if [[ -f "$STATE_FILE" ]]; then cat "$STATE_FILE"; else echo "0"; fi
-    }
-
-    set_profile() {
-        local profile=$1
-        # Use ratbagctl to set profile
-        if ${pkgs.libratbag}/bin/ratbagctl "$MOUSE_NAME" profile active set "$profile" 2>/dev/null; then
-            echo "$profile" > "$STATE_FILE"
-            ${pkgs.libnotify}/bin/notify-send "G502 Profile" "Switched to Profile $profile" -t 1000
-        else
-            echo "Error: Failed to switch to profile $profile" >&2
-        fi
-    }
-
-    cycle_profile() {
-        local direction=$1
-        local current=$(get_current_profile)
-        local new_profile
-        if [[ "$direction" == "next" ]]; then
-            new_profile=$(( (current + 1) % TOTAL_PROFILES ))
-        else
-            new_profile=$(( (current + TOTAL_PROFILES - 1) % TOTAL_PROFILES ))
-        fi
-        set_profile "$new_profile"
-    }
-
-    case "''${1:-}" in
-        next) cycle_profile "next" ;;
-        prev) cycle_profile "prev" ;;
-        set)  set_profile "$2" ;;
-        get)  get_current_profile ;;
-        setup)
-            echo "Configuring G502 Hardware Profiles via Ratbag..."
-            RATBAG="${pkgs.libratbag}/bin/ratbagctl"
-
-            # Profile 0: Desktop
-            $RATBAG "$MOUSE_NAME" profile 0 button 4 action set key F13
-            $RATBAG "$MOUSE_NAME" profile 0 button 5 action set key KEY_LEFTALT
-            $RATBAG "$MOUSE_NAME" profile 0 button 6 action set key F14
-            $RATBAG "$MOUSE_NAME" profile 0 button 7 action set key F15
-            $RATBAG "$MOUSE_NAME" profile 0 button 8 action set key F16
-            $RATBAG "$MOUSE_NAME" profile 0 button 9 action set key F23
-
-            # Profile 1: Creative
-            $RATBAG "$MOUSE_NAME" profile 1 button 4 action set key F17
-            $RATBAG "$MOUSE_NAME" profile 1 button 5 action set key KEY_LEFTALT
-            $RATBAG "$MOUSE_NAME" profile 1 button 6 action set key F18
-            $RATBAG "$MOUSE_NAME" profile 1 button 7 action set key F19
-            $RATBAG "$MOUSE_NAME" profile 1 button 8 action set key F20
-            $RATBAG "$MOUSE_NAME" profile 1 button 9 action set key F23
-
-            # Profile 2: Extended
-            $RATBAG "$MOUSE_NAME" profile 2 button 4 action set key F21
-            $RATBAG "$MOUSE_NAME" profile 2 button 5 action set key KEY_LEFTALT
-            $RATBAG "$MOUSE_NAME" profile 2 button 6 action set key F22
-            $RATBAG "$MOUSE_NAME" profile 2 button 7 action set key F23
-            $RATBAG "$MOUSE_NAME" profile 2 button 8 action set key F24
-            $RATBAG "$MOUSE_NAME" profile 2 button 9 action set key F23
-
-            # Profile 3: Gaming
-            $RATBAG "$MOUSE_NAME" profile 3 button 4 action set key KEY_C
-            $RATBAG "$MOUSE_NAME" profile 3 button 5 action set key KEY_X
-            $RATBAG "$MOUSE_NAME" profile 3 button 6 action set key KEY_V
-            $RATBAG "$MOUSE_NAME" profile 3 button 7 action set key KEY_B
-            $RATBAG "$MOUSE_NAME" profile 3 button 8 action set key KEY_Z
-            $RATBAG "$MOUSE_NAME" profile 3 button 9 action set key KEY_TAB
-
-            # Profile 4: Media
-            $RATBAG "$MOUSE_NAME" profile 4 button 4 action set key KEY_PLAYPAUSE
-            $RATBAG "$MOUSE_NAME" profile 4 button 5 action set key KEY_LEFTALT
-            $RATBAG "$MOUSE_NAME" profile 4 button 6 action set key KEY_NEXTSONG
-            $RATBAG "$MOUSE_NAME" profile 4 button 7 action set key KEY_PREVIOUSSONG
-            $RATBAG "$MOUSE_NAME" profile 4 button 8 action set key KEY_VOLUMEDOWN
-            $RATBAG "$MOUSE_NAME" profile 4 button 9 action set key KEY_MUTE
-            $RATBAG "$MOUSE_NAME" profile 4 button 10 action set key KEY_VOLUMEUP
-
-            echo "G502 Configuration Complete."
-            ;;
-        *) echo "Usage: g502-manager {next|prev|set N|get|setup}" ;;
-    esac
-  '';
-
-  # --- 2. AI CHAT SWAPPER ---
-  aichatSwap = pkgs.writeShellScriptBin "aichat-swap" ''
-    #!/usr/bin/env bash
-    set -e
-
-    VERSION="1.1.0"
-    BASE_DIR="''${AICHAT_CONF_DIR:-''${XDG_CONFIG_HOME:-$HOME/.config}/aichat}"
-    DIR="$BASE_DIR"
-    CURRENT_FILE="$DIR/current"
-
-    IDS=(c g m o)
-    NAMES=(altostrat alpha lechat stargate)
-
-    _msg() { echo ">> $*"; }
-
-    _get_name() {
-        local target="$1" i
-        for i in "''${!IDS[@]}"; do
-            [[ "''${IDS[$i]}" == "$target" ]] && echo "''${NAMES[$i]}" && return 0
-        done
-        echo "unknown"
-        return 1
-    }
-
-    _show_help() {
-        echo "Usage: aichat-swap [options] <command|id>"
-        echo "Commands: list, status, init"
-    }
-
-    init() {
-        mkdir -p "$DIR"
-        touch "$DIR/config.yaml"
-        for id in "''${IDS[@]}"; do
-            [[ -f "$DIR/$id.config.yaml" ]] || touch "$DIR/$id.config.yaml"
-        done
-        _msg "Init complete."
-    }
-
-    CMD="''${1:-status}"
-
-    case "$CMD" in
-        help|--help|-h) _show_help; exit 0 ;;
-        init) init; exit 0 ;;
-        status)
-            if [[ -f "$CURRENT_FILE" ]]; then
-                curr=$(head -n 1 "$CURRENT_FILE")
-                name=$(_get_name "$curr")
-                _msg "Active: $name [$curr]"
-            else
-                _msg "No active profile."
-            fi
-            exit 0 ;;
-        list)
-            echo "Available Profiles:"
-            for i in "''${!IDS[@]}"; do
-                printf "  [%s] %s\n" "''${IDS[$i]}" "''${NAMES[$i]}"
-            done
-            exit 0 ;;
-    esac
-
-    TARGET="$1"
-    valid=false
-    for i in "''${!IDS[@]}"; do [[ "$TARGET" == "''${IDS[$i]}" ]] && valid=true && break; done
-
-    if ! $valid; then
-        _msg "Unknown profile or command: $TARGET"
-        exit 1
-    fi
-
-    SRC="$DIR/$TARGET.config.yaml"
-    if [[ ! -f "$SRC" ]]; then
-        _msg "Target profile missing: $SRC"
-        exit 1
-    fi
-
-    cp "$SRC" "$DIR/config.yaml"
-    echo "$TARGET" > "$CURRENT_FILE"
-    _msg "Switched to $(_get_name "$TARGET")"
-    exit 0
-  '';
-in
-{
-  imports = [ ./hardware-configuration.nix ];
-
-  # ==========================================
-  # KERNEL & BOOT
-  # ==========================================
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.canTouchEfiVariables = true;
-  boot.kernelPackages = pkgs.linuxPackages_latest;
-  boot.kernelParams = [ "amd_pstate=active" "amdgpu.ppfeaturemask=0xffffffff" "quiet" "splash" ];
-  boot.plymouth.enable = true;
-
-  # Enabling Flakes natively
-  nix.settings.experimental-features = [ "nix-command" "flakes" ];
-  nixpkgs.config.allowUnfree = true;
-
-  # ==========================================
-  # NETWORKING & SECURITY
-  # ==========================================
-  networking.hostName = "nyx";
-  networking.networkmanager.enable = true;
-  networking.enableIPv6 = false;
-
-  # Custom Mac Address
-  # networking.interfaces.wlp1s0.useDHCP = true;
-  # networking.interfaces.wlp1s0.macAddress = "11:22:33:44:55:66";
   networking.interfaces.enp1s0.macAddress = "11:22:33:33:22:11";
 
   networking.firewall = {
@@ -854,25 +209,10 @@ in
     logRefusedConnections = true;
   };
 
-  boot.kernel.sysctl = {
-    # Responsiveness Tweak
-    "vm.dirty_ratio" = 10;
-
-    # Hardening
-    "kernel.kptr_restrict" = 2;
-    "fs.protected_hardlinks" = 1;
-    "kernel.yama.ptrace_scope" = 1;
-    "net.ipv6.conf.all.disable_ipv6" = 1;
-  };
-
-  # ==========================================
-  # HARDWARE & BLUETOOTH
-  # ==========================================
-
+  # Hardware & Bluetooth
   hardware.enableRedistributableFirmware = true;
   hardware.cpu.amd.updateMicrocode = true;
 
-  # Bluetooth (Custom Minimal Build)
   hardware.bluetooth = {
     enable = true;
     powerOnBoot = true;
@@ -893,26 +233,14 @@ in
     };
   };
 
-  # ==========================================
-  # SERVICE OPTIMIZATIONS (PHASE 2)
-  # ==========================================
-  # Optimized service configurations
+  # Service Optimizations
   services = {
-    # Gaming Mouse - keep enabled
     ratbagd.enable = true;
 
-    # Power management - optimized
     power-profiles-daemon = {
       enable = true;
-      defaultProfile = "performance";
-      # Reduce logging verbosity
-      extraConfig = ''
-        [log]
-        level = warning
-      '';
     };
 
-    # UPower - optimized
     upower = {
       enable = true;
       criticalPowerAction = "HybridSleep";
@@ -922,54 +250,39 @@ in
       percentageAction = 3;
     };
 
-    # Thunar/GNOME integration - optimized
     gvfs.enable = true;
     tumbler.enable = true;
 
-    # GNOME services - optimized
     gnome = {
       evolution-data-server = {
         enable = true;
-        # Reduce memory usage
-        extraConfig = ''
-          [Memory]
-          CacheSize = 50
-        '';
       };
       gnome-keyring = {
         enable = true;
-        # Optimize keyring performance
-        extraConfig = ''
-          [daemon]
-          login-timeout = 300
-        '';
       };
     };
   };
 
-  # PAM configuration for GNOME keyring
   security.pam.services.login.enableGnomeKeyring = true;
 
-  # ==========================================
-  # DISPLAY & GRAPHICS
-  # ==========================================
+  # Kernel & Boot
+  boot.loader.systemd-boot.enable = true;
+  boot.loader.efi.canTouchEfiVariables = true;
+
+  # Display & Graphics
   services.displayManager.sddm = {
     enable = true;
     wayland.enable = true;
   };
 
-  # Pure Wayland
   services.xserver.enable = false;
 
-  # Niri System Module
   programs.niri.enable = true;
 
-  # Graphics Drivers & ROCm
   hardware.graphics = {
     enable = true;
     enable32Bit = true;
     extraPackages = with pkgs; [
-      amdvlk
       rocmPackages.clr
       rocmPackages.rocm-runtime
     ];
@@ -985,9 +298,7 @@ in
     config.common.default = "gtk";
   };
 
-  # ==========================================
-  # AUDIO
-  # ==========================================
+  # Audio
   services.pipewire = {
     enable = true;
     alsa.enable = true;
@@ -996,9 +307,7 @@ in
     wireplumber.enable = true;
   };
 
-  # ==========================================
-  # USERS & SHELLS
-  # ==========================================
+  # Users & Shells
   users.users.ashy = {
     isNormalUser = true;
     description = "Ashy";
@@ -1008,114 +317,226 @@ in
     initialPassword = "icecream";
   };
 
-  # SYSTEM PACKAGES
-  # ==========================================
-  environment.systemPackages = with pkgs; [
-=======
+  # System packages
+  environment.systemPackages = with pkgs;
+    [
+      btrfs-progs btrbk snapper
+      git curl wget micro
+      unzip unrar p7zip
+      libnotify wl-clipboard cliphist
+      grim slurp
+    udiskie
+    xfce.thunar xfce.thunar-volman mate.engrampa
+      brave firefox
+      pwvucontrol pavucontrol playerctl ffmpeg mpv
+      gst_all_1.gstreamer gst_all_1.gst-plugins-base
+      gst_all_1.gst-plugins-good gst_all_1.gst-plugins-bad
+      gst_all_1.gst-plugins-ugly gst_all_1.gst-libav
+      (python311.withPackages (ps: with ps; [ pygobject3 numpy pandas ]))
+      rocmPackages.rocm-smi rocmPackages.rocminfo
+      eza lsd bat fzf zoxide starship ripgrep fd jq age gum glow trash-cli
+      fastfetch macchina btop nvtopPackages.amd
+      dualsensectl libratbag mangohud
+      bibata-cursors
+      (pkgs.catppuccin-sddm.override { flavor = "mocha"; })
+      pkgs.nerd-fonts.fira-code
+      pkgs.nerd-fonts.hack
+      pkgs.nerd-fonts.jetbrains-mono
+      pkgs.nerd-fonts.meslo-lg
+      noto-fonts-cjk-sans noto-fonts-emoji
+      util-linux
+      procps
+      iputils
+      iproute2
+      mkpasswd
+      stress-ng
+      iperf3
+      sysstat
+      iotop
+      iftop
+      nmon
+      powertop
+    ]
+    ++ [
+      (writeShellScriptBin "g502-manager" ''
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        # Configuration
+        MOUSE_NAME="Logitech G502"
+        TOTAL_PROFILES=5
+        CONFIG_DIR="''${XDG_CONFIG_HOME:-$HOME/.config}/g502-profiles"
+        STATE_FILE="$CONFIG_DIR/current_profile"
+
+        mkdir -p "$CONFIG_DIR"
+        if [[ ! -f "$STATE_FILE" ]]; then echo "1" > "$STATE_FILE"; fi
+
+        get_current_profile() {
+            if [[ -f "$STATE_FILE" ]]; then cat "$STATE_FILE"; else echo "0"; fi
+        }
+
+        set_profile() {
+            local profile=$1
+            # Use ratbagctl to set profile
+            if ${libratbag}/bin/ratbagctl "$MOUSE_NAME" profile active set "$profile" 2>/dev/null; then
+                echo "$profile" > "$STATE_FILE"
+                ${libnotify}/bin/notify-send "G502 Profile" "Switched to Profile $profile" -t 1000
+            else
+                echo "Error: Failed to switch to profile $profile" >&2
+            fi
+        }
+
+        cycle_profile() {
+            local direction=$1
+            local current=$(get_current_profile)
+            local new_profile
+            if [[ "$direction" == "next" ]]; then
+                new_profile=$(( (current + 1) % TOTAL_PROFILES ))
+            else
+                new_profile=$(( (current + TOTAL_PROFILES - 1) % TOTAL_PROFILES ))
+            fi
+            set_profile "$new_profile"
+        }
+
+        case "''${1:-}" in
+            next) cycle_profile "next" ;;
+            prev) cycle_profile "prev" ;;
+            set)  set_profile "$2" ;;
+            get)  get_current_profile ;;
+            setup)
+                echo "Configuring G502 Hardware Profiles via Ratbag..."
+                RATBAG="${libratbag}/bin/ratbagctl"
+
+                # Profile 0: Desktop
+                $RATBAG "$MOUSE_NAME" profile 0 button 4 action set key F13
+                $RATBAG "$MOUSE_NAME" profile 0 button 5 action set key KEY_LEFTALT
+                $RATBAG "$MOUSE_NAME" profile 0 button 6 action set key F14
+                $RATBAG "$MOUSE_NAME" profile 0 button 7 action set key F15
+                $RATBAG "$MOUSE_NAME" profile 0 button 8 action set key F16
+                $RATBAG "$MOUSE_NAME" profile 0 button 9 action set key F23
+
+                # Profile 1: Creative
+                $RATBAG "$MOUSE_NAME" profile 1 button 4 action set key F17
+                $RATBAG "$MOUSE_NAME" profile 1 button 5 action set key KEY_LEFTALT
+                $RATBAG "$MOUSE_NAME" profile 1 button 6 action set key F18
+                $RATBAG "$MOUSE_NAME" profile 1 button 7 action set key F19
+                $RATBAG "$MOUSE_NAME" profile 1 button 8 action set key F20
+                $RATBAG "$MOUSE_NAME" profile 1 button 9 action set key F23
+
+                # Profile 2: Extended
+                $RATBAG "$MOUSE_NAME" profile 2 button 4 action set key F21
+                $RATBAG "$MOUSE_NAME" profile 2 button 5 action set key KEY_LEFTALT
+                $RATBAG "$MOUSE_NAME" profile 2 button 6 action set key F22
+                $RATBAG "$MOUSE_NAME" profile 2 button 7 action set key F23
+                $RATBAG "$MOUSE_NAME" profile 2 button 8 action set key F24
+                $RATBAG "$MOUSE_NAME" profile 2 button 9 action set key F23
+
+                # Profile 3: Gaming
+                $RATBAG "$MOUSE_NAME" profile 3 button 4 action set key KEY_C
+                $RATBAG "$MOUSE_NAME" profile 3 button 5 action set key KEY_X
+                $RATBAG "$MOUSE_NAME" profile 3 button 6 action set key KEY_V
+                $RATBAG "$MOUSE_NAME" profile 3 button 7 action set key KEY_B
+                $RATBAG "$MOUSE_NAME" profile 3 button 8 action set key KEY_Z
+                $RATBAG "$MOUSE_NAME" profile 3 button 9 action set key KEY_TAB
+
+                # Profile 4: Media
+                $RATBAG "$MOUSE_NAME" profile 4 button 4 action set key KEY_PLAYPAUSE
+                $RATBAG "$MOUSE_NAME" profile 4 button 5 action set key KEY_LEFTALT
+                $RATBAG "$MOUSE_NAME" profile 4 button 6 action set key KEY_NEXTSONG
+                $RATBAG "$MOUSE_NAME" profile 4 button 7 action set key KEY_PREVIOUSSONG
+                $RATBAG "$MOUSE_NAME" profile 4 button 8 action set key KEY_VOLUMEDOWN
+                $RATBAG "$MOUSE_NAME" profile 4 button 9 action set key KEY_MUTE
+                $RATBAG "$MOUSE_NAME" profile 4 button 10 action set key KEY_VOLUMEUP
+
+                echo "G502 Configuration Complete."
+                ;;
+            *) echo "Usage: g502-manager {next|prev|set N|get|setup}" ;;
+        esac
+      '')
+      (writeShellScriptBin "aichat-swap" ''
+        #!/usr/bin/env bash
+        set -e
+
+        VERSION="1.1.0"
+        BASE_DIR="''${AICHAT_CONF_DIR:-''${XDG_CONFIG_HOME:-$HOME/.config}/aichat}"
+        DIR="$BASE_DIR"
+        CURRENT_FILE="$DIR/current"
+
+        IDS=(c g m o)
+        NAMES=(altostrat alpha lechat stargate)
+
+        _msg() { echo ">> $*"; }
+
+        _get_name() {
+            local target="$1" i
+            for i in "''${!IDS[@]}"; do
+                [[ "''${IDS[$i]}" == "$target" ]] && echo "''${NAMES[$i]}" && return 0
+            done
+            echo "unknown"
+            return 1
+        }
+
+        _show_help() {
+            echo "Usage: aichat-swap [options] <command|id>"
+            echo "Commands: list, status, init"
+        }
+
+        init() {
+            mkdir -p "$DIR"
+            touch "$DIR/config.yaml"
+            for id in "''${IDS[@]}"; do
+                [[ -f "$DIR/$id.config.yaml" ]] || touch "$DIR/$id.config.yaml"
+            done
+            _msg "Init complete."
+        }
+
+        CMD="''${1:-status}"
+
+        case "$CMD" in
+            help|--help|-h) _show_help; exit 0 ;;
+            init) init; exit 0 ;;
+            status)
+                if [[ -f "$CURRENT_FILE" ]]; then
+                    curr=$(head -n 1 "$CURRENT_FILE")
+                    name=$(_get_name "$curr")
+                    _msg "Active: $name [$curr]"
+                else
+                    _msg "No active profile."
+                fi
+                exit 0 ;;
+            list)
+                echo "Available Profiles:"
+                for i in "''${!IDS[@]}"; do
+                    printf "  [%s] %s\n" "''${IDS[$i]}" "''${NAMES[$i]}"
+                done
+                exit 0 ;;
+        esac
+
+        TARGET="$1"
+        valid=false
+        for i in "''${!IDS[@]}"; do [[ "$TARGET" == "''${IDS[$i]}" ]] && valid=true && break; done
+
+        if ! $valid; then
+            _msg "Unknown profile or command: $TARGET"
+            exit 1
+        fi
+
+        SRC="$DIR/$TARGET.config.yaml"
+        if [[ ! -f "$SRC" ]]; then
+            _msg "Target profile missing: $SRC"
+            exit 1
+        fi
+
+        cp "$SRC" "$DIR/config.yaml"
+        echo "$TARGET" > "$CURRENT_FILE"
+        _msg "Switched to $(_get_name "$TARGET")"
+        exit 0
+      '')
+    ];
+
+  # Shells
   programs.fish.enable = true;
   programs.bash.enable = true;
-
-  # ==========================================
-  # BTRFS OPTIMIZATIONS
-  # ==========================================
-  # Since you're using Btrfs, let's optimize it
-  environment.etc."btrfs-maintenance.xml".text = ''
-    <?xml version="1.0"?>
-    <config>
-      <periodic>
-        <balance enabled="true" interval="monthly"/>
-        <scrub enabled="true" interval="weekly" priority="nice"/>
-        <trim enabled="true" interval="daily" priority="nice"/>
-        <defrag enabled="false"/>
-      </periodic>
-    </config>
-  '';
-
-  # Btrfs system packages
-  environment.systemPackages = with pkgs; [
-    btrfs-progs
-    btrbk
-    snapper
-  ];
-
-  # ==========================================
-  # SYSTEM PACKAGES
-  # ==========================================
-  environment.systemPackages = with pkgs; [==========================================
-  # SYSTEM PACKAGES
-  # ==========================================
-  environment.systemPackages = with pkgs; [
-    # Custom Scripts
-    g502Manager
-    aichatSwap
-
-    # Core Utils
-    git curl wget micro
-    unzip unrar p7zip
-    libnotify wl-clipboard cliphist
-    grim slurp
-    udiskie
-
-    # File Management
-    xfce.thunar xfce.thunar-volman engrampa
-
-    # Browsers
-    brave firefox
-
-    # Audio/Video
-    pwvucontrol pavucontrol playerctl ffmpeg mpv
-    gst_all_1.gstreamer gst_all_1.gst-plugins-base
-    gst_all_1.gst-plugins-good gst_all_1.gst-plugins-bad
-    gst_all_1.gst-plugins-ugly gst_all_1.gst-libav
-
-    # Python / AI / Data
-    (python311.withPackages (ps: with ps; [ pygobject3 numpy pandas ]))
-    rocmPackages.rocm-smi rocmPackages.rocminfo
-
-    # Terminal
-    eza lsd bat fzf zoxide starship ripgrep fd jq age gum glow trash-cli
-    fastfetch macchina btop nvtopPackages.amd
-
-    # Gaming
-    dualsensectl libratbag ratbagd mangohud latencyflex-vulkan
-
-    # Theming / Fonts
-    bibata-cursors
-    (pkgs.catppuccin-sddm.override { flavor = "mocha"; })
-    (nerdfonts.override { fonts = [
-      "FiraCode" "Hack" "JetBrainsMono" "Meslo"
-      "CascadiaCode" "Hermit" "Inconsolata" "Terminus"
-    ]; })
-    noto-fonts-cjk-sans noto-fonts-emoji
-  ];
-
-  # ==========================================
-  # POWER MANAGEMENT & PERFORMANCE
-  # ==========================================
-  powerManagement = {
-    cpuFreqGovernor = "performance";
-    enable = true;
-  };
-
-  # Performance monitoring tools
-  environment.systemPackages = with pkgs; [
-    # Core system utilities
-    util-linux
-    procps
-    iputils
-    iproute2
-    mkpasswd
-
-    # Benchmarking tools
-    stress-ng
-    iperf3
-    sysstat
-    iotop
-    iftop
-    nmon
-    bpytop
-    powertop
-
 
   # Timezone configuration
   time.timeZone = "UTC";

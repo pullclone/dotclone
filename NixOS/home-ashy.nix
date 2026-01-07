@@ -37,7 +37,7 @@
     # Core
     kitty alacritty
     niri
-    thunar
+    xfce.thunar
 
     # Notifications/Wallpaper (Shared backend)
     swww
@@ -56,7 +56,6 @@
     iotop
     iftop
     nmon
-    bpytop
     powertop
   ];
 }

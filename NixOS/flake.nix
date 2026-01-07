@@ -30,16 +30,22 @@
         inherit system;
         config.allowUnfree = true;
       };
+      lib = nixpkgs.lib;
     in {
-      nixosConfigurations.nyx = nixpkgs.lib.nixosSystem {
+      nixosConfigurations.nyx = lib.nixosSystem {
         inherit system;
         specialArgs = { inherit inputs pkgsUnstable stylix; };
         modules = [
+          {
+            config.lib.stylix.colors.withHashtag = {
+              base03 = "#181825";
+              base0D = "#89b4fa";
+            };
+          }
           ./configuration.nix
 
           # System-level modules
           niri.nixosModules.niri
-          stylix.nixosModules.stylix
 
           # --- ZRAM SELECTION ---
           ./modules/zram-lz4.nix
@@ -54,58 +60,7 @@
             home-manager.extraSpecialArgs = { inherit inputs pkgsUnstable stylix; };
             home-manager.users.ashy = import ./home-ashy.nix;
           }
-          {
-            nixpkgs.overlays = [ (self: super: { stylix = stylix.lib; }) ];
-          }
-
-
         ];
-      };
-
-      # ISO output using the correct method
-      packages.${system}.iso = let
-        pkgs = nixpkgs.legacyPackages.${system};
-        iso = pkgs.lib.nixosSystem {
-          inherit system;
-          modules = [
-            ({ config, pkgs, ... }: {
-              # Basic ISO configuration without conflicts
-              boot.loader.grub.efiSupport = true;
-              boot.loader.grub.efiInstallAsRemovable = true;
-              boot.supportedFilesystems = [ "btrfs" "ext4" "f2fs" "xfs" "ntfs" ];
-              
-              # Networking for installer
-              networking.hostName = "nixos-installer";
-              networking.networkmanager.enable = true;
-              
-              # Enable SSH for remote installation
-              services.openssh.enable = true;
-              services.openssh.permitRootLogin = "yes";
-              
-              # Set root password
-              users.users.root.password = "root";
-              
-              # Basic services
-              services.ntp.enable = true;
-              
-              # Include some optimizations that don't conflict
-              boot.kernel.sysctl = {
-                "vm.swappiness" = 10;
-                "net.ipv4.tcp_congestion_control" = "bbr";
-              };
-            })
-          ];
-        };
-      in nixpkgs.writeIsoImage {
-        name = "nyxos-installer";
-        contents = [
-          (pkgs.writeText "iso-config" ""
-            #!/bin/bash
-            # This will be used during installation
-            echo "NyxOS Installer"
-          "")
-        ];
-        isoImage = iso.config.system.build.isoImage;
       };
     };
 }

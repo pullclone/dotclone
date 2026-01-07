@@ -9,8 +9,27 @@ let
       [ "noctalia-shell" "ipc" "call" ] ++ (pkgs.lib.splitString " " cmd)
     );
   };
+
+  # Minimal Catppuccin Mocha palette (avoids Stylix dependency when disabled)
+  palette = {
+    base00 = "181825";
+    base01 = "1e1e2e";
+    base02 = "313244";
+    base03 = "45475a";
+    base05 = "cdd6f4";
+    base08 = "f38ba8";
+    base0A = "f9e2af";
+    base0B = "a6e3a1";
+    base0D = "89b4fa";
+  };
 in
 {
+  options.programs.noctalia-shell = lib.mkOption {
+    type = lib.types.attrs;
+    default = { };
+    description = "Noctalia shell configuration (stubbed when Stylix is disabled).";
+  };
+
   config = lib.mkIf (cfg.panel == "noctalia") {
 
     # 1. Set the shell variable for this profile
@@ -26,7 +45,7 @@ in
     ];
 
     # 3. Configure Noctalia itself
-    programs.noctalia-shell = with config.lib.stylix.colors; {
+    programs.noctalia-shell = with palette; {
       enable = true;
       systemd.enable = true; # Use the Home Manager service
 
@@ -113,14 +132,7 @@ in
       };
     };
 
-    # 4. Stylix Overrides
-    # We disable Niri theming here because Noctalia manages its own Niri integration
-    # and we provide manual binds below.
-    stylix = {
-        targets.niri.enable = false;
-    };
-
-    # 5. Add Noctalia-specific keybinds to Niri
+    # 4. Add Noctalia-specific keybinds to Niri
     # These are merged with the base keybinds from niri-shared.nix
     programs.niri.settings.binds = {
       "Mod+A" = noctalia "launcher toggle";

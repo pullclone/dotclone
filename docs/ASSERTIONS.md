@@ -15,6 +15,7 @@ This document defines the runtime invariants, machine-checkable assertions, and 
 - **Module Validity**: All NixOS modules must evaluate without errors
 - **Option Types**: All module options must have explicit types
 - **No Warnings**: `nix-build` must complete without warnings
+- **Sysctl Coherence**: Kernel sysctl values live in one consolidated block and must not be defined with conflicting values elsewhere
 
 ### Home Manager
 

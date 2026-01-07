@@ -12,9 +12,9 @@ prompt_with_default() {
     local prompt="$1"
     local default="$2"
     local variable="$3"
-    
+
     read -p "$prompt [$default]: " input
-    
+
     if [ -z "$input" ]; then
         eval "$variable='$default'"
     else
@@ -25,14 +25,14 @@ prompt_with_default() {
 # Function to prompt for password
 prompt_password() {
     local prompt="$1"
-    local variable="$3"
-    
+    local variable="$2"
+
     while true; do
         read -s -p "$prompt: " password
         echo ""
         read -s -p "Confirm $prompt: " password2
         echo ""
-        
+
         if [ "$password" = "$password2" ]; then
             eval "$variable='$password'"
             break
@@ -79,7 +79,7 @@ echo ""
 read -p "Continue with installation? (y/n) " -n 1 -r
 if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     echo ""
-echo "Installation cancelled."
+    echo "Installation cancelled."
     exit 1
 fi
 echo ""
@@ -95,20 +95,6 @@ cat > /tmp/nyxos-install/configuration.nix << EOF
 { config, pkgs, ... }:
 
 let
-  # NETWORKING & SECURITY
-  # ==========================================
-  networking.hostName = "nyx";
-  networking.networkmanager.enable = true;
-  networking.enableIPv6 = false;
-
-  # Set MAC address if provided
-  ${if [ -n "$MAC_ADDRESS" ]; then
-    echo "networking.interfaces.enp1s0.macAddress = \"$MAC_ADDRESS\";"
-  else
-    echo "# No custom MAC address set"
-  fi}
-=======
-  # ==========================================
   # NETWORKING & SECURITY
   # ==========================================
   networking.hostName = "$HOSTNAME";
@@ -136,7 +122,7 @@ let
     "1.0.0.2"
     "1.1.1.1"
     "1.0.0.1"
-  ];User settings from installation
+  ];
   username = "$USERNAME";
   userPassword = "$USER_PASSWORD";
   rootPassword = "$ROOT_PASSWORD";
@@ -177,7 +163,7 @@ in
   # ==========================================
   # NETWORKING & SECURITY
   # ==========================================
-  networking.hostName = "nyx";
+  networking.hostName = "$HOSTNAME";
   networking.networkmanager.enable = true;
   networking.enableIPv6 = false;
 

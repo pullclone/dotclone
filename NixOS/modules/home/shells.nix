@@ -54,8 +54,6 @@ in
 {
   # --- BAT (Better Cat) ---
   # We disable Stylix for Bat so we can enforce our specific Catppuccin theme
-  stylix.targets.bat.enable = false;
-
   programs.bat = {
     enable = true;
     config = {

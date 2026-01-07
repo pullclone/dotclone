@@ -1,9 +1,6 @@
 { config, pkgs, ... }:
 
 {
-  # Disable Stylix for Cava so we can use the custom gradient
-  stylix.targets.cava.enable = false;
-
   programs.cava = {
     enable = true;
     settings = {

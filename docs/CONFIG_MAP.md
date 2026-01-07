@@ -73,6 +73,11 @@ This document provides a structured map of the NyxOS repository, showing where m
 3. **Integration**: Import in `home-ashy.nix`
 4. **Testing**: Verify with `home-manager switch`
 
+## Kernel Tuning Reference
+
+- Sysctl tuning is consolidated under **Advanced Memory & Kernel Tuning** in `NixOS/configuration.nix`
+- Add or adjust kernel and VM sysctls in that single block to avoid conflicting definitions
+
 ## Evolving Runtime Component Map
 
 ### Current Runtime Components
@@ -82,6 +87,7 @@ This document provides a structured map of the NyxOS repository, showing where m
 | Waybar | Service | `modules/waybar/` | Status bar with dynamic island |
 | Niri | Service | `modules/home/niri-shared.nix` | Wayland compositor |
 | ZRAM | Module | `modules/zram-*` | Memory compression |
+| Node Exporter | Service | `configuration.nix` | Prometheus metrics on port 9100 (systemd/btrfs/textfile collectors) |
 | Home Apps | Config | `modules/home/apps/` | Application configurations |
 | Terminals | Config | `modules/home/terminals/` | Terminal emulator configs |
 
