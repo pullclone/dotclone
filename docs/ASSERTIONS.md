@@ -105,6 +105,7 @@ This document defines the runtime invariants, machine-checkable assertions, and 
 ### Test Coverage
 
 - **Smoke Tests**: Critical binaries must exist in build output
+- **LatencyFleX Layer**: `latencyflex.json` must exist in build output
 - **Integration Tests**: Services must start in test environment
 - **Regression Tests**: Changes must not break existing functionality
 
@@ -147,6 +148,9 @@ nix build ".#nixosConfigurations.nyx.config.system.build.toplevel"
 
 # Verify critical binary exists
 [ -x "./result/sw/bin/g502-manager" ]
+
+# Verify LatencyFleX layer manifest exists
+[ -f "./result/sw/share/vulkan/implicit_layer.d/latencyflex.json" ]
 ```
 
 ### Runtime Verification

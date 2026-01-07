@@ -27,7 +27,7 @@ check:
 build:
     #!/usr/bin/env bash
     set -euo pipefail
-    nix build ".#nixosConfigurations.nyx.config.system.build.toplevel"
+    nix build "./NixOS#nixosConfigurations.nyx.config.system.build.toplevel"
 
 [group('Nix')]
 switch:
@@ -70,6 +70,11 @@ test:
     # Verify g502-manager exists in build result
     if [ ! -x "./result/sw/bin/g502-manager" ]; then
         echo "Missing g502-manager in build result"
+        exit 1
+    fi
+    # Verify LatencyFleX Vulkan layer manifest exists in build result
+    if [ ! -f "./result/sw/share/vulkan/implicit_layer.d/latencyflex.json" ]; then
+        echo "Missing latencyflex.json in build result"
         exit 1
     fi
     echo "Smoke tests OK"

@@ -12,7 +12,9 @@ let
     icon = "${homeDir}/nixdots/assets/icons/${icon}";
     comment = "${name} (web app)";
 
-    exec = "env MOZ_ENABLE_WAYLAND=1 " + lib.escapeShellArgs ([
+    exec = lib.concatStringsSep " " ([
+      "env"
+      "MOZ_ENABLE_WAYLAND=1"
       brave
       "--password-store=gnome"
       "--app=${url}"

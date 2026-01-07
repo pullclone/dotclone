@@ -3,7 +3,7 @@
 {
   programs.kitty = {
     enable = true;
-    theme = "Catppuccin-Mocha";
+    themeFile = "${pkgs.kitty-themes}/share/kitty-themes/themes/Catppuccin-Mocha.conf";
     font = {
       name = "FiraCode Nerd Font";
       size = 11.0;

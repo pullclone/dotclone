@@ -1,5 +1,8 @@
 { config, pkgs, lib, stylix, inputs, ... }:
 
+let
+  latencyflex = pkgs.callPackage ./latencyflex.nix { };
+in
 {
   imports = [ ./hardware-configuration.nix ];
 
@@ -15,13 +18,14 @@
   boot.plymouth.enable = true;
 
   # Enable experimental features for Nix
-  nix.settings.experimental-features = [
-    "nix-command"
-    "flakes"
-    "home-manager"
-    "auto-optimize-store"
-    "ca-derivations"
-  ];
+  nix.settings = {
+    experimental-features = [
+      "nix-command"
+      "flakes"
+      "ca-derivations"
+    ];
+    auto-optimise-store = true;
+  };
 
   # Advanced Service Management
   systemd = {
@@ -222,7 +226,6 @@
         "--disable-mesh"
         "--disable-obex"
         "--disable-hid2hci"
-        "--disable-deprecated"
       ];
     });
     settings = {
@@ -285,6 +288,7 @@
     extraPackages = with pkgs; [
       rocmPackages.clr
       rocmPackages.rocm-runtime
+      latencyflex
     ];
   };
 
@@ -337,13 +341,14 @@
       eza lsd bat fzf zoxide starship ripgrep fd jq age gum glow trash-cli
       fastfetch macchina btop nvtopPackages.amd
       dualsensectl libratbag mangohud
+      latencyflex
       bibata-cursors
       (pkgs.catppuccin-sddm.override { flavor = "mocha"; })
       pkgs.nerd-fonts.fira-code
       pkgs.nerd-fonts.hack
       pkgs.nerd-fonts.jetbrains-mono
       pkgs.nerd-fonts.meslo-lg
-      noto-fonts-cjk-sans noto-fonts-emoji
+      noto-fonts-cjk-sans noto-fonts-color-emoji
       util-linux
       procps
       iputils

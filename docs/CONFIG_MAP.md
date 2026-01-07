@@ -30,6 +30,7 @@ This document provides a structured map of the NyxOS repository, showing where m
     ├── configuration.nix     # Main system configuration
     ├── directory structure.mmf # Mind map of directory structure
     ├── flake.nix             # Flake definition
+    ├── latencyflex.nix       # LatencyFleX Vulkan layer package
     └── home-ashy.nix         # Home Manager configuration
 ```
 
@@ -90,6 +91,7 @@ This document provides a structured map of the NyxOS repository, showing where m
 | Node Exporter | Service | `configuration.nix` | Prometheus metrics on port 9100 (systemd/btrfs/textfile collectors) |
 | Home Apps | Config | `modules/home/apps/` | Application configurations |
 | Terminals | Config | `modules/home/terminals/` | Terminal emulator configs |
+| LatencyFleX | Package | `latencyflex.nix` | Vulkan implicit layer for latency reduction |
 
 ### Component Relationships
 
