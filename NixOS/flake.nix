@@ -26,7 +26,8 @@
       specialArgs = { inherit inputs pkgsUnstable stylix; };
       modules = [
         (import zramModule)
-        ./modules/latencyflex.nix
+        ./modules/latencyflex-module.nix
+        { my.performance.latencyflex.enable = latencyflexEnable; }
 
         ./configuration.nix
         niri.nixosModules.niri
@@ -45,7 +46,14 @@
   in {
     nixosConfigurations = {
       # Default: low latency, fast compression
-      nyx = mkNyx ./modules/zram-lz4.nix;
+      nyx                = mkNyx { zramModule = ./modules/zram-lz4.nix; latencyflexEnable = true; };
+      nyx-lfx-off        = mkNyx { zramModule = ./modules/zram-lz4.nix; latencyflexEnable = false; };
+      nyx-zstdb-lfx      = mkNyx { zramModule = ./modules/zram-zstd-balanced.nix; latencyflexEnable = true; };
+      nyx-zstdb-lfx-off  = mkNyx { zramModule = ./modules/zram-zstd-balanced.nix; latencyflexEnable = false; };
+      nyx-zstda-lfx      = mkNyx { zramModule = ./modules/zram-zstd-aggressive.nix; latencyflexEnable = true; };
+      nyx-zstda-lfx-off  = mkNyx { zramModule = ./modules/zram-zstd-aggressive.nix; latencyflexEnable = false; };
+      nyx-zstdwb-lfx     = mkNyx { zramModule = ./modules/zram-writeback.nix; latencyflexEnable = true; };
+      nyx-zstdwb-lfx-off = mkNyx { zramModule = ./modules/zram-writeback.nix; latencyflexEnable = false; };
 
       # Alternatives: explicit, reproducible flake targets
       nyx-zstd-balanced   = mkNyx ./modules/zram-zstd-balanced.nix;

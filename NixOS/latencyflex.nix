@@ -22,21 +22,24 @@ stdenv.mkDerivation rec {
   installPhase = ''
     runHook preInstall
 
-    # Preserve upstream /usr layout so latencyflex.json stays correct
     mkdir -p \
-      $out/usr/lib/x86_64-linux-gnu \
-      $out/usr/share/vulkan/implicit_layer.d
+      $out/lib \
+      $out/share/vulkan/implicit_layer.d
 
     cp -v layer/usr/lib/x86_64-linux-gnu/liblatencyflex_layer.so \
-      $out/usr/lib/x86_64-linux-gnu/
+      $out/lib/
 
     cp -v layer/usr/share/vulkan/implicit_layer.d/latencyflex.json \
-      $out/usr/share/vulkan/implicit_layer.d/
+      $out/share/vulkan/implicit_layer.d/
+
+    # Patch manifest to reference the Nix-installed location
+    substituteInPlace $out/share/vulkan/implicit_layer.d/latencyflex.json \
+      --replace "/usr/lib/x86_64-linux-gnu/liblatencyflex_layer.so" "$out/lib/liblatencyflex_layer.so"
 
     runHook postInstall
-    
-    test -f "$out/usr/lib/x86_64-linux-gnu/liblatencyflex_layer.so"
-    test -f "$out/usr/share/vulkan/implicit_layer.d/latencyflex.json"
+
+    test -f "$out/lib/liblatencyflex_layer.so"
+    test -f "$out/share/vulkan/implicit_layer.d/latencyflex.json"
   '';
 
   meta = with lib; {
@@ -44,6 +47,5 @@ stdenv.mkDerivation rec {
     homepage = "https://github.com/ishitatsuyuki/LatencyFleX";
     license = licenses.mit;
     platforms = platforms.linux;
-    maintainers = [ ];
   };
 }
