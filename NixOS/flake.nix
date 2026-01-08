@@ -26,6 +26,8 @@
       specialArgs = { inherit inputs pkgsUnstable stylix; };
       modules = [
         (import zramModule)
+        ./modules/latencyflex.nix
+
         ./configuration.nix
         niri.nixosModules.niri
 
@@ -33,7 +35,9 @@
         {
           home-manager.useGlobalPkgs = true;
           home-manager.useUserPackages = true;
-          home-manager.extraSpecialArgs = { inherit inputs pkgsUnstable stylix; };
+          home-manager.extraSpecialArgs = {
+            inherit inputs pkgsUnstable stylix;
+          };
           home-manager.users.ashy = import ./home-ashy.nix;
         }
       ];
