@@ -13,6 +13,11 @@ bootstrap:
     command -v shfmt >/dev/null || echo "Recommended: shfmt"
     echo "OK"
 
+[group('Utility')]
+env-ci:
+    @echo 'Use this in constrained environments:'
+    @echo '  NIX_REMOTE=daemon NIX_CONFIG="sandbox = false" just ci'
+
 [private]
 default:
     @just --list
@@ -33,7 +38,49 @@ build:
 switch:
     #!/usr/bin/env bash
     set -euo pipefail
+    # Switch to default (LZ4) ZRAM profile
     sudo nixos-rebuild switch --flake ".#nyx"
+
+[group('Nix')]
+switch-balanced:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # Switch to balanced ZSTD profile
+    sudo nixos-rebuild switch --flake ".#nyx-zstd-balanced"
+
+[group('Nix')]
+switch-aggressive:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # Switch to aggressive ZSTD profile
+    sudo nixos-rebuild switch --flake ".#nyx-zstd-aggressive"
+
+[group('Nix')]
+switch-writeback:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # Switch to writeback (ZSTD → disk) profile
+    sudo nixos-rebuild switch --flake ".#nyx-writeback"
+
+[group('Nix')]
+switch-latencyflex-on:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # Switch to the default target (assumes LatencyFleX enabled in .#nyx)
+    sudo nixos-rebuild switch --flake ".#nyx"
+
+[group('Nix')]
+switch-latencyflex-off:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # Switch to LatencyFleX-disabled target (requires flake output .#nyx-nolfx)
+    sudo nixos-rebuild switch --flake ".#nyx-nolfx"
+
+[group('Nix')]
+show:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    nix flake show
 
 [group('Lint')]
 lint-shell:
@@ -62,21 +109,66 @@ lint:
     @echo "Lint OK"
 
 [group('Test')]
+test-g502:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [ ! -e "./result" ]; then
+        echo "No ./result symlink found. Run: just build"
+        exit 1
+    fi
+
+    if [ ! -x "./result/sw/bin/g502-manager" ]; then
+        echo "Missing g502-manager in build result"
+        exit 1
+    fi
+
+    echo "g502-manager smoke test OK"
+
+[group('Test')]
+test-latencyflex:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [ ! -e "./result" ]; then
+        echo "No ./result symlink found. Run: just build"
+        exit 1
+    fi
+
+    manifest="./result/sw/share/vulkan/implicit_layer.d/latencyflex.json"
+    if [ ! -f "$manifest" ]; then
+        echo "Missing LatencyFleX manifest in build result: $manifest"
+        exit 1
+    fi
+
+    # The layer should exist in the system profile; common location is ./result/sw/lib
+    # (This assumes the package installs into $out/lib and patches the JSON accordingly.)
+    if ! /usr/bin/find "./result/sw/lib" -maxdepth 1 -type f -name "*latencyflex*.so*" | grep -q .; then
+        echo "Missing LatencyFleX shared library in build result under ./result/sw/lib"
+        echo "Hint: ensure the package installs to \$out/lib and the manifest is patched."
+        exit 1
+    fi
+
+    # Basic sanity: manifest should reference latencyflex and a .so path
+    if ! grep -qi "latencyflex" "$manifest"; then
+        echo "LatencyFleX manifest exists but does not mention latencyflex (unexpected): $manifest"
+        exit 1
+    fi
+    if ! grep -q "\.so" "$manifest"; then
+        echo "LatencyFleX manifest does not appear to reference a .so (unexpected): $manifest"
+        exit 1
+    fi
+
+    echo "LatencyFleX smoke test OK"
+
+[group('Test')]
 test:
     #!/usr/bin/env bash
     set -euo pipefail
     echo "Building and running smoke tests..."
     just build
-    # Verify g502-manager exists in build result
-    if [ ! -x "./result/sw/bin/g502-manager" ]; then
-        echo "Missing g502-manager in build result"
-        exit 1
-    fi
-    # Verify LatencyFleX Vulkan layer manifest exists in build result
-    if [ ! -f "./result/sw/share/vulkan/implicit_layer.d/latencyflex.json" ]; then
-        echo "Missing latencyflex.json in build result"
-        exit 1
-    fi
+    just test-g502
+    just test-latencyflex
     echo "Smoke tests OK"
 
 [group('CI')]

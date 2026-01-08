@@ -1,8 +1,9 @@
+
 # ❄️ NyxOS — Framework 13 AMD (AI 300 / Strix Point) • Niri on NixOS 25.11
 
-A declarative, modular, and opinionated **NixOS 25.11** configuration built for the **Framework 13 AMD (AI 300 / Strix Point)**.
+A declarative, modular, and opinionated **NixOS 25.11** configuration built for the **Framework 13 AMD (AI 300 / Strix Point)** laptop.
 
-NyxOS ships a **Desktop Router**: instantly switch between a modern **Noctalia** desktop and a retro-futuristic **Waybar (Aurora)** setup while keeping a *single* backend for theming, keybinds, and shell tooling.
+NyxOS ships a **Desktop Router**: instantly switch between a modern **Noctalia** desktop and a retro-futuristic **Waybar (Aurora)** setup while keeping a *single*, unified backend for theming, keybinds, and shell tooling.
 
 ---
 
@@ -11,10 +12,11 @@ NyxOS ships a **Desktop Router**: instantly switch between a modern **Noctalia**
 - [Architecture](#-architecture)
 - [Dual-profile system](#-dual-profile-system)
 - [Features & tooling](#️-features--tooling)
+- [ZRAM & LatencyFleX profiles](#-zram--latencyflex-profiles)
 - [Install & configuration](#️-install--configuration)
 - [Keybindings (Niri)](#-keybindings-niri)
 - [Core package set](#-core-package-set)
-- [Performance & monitoring](#-performance--monitoring)
+- [Performance, testing & monitoring](#-performance-testing--monitoring)
 - [Credits](#-credits)
 
 ---
@@ -31,15 +33,15 @@ NyxOS ships a **Desktop Router**: instantly switch between a modern **Noctalia**
 
 ## 🌗 Dual-profile system
 
-NyxOS provides two distinct desktop “personalities”, switchable in `home-ashy.nix`:
+NyxOS provides two distinct desktop “personalities,” switchable in `home-ashy.nix`:
 
-| Feature | **Noctalia profile** | **Waybar (Aurora) profile** |
-| --- | --- | --- |
-| Aesthetic | Modern, Material You, widget-heavy | Cyberpunk/Aurora, transparent, text-heavy |
-| Panel / bar | Noctalia Shell (Quickshell) | Waybar (Aurora config) |
-| Launcher | Fuzzel | Wofi |
-| Terminal | Kitty | Kitty |
-| Notifications | Mako | Mako |
+| Feature        | **Noctalia profile**                 | **Waybar (Aurora) profile**        |
+|---------------|--------------------------------------|------------------------------------|
+| Aesthetic     | Modern, Material You, widget-heavy   | Cyberpunk/Aurora, text-forward     |
+| Panel / bar   | Noctalia Shell (Quickshell)          | Waybar (Aurora config)             |
+| Launcher      | Fuzzel                               | Wofi                               |
+| Terminal      | Kitty                                | Kitty                              |
+| Notifications | Mako                                 | Mako                               |
 
 ### Switch profiles
 
@@ -57,7 +59,6 @@ sudo nixos-rebuild switch --flake .#nyx
 
 ---
 
-## 🛠️ Features & tooling
 
 ### 🖱️ Hardware & input
 
@@ -65,16 +66,80 @@ sudo nixos-rebuild switch --flake .#nyx
 * **DualSense:** kernel-level support via `game-devices-udev-rules`
 * **Bluetooth:** minimal BlueZ build (stripped of OBEX/Mesh extras)
 
-### ⚡ Performance
+### ⚡ Performance & latency
 
-* **ZRAM:** selectable modules in `flake.nix` (LZ4 vs ZSTD)
-* **Sysctl:** tuned `vm.dirty_ratio` for responsiveness under load
+* **ZRAM:** multiple compressed-swap profiles, selectable via flake outputs
+* **LatencyFleX:** optional Vulkan implicit layer for vendor-agnostic latency reduction
+* **Sysctl:** tuned `vm.swappiness`, dirty writeback, and cache pressure
 
 ### 🤖 AI & development
 
 * **Local AI:** `aichat`, `rocm-smi`, Python data stack
-* **Web apps:** isolated/sandboxed Brave instances for Discord, AI Studio, etc (Wayland-native)
-* **Chat swapper:** `aiswap` for quickly switching AI models/personas
+* **Web apps:** isolated Brave instances (Wayland-native)
+* **Chat swapper:** `aiswap` for fast model/persona switching
+
+---
+
+## 🗜️ ZRAM & LatencyFleX profiles
+
+NyxOS exposes **memory compression (ZRAM)** and **graphics latency reduction (LatencyFleX)** as **first-class flake outputs**.
+Each output is a fully declarative, reproducible system configuration.
+
+### Configuration matrix
+
+| Flake target         | ZRAM profile      | LatencyFleX |
+| -------------------- | ----------------- | ----------- |
+| `nyx`                | LZ4 (low-latency) | ON          |
+| `nyx-lfx-off`        | LZ4               | OFF         |
+| `nyx-zstdb-lfx`      | ZSTD (balanced)   | ON          |
+| `nyx-zstdb-lfx-off`  | ZSTD (balanced)   | OFF         |
+| `nyx-zstda-lfx`      | ZSTD (aggressive) | ON          |
+| `nyx-zstda-lfx-off`  | ZSTD (aggressive) | OFF         |
+| `nyx-zstdwb-lfx`     | ZSTD writeback    | ON          |
+| `nyx-zstdwb-lfx-off` | ZSTD writeback    | OFF         |
+
+The default target is **`nyx`**: LZ4-based ZRAM with LatencyFleX enabled.
+
+```bash
+### Selecting a profile
+
+Choose the desired configuration by selecting the corresponding flake output:
+
+```bash
+sudo nixos-rebuild switch --flake .#nyx
+sudo nixos-rebuild switch --flake .#nyx-zstdb-lfx
+sudo nixos-rebuild switch --flake .#nyx-zstdwb-lfx-off
+```
+
+#### 🧰 Justfile helpers
+
+For convenience, thin wrappers are provided:
+
+```bash
+just switch                   # nyx (LZ4 + LatencyFleX)
+just switch-balanced          # ZSTD balanced
+just switch-aggressive        # ZSTD aggressive
+just switch-writeback         # ZSTD writeback
+
+just switch-latencyflex-on
+just switch-latencyflex-off
+```
+
+These helpers **only select flake outputs**. They do not mutate configuration files, inject CLI arguments, or reduce reproducibility.
+
+---
+
+### When to use writeback
+
+ZRAM writeback is appropriate on systems with **fast NVMe storage** and workloads that occasionally exceed physical RAM.
+It trades a small amount of flash wear for avoiding OOM conditions. Avoid on slow SSDs or HDDs.
+
+---
+
+### ZRAM and `swappiness`
+
+NyxOS defaults to `vm.swappiness=10`, preferring RAM until pressure rises.
+Each ZRAM profile sets appropriate swappiness and priority values automatically. Manual tuning is usually unnecessary.
 
 ---
 
@@ -85,31 +150,27 @@ sudo nixos-rebuild switch --flake .#nyx
 * **Username:** `ashy`
 * **Default password:** `icecream`
 
-### Change the password
-
-After installation, change the password immediately:
+Change immediately after install:
 
 ```bash
 passwd
 ```
 
-For a permanent declarative hash:
+For a declarative hash:
 
-1. Generate: `mkpasswd -m sha-512`
+1. `mkpasswd -m sha-512`
 2. Set `users.users.ashy.hashedPassword` in `configuration.nix`
 
 ### MAC address spoofing
 
-NyxOS hardcodes a MAC address for privacy. Edit `configuration.nix`:
-
 ```nix
-# Ensure 'enp1s0' matches your actual interface name (`ip link`)
 networking.interfaces.enp1s0.macAddress = "11:22:33:33:22:11";
 ```
 
+---
 ### Custom scripts
 
-Available system-wide (terminal + bindings):
+Available system‑wide (terminal + bindings):
 
 * `g502-manager` — manage mouse profiles
 * `aichat-swap` — switch AI personalities
@@ -118,7 +179,7 @@ Available system-wide (terminal + bindings):
 
 ---
 
-## ⌨️ Keybindings (Niri)
+## ⌨️ Keybindings (Niri)
 
 Bindings are normalized so muscle memory stays consistent across both profiles.
 
@@ -131,7 +192,7 @@ Bindings are normalized so muscle memory stays consistent across both profiles.
 | `Super + P`      | Power      | Noctalia session menu / Wofi power |
 | `Super + V`      | Clipboard  | Clipboard history                  |
 | `Super + Scroll` | Timeline   | Scroll the Niri timeline           |
-| `F23 / F24`      | Mouse      | G502 profile switching             |
+| `F23 / F24`      | Mouse      | G502 profile switching             |
 | `Print`          | Screenshot | Fullscreen screenshot              |
 
 ---
@@ -140,19 +201,19 @@ Bindings are normalized so muscle memory stays consistent across both profiles.
 
 Grouped roughly by purpose (not exhaustive).
 
-**System & utils**
+**System & utils**
 `git`, `curl`, `wget`, `micro`, `unzip`, `unrar`, `p7zip`, `libnotify`, `wl-clipboard`, `cliphist`, `grim`, `slurp`, `udiskie`
 
-**Audio & video**
+**Audio & video**
 `pipewire`, `wireplumber`, `pwvucontrol`, `playerctl`, `ffmpeg`, `mpv`, `gstreamer` (full plugins)
 
-**Terminal & CLI**
+**Terminal & CLI**
 `kitty`, `alacritty`, `eza`, `bat`, `fzf`, `zoxide`, `starship`, `ripgrep`, `jq`, `fastfetch`, `macchina`, `btop`
 
 **Gaming**
 `mangohud`, `latencyflex-vulkan`, `libratbag`
 
-**AI & data**
+**AI & data**
 `python3` (numpy, pandas), `rocmPackages`, `aichat`
 
 ---
@@ -165,7 +226,7 @@ NyxOS includes layered performance tuning across:
 * memory (swappiness, cache pressure, dirty writeback)
 * Btrfs defaults + maintenance
 * network stack sysctls
-* service-level tuning (SDDM, PipeWire, power, NetworkManager)
+* service‑level tuning (SDDM, PipeWire, power, NetworkManager)
 * monitoring: Netdata + Prometheus Node Exporter (+ optional Grafana)
 
 ### Quick validation commands
@@ -194,24 +255,29 @@ sysctl net.core.somaxconn
 sysctl net.ipv4.tcp_rmem
 ```
 
-## ⚡ Performance & Monitoring Deep Dive
+---
 
-This configuration includes layered tuning across **boot/kernel**, **memory**, **storage (Btrfs)**, **network**, **service behavior**, and **observability**. This section is a single reference: what’s tuned, where to look, and how to validate.
+### ⚡ Performance & Monitoring Deep Dive
 
-> Note: Some commands below may require installing the tool (`stress-ng`, `iperf3`, `sysstat`, `powertop`, etc.). If a command isn’t available, skip it—your system configuration can still be verified via the kernel/sysctl/service checks.
+This configuration includes layered tuning across **boot/kernel**, **memory**, **storage (Btrfs)**, **network**, **service behaviour**, and **observability**. This section is a single reference: what’s tuned, where to look and how to validate.
+
+> *Note:* Some commands below may require installing the tool (`stress-ng`, `iperf3`, `sysstat`, `powertop`, etc.). If a command isn’t available, skip it—your system configuration can still be verified via the kernel/sysctl/service checks.
 
 ---
 
-### 🚀 Boot & Kernel
+#### 🚀 Boot & Kernel
 
 **What’s tuned (high level):**
-- Faster boot via parallel service startup and reduced timeouts (where configured)
-- Kernel command-line choices for stability/latency characteristics:
-  - `nowatchdog`
-  - `nmi_watchdog=0`
-  - `tsc=reliable`
 
-**Validate & inspect:**
+* Faster boot via parallel service start-up and reduced timeouts (where configured)
+* Kernel command‑line choices for stability/latency characteristics:
+
+  * `nowatchdog`
+  * `nmi_watchdog=0`
+  * `tsc=reliable`
+
+**Validate & inspect:**
+
 ```bash
 # Overall boot time and breakdown
 systemd-analyze
@@ -223,7 +289,7 @@ cat /proc/cmdline
 
 # Boot logs (current boot)
 journalctl -b
-````
+```
 
 **Optional: generate a boot chart**
 
@@ -233,13 +299,13 @@ systemd-analyze plot > boot.svg
 
 ---
 
-### 🧠 Memory Management
+#### 🧠 Memory Management
 
 **What’s tuned (common knobs):**
 
 * `vm.swappiness=10`
 * `vm.vfs_cache_pressure=50`
-* Tuned dirty writeback behavior (`vm.dirty_*`)
+* Tuned dirty writeback behaviour (`vm.dirty_*`)
 * Optional/advanced: HugePages + overcommit policy tuning
 
 **Validate:**
@@ -262,7 +328,7 @@ free -h
 vmstat 1
 ```
 
-**HugePages & THP / explicit HugePages:**
+**HugePages & THP / explicit HugePages:**
 
 ```bash
 # Overview
@@ -285,11 +351,12 @@ sysctl vm.overcommit_ratio
 
 ---
 
-### 🗜️ ZRAM / Swap Behavior
+#### 🗜️ ZRAM / Swap Behaviour
 
 **What’s tuned:**
 
-* ZRAM-enabled swap with selectable algorithm preference (e.g., LZ4 vs ZSTD) based on your module toggle
+* ZRAM‑enabled swap with selectable algorithm preference (LZ4 vs ZSTD) via flake output
+* Each profile sets swap size, `swappiness`, priority and writeback settings
 
 **Validate:**
 
@@ -297,7 +364,7 @@ sysctl vm.overcommit_ratio
 # Check swap devices
 swapon --show
 
-# Check zram devices (if any)
+# Check ZRAM devices (if any)
 lsblk | grep -i zram || true
 
 # zramctl if available
@@ -306,7 +373,7 @@ zramctl 2>/dev/null || true
 
 ---
 
-### 💾 Filesystem & Btrfs
+#### 💾 Filesystem & Btrfs
 
 **What’s tuned:**
 
@@ -346,7 +413,7 @@ systemctl status btrfs-scrub@-.* 2>/dev/null || true
 btrfs scrub status / 2>/dev/null || true
 ```
 
-**Manual maintenance / repair-style ops (use intentionally):**
+**Manual maintenance / repair‑style ops (use intentionally):**
 
 ```bash
 # Start scrub (online check)
@@ -361,14 +428,14 @@ sudo btrfs filesystem defrag -r -v /
 
 ---
 
-### 🌐 Network Stack & Transport Tuning
+#### 🌐 Network Stack & Transport Tuning
 
 **What’s tuned (typical targets):**
 
 * Socket backlog / connection handling (`net.core.somaxconn`)
 * TCP memory buffers (`net.ipv4.tcp_rmem`, `net.ipv4.tcp_wmem`)
 * Optional: TIME_WAIT reuse (`net.ipv4.tcp_tw_reuse`)
-* Optional: congestion control (e.g., **BBR**) for throughput/latency
+* Optional: congestion control (e.g. **BBR**) for throughput/latency
 
 **Validate:**
 
@@ -397,11 +464,11 @@ iperf3 -c <server>
 
 ---
 
-### 💽 I/O Scheduler & Storage Queueing
+#### 💽 I/O Scheduler & Storage Queueing
 
 **What’s tuned (optional):**
 
-* I/O scheduler choice (e.g., **BFQ**) for responsiveness under mixed workloads
+* I/O scheduler choice (e.g. **BFQ**) for responsiveness under mixed workloads
 
 **Validate (example NVMe device shown):**
 
@@ -411,11 +478,11 @@ cat /sys/block/nvme0n1/queue/scheduler
 
 ---
 
-### 🧩 Service-Level Tuning & Operations
+#### 🧩 Service‑Level Tuning & Operations
 
-This setup emphasizes a Wayland-first desktop and keeps operational checks simple and repeatable.
+This setup emphasises a Wayland‑first desktop and keeps operational checks simple and repeatable.
 
-#### Display manager (SDDM)
+##### Display manager (SDDM)
 
 ```bash
 sudo systemctl restart sddm
@@ -423,7 +490,7 @@ systemctl status sddm
 journalctl -u sddm -b
 ```
 
-#### Audio (PipeWire)
+##### Audio (PipeWire)
 
 ```bash
 systemctl --user restart pipewire pipewire-pulse wireplumber
@@ -432,7 +499,7 @@ pw-top
 wpctl status
 ```
 
-#### NetworkManager
+##### NetworkManager
 
 ```bash
 sudo systemctl restart NetworkManager
@@ -440,7 +507,7 @@ systemctl status NetworkManager
 journalctl -u NetworkManager -b
 ```
 
-#### Power profiles
+##### Power profiles
 
 ```bash
 powerprofilesctl list
@@ -448,13 +515,13 @@ powerprofilesctl get
 powerprofilesctl set performance
 ```
 
-#### CPU governor (informational)
+##### CPU governor (informational)
 
 ```bash
 cat /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor 2>/dev/null || true
 ```
 
-#### Find failed services quickly
+##### Find failed services quickly
 
 ```bash
 systemctl --failed
@@ -462,12 +529,12 @@ systemctl --failed
 
 ---
 
-### 📈 Observability: Netdata, Prometheus, Grafana
+#### 📈 Observability: Netdata, Prometheus, Grafana
 
 **Endpoints:**
 
 * Netdata: `http://localhost:19999`
-* Node Exporter: `http://localhost:9100/metrics`
+* Node Exporter: `http://localhost:9100/metrics`
 * Grafana (optional): `http://localhost:3000`
 
 **Service checks:**
@@ -490,7 +557,7 @@ journalctl -u grafana-server -f
 
 ---
 
-### 🧪 Benchmarking & Sanity Tests (Optional)
+#### 🧪 Benchmarking & Sanity Tests (Optional)
 
 These help confirm the system *behaves* like the tuning suggests.
 
@@ -513,7 +580,7 @@ cat /proc/meminfo | head
 **Disk (be careful—writes data):**
 
 ```bash
-# Simple direct-write test (creates a 1G file)
+# Simple direct‑write test (creates a 1 GiB file)
 dd if=/dev/zero of=testfile bs=1G count=1 oflag=direct status=progress
 rm -f testfile
 ```
@@ -528,7 +595,7 @@ time dig google.com
 
 ---
 
-### 🧰 Everyday “Ops” Shortlist
+#### 🧰 Everyday “Ops” Shortlist
 
 **Quick health snapshot:**
 
@@ -568,3 +635,7 @@ sudo btrfs balance start -dusage=80 /
 * **Aurora Theme:** based on [Aurora Dotfiles by flickowoa](https://github.com/flickowoa/dotfiles/tree/aurora), ported/adapted to Nix and Niri workspaces
 * **Catppuccin:** system palette by [Catppuccin](https://github.com/catppuccin/catppuccin)
 * **Niri:** compositor by [YaLTeR](https://github.com/YaLTeR/niri)
+
+```
+
+---
