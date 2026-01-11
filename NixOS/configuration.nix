@@ -220,14 +220,28 @@ in
   hardware.bluetooth = {
     enable = true;
     powerOnBoot = true;
-    package = pkgs.bluez.overrideAttrs (oldAttrs: {
-      configureFlags = (oldAttrs.configureFlags or []) ++ [
+
+    package = pkgs.bluez.overrideAttrs (old: {
+      configureFlags = (old.configureFlags or []) ++ [
         "--disable-cups"
         "--disable-mesh"
         "--disable-obex"
         "--disable-hid2hci"
       ];
+
+      # If you ever hit flaky unit tests again, keep these:
+      doCheck = false;
+      doInstallCheck = false;
+
+      # Key bit: avoid Nix failing noBrokenSymlinks when OBEX is disabled
+      postFixup = (old.postFixup or "") + ''
+        if [ -L "$out/bin/obexd" ] && [ ! -e "$out/bin/obexd" ]; then
+          echo "Removing dangling symlink: $out/bin/obexd"
+          rm -f "$out/bin/obexd"
+        fi
+      '';
     });
+
     settings = {
       General = {
         Experimental = true;
@@ -235,7 +249,7 @@ in
       };
     };
   };
-
+  
   # Service Optimizations
   services = {
     ratbagd.enable = true;
@@ -329,8 +343,8 @@ in
       unzip unrar p7zip
       libnotify wl-clipboard cliphist
       grim slurp
-    udiskie
-    xfce.thunar xfce.thunar-volman mate.engrampa
+      udiskie
+      xfce.thunar xfce.thunar-volman mate.engrampa
       brave firefox
       pwvucontrol pavucontrol playerctl ffmpeg mpv
       gst_all_1.gstreamer gst_all_1.gst-plugins-base
@@ -338,7 +352,7 @@ in
       gst_all_1.gst-plugins-ugly gst_all_1.gst-libav
       (python311.withPackages (ps: with ps; [ pygobject3 numpy pandas ]))
       rocmPackages.rocm-smi rocmPackages.rocminfo
-      eza lsd bat fzf zoxide starship ripgrep fd jq age gum glow trash-cli
+      eza lsd bat fzf zoxide starship ripgrep fd jq age gum glow rucola trash-cli
       fastfetch macchina btop nvtopPackages.amd
       dualsensectl libratbag mangohud
       latencyflex

@@ -9,7 +9,6 @@ let
 
     # System & Utils
     "c" = "clear";
-    "zero" = "clear";
     "path" = "echo $PATH";
     "ls" = "eza -a -1 --icons --group-directories-first";
     "ll" = "eza -l --icons --group-directories-first --time-style=\"%Y-%m-%d %H:%M\"";
@@ -27,7 +26,7 @@ let
 
     # Editors & Tools
     "edit" = "micro";
-
+	
     # AI Chat Swapper
     "aiswap" = "aichat-swap";
     "altostrat" = "aichat-swap c";
@@ -36,15 +35,15 @@ let
     "stargate" = "aichat-swap o";
 
     # Quick AI Models (Sed replacement)
-    "align" = "sed -i \"s/^model:.*/model: openai:gpt-4o/\" ~/.config/aichat/config.yaml && aichat";
-    "bunz" = "sed -i \"s/^model:.*/model: openai:gpt-5-chat-latest/\" ~/.config/aichat/config.yaml && aichat";
-    "core" = "sed -i \"s/^model:.*/model: openai:gpt-5-mini/\" ~/.config/aichat/config.yaml && aichat";
-    "mai" = "sed -i \"s/^model:.*/model: openai:o4-mini/\" ~/.config/aichat/config.yaml && aichat";
+    "align" = "sed -i \"s/^model:.*/model: openai:gpt-4o-2024-05-13/\" ~/.config/aichat/config.yaml && aichat";
+    "core" = "sed -i \"s/^model:.*/model: openai:gpt-5.2/\" ~/.config/aichat/config.yaml && aichat";
+    "crunch" = "sed -i \"s/^model:.*/model: openai:o4-mini-high/\" ~/.config/aichat/config.yaml && aichat";
+    "zero" = "sed -i \"s/^model:.*/model: openai:o4-mini/\" ~/.config/aichat/config.yaml && aichat";
 
     # Config Shortcuts
     "srcfile" = "micro $HOME/.bashrc";
     "nixconf" = "micro /etc/nixos/configuration.nix";
-    "hyprfile" = "micro $HOME/.config/niri/config.kdl";
+    "niriconf" = "micro $HOME/.config/niri/config.kdl";
 
     # Clipboard (Launcher Agnostic)
     "clipboard" = "cliphist list | $LAUNCHER_CMD | cliphist decode | wl-copy";
@@ -99,6 +98,11 @@ in
       bind "set show-all-if-ambiguous on" 2>/dev/null
 
       PROMPT_COMMAND="history -a"
+
+      md() {
+        cd "$HOME/Documents/Notes" || return 1
+        rucola
+      }
 
       extract() {
         for file in "$@"; do
@@ -158,6 +162,13 @@ in
               echo "File not found: $file"
             end
           end
+        '';
+      };
+      
+      md = {
+        body = ''
+          cd "$HOME/Documents/Notes"; or return
+          rucola
         '';
       };
 

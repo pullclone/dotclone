@@ -14,44 +14,45 @@
   outputs = { self, nixpkgs, nixpkgs-unstable, home-manager, stylix, niri, noctalia, ... }@inputs:
   let
     system = "x86_64-linux";
+    lib = nixpkgs.lib;
+    
     pkgsUnstable = import nixpkgs-unstable {
       inherit system;
       config.allowUnfree = true;
     };
-    lib = nixpkgs.lib;
 
-mkNyx = { zramModule ? ./modules/zram-lz4.nix
-       , latencyflexEnable ? true
-       }:
-  lib.nixosSystem {
-    inherit system;
-    specialArgs = {
-      inherit inputs pkgsUnstable stylix;
-    };
-    modules = [
-      (import zramModule)
-
-      ./configuration.nix
-      niri.nixosModules.niri
-
-      ./modules/latencyflex-module.nix
-      { my.performance.latencyflex.enable = latencyflexEnable; }
-
-      home-manager.nixosModules.home-manager
-      {
-        home-manager.useGlobalPkgs = true;
-        home-manager.useUserPackages = true;
-        home-manager.extraSpecialArgs = {
+    mkNyx = { zramModule ? ./modules/zram-lz4.nix
+           , latencyflexEnable ? true
+           }:
+      lib.nixosSystem {
+        inherit system;
+        specialArgs = {
           inherit inputs pkgsUnstable stylix;
         };
-        home-manager.users.ashy = import ./home-ashy.nix;
-      }
-    ];
-  };
+        modules = [
+          (import zramModule)
+
+          ./configuration.nix
+          niri.nixosModules.niri
+
+          ./modules/latencyflex-module.nix
+          { my.performance.latencyflex.enable = latencyflexEnable; }
+
+          home-manager.nixosModules.home-manager
+          {
+            home-manager.useGlobalPkgs = true;
+            home-manager.useUserPackages = true;
+            home-manager.extraSpecialArgs = {
+              inherit inputs pkgsUnstable stylix;
+            };
+            home-manager.users.ashy = import ./home-ashy.nix;
+          }
+        ];
+      };
   in {
     nixosConfigurations = {
-      nyx                = mkNyx { zramModule = ./modules/zram-lz4.nix;          latencyflexEnable = true;  };
-      nyx-lfx-off        = mkNyx { zramModule = ./modules/zram-lz4.nix;          latencyflexEnable = false; };
+      nyx                = mkNyx { zramModule = ./modules/zram-lz4.nix;           latencyflexEnable = true;  };
+      nyx-lfx-off        = mkNyx { zramModule = ./modules/zram-lz4.nix;           latencyflexEnable = false; };
 
       nyx-zstdb-lfx      = mkNyx { zramModule = ./modules/zram-zstd-balanced.nix; latencyflexEnable = true;  };
       nyx-zstdb-lfx-off  = mkNyx { zramModule = ./modules/zram-zstd-balanced.nix; latencyflexEnable = false; };

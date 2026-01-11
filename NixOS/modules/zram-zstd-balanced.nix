@@ -1,4 +1,3 @@
-nix
 { config, pkgs, ... }:
 
 {
