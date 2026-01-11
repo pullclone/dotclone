@@ -6,16 +6,16 @@ in
 {
   imports = [ ./hardware-configuration.nix ];
 
-  # Kernel and boot settings
+  # ==========================================
+  # KERNEL & BOOT
+  # ==========================================
   boot.kernelPackages = pkgs.linuxPackages_latest;
-  boot.kernelParams = [
-    "amd_pstate=active"
-    "amdgpu.ppfeaturemask=0xffffffff"
-    "quiet"
-    "splash"
-  ];
+  # Note: AMD-specific params moved to modules/hardware/amd-gpu.nix
+  boot.kernelParams = [ "quiet" "splash" ];
 
   boot.plymouth.enable = true;
+  boot.loader.systemd-boot.enable = true;
+  boot.loader.efi.canTouchEfiVariables = true;
 
   # Enable experimental features for Nix
   nix.settings = {
@@ -27,7 +27,11 @@ in
     auto-optimise-store = true;
   };
 
-  # Advanced Service Management
+  nixpkgs.config.allowUnfree = true;
+
+  # ==========================================
+  # SYSTEM SERVICES
+  # ==========================================
   systemd = {
     services = {
       sddm = {
@@ -49,54 +53,22 @@ in
     RateLimitBurst=1000
   '';
 
-  # Advanced Memory & Kernel Tuning
-  boot.kernel.sysctl = {
-    # Memory management
-    "kernel.shmmni" = 4096;
-    "vm.nr_hugepages" = 128;
-    "vm.hugetlb_shm_group" = 0;
-    "vm.overcommit_memory" = 1;
-    "vm.overcommit_ratio" = 50;
-    "vm.zone_reclaim_mode" = 0;
-    "vm.dirty_background_bytes" = "16777216";
-    "vm.dirty_bytes" = "67108864";
-    "vm.dirty_ratio" = 10;
-    "vm.max_map_count" = 262144;
-    "vm.mmap_rnd_bits" = 32;
-
-    # Security and hardening
-    "kernel.kptr_restrict" = 2;
-    "kernel.dmesg_restrict" = 0;
-    "kernel.perf_event_paranoid" = 1;
-    "kernel.yama.ptrace_scope" = 1;
-    "fs.protected_hardlinks" = 1;
-    "fs.protected_symlinks" = 1;
-
-    # Scheduler and network behaviour
-    "kernel.sched_min_granularity_ns" = 10000000;
-    "kernel.sched_wakeup_granularity_ns" = 15000000;
-    "kernel.sched_latency_ns" = 60000000;
-    "net.core.default_qdisc" = "fq";
-    "net.ipv4.tcp_congestion_control" = "bbr";
-    "net.ipv4.tcp_notsent_lowat" = 1;
-    "net.ipv4.tcp_no_metrics_save" = 1;
-    "net.ipv4.tcp_keepalive_time" = 300;
-    "net.ipv4.tcp_keepalive_probes" = 5;
-    "net.ipv4.tcp_keepalive_intvl" = 30;
-    "net.ipv6.conf.all.disable_ipv6" = 1;
+  # Service Optimization Timer
+  systemd.services."optimize-services" = {
+    description = "Service Optimization Timer";
+    wantedBy = [ "timers.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = ''
+        echo "Optimizing services..."
+      '';
+    };
   };
 
-  # I/O Scheduler Optimization
-  boot.extraModprobeConfig = ''
-    options elevator=bfq
-    options scsi_mod.use_blk_mq=1
-    options nvme_core.io_timeout=30
-    options nvme_core.max_retries=1
-  '';
-
-  nixpkgs.config.allowUnfree = true;
-
-  # Advanced Network Configuration
+  # ==========================================
+  # NETWORKING
+  # ==========================================
+  # Facts (Hostname, Timezone, MAC) handled by modules/install-answers.nix
   networking = {
     nameservers = [
       "142.242.2.2"      # Mullvad
@@ -112,100 +84,8 @@ in
     useDHCP = false;
   };
 
-  # Advanced Power Management
-  powerManagement = {
-    cpuFreqGovernor = "performance";
-    enable = true;
-  };
-
-  # Advanced Filesystem Optimization
-  fileSystems."/" = {
-    fsType = "btrfs";
-    options = [
-      "noatime"
-      "nodiratime"
-      "compress=zstd:3"
-      "space_cache=v2"
-      "ssd"
-      "commit=120"
-      "thread_pool=4"
-      "autodefrag"
-    ];
-  };
-
-  # Advanced Monitoring Configuration
-  services = {
-    netdata = {
-      enable = true;
-    };
-
-    prometheus = {
-      exporters.node = {
-        enable = true;
-        port = 9100;
-        enabledCollectors = [ "systemd" "btrfs" "textfile" ];
-        extraFlags = [
-          "--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|run)$"
-        ];
-        openFirewall = false;
-      };
-    };
-
-    grafana = {
-      enable = true;
-      settings.server.http_port = 3000;
-    };
-  };
-
-  # Advanced Service Optimization
-  systemd.services = {
-    "optimize-services" = {
-      description = "Service Optimization Timer";
-      wantedBy = [ "timers.target" ];
-      serviceConfig = {
-        Type = "oneshot";
-        ExecStart = ''
-          echo "Optimizing services..."
-        '';
-      };
-    };
-
-    "btrfs-optimize" = {
-      description = "Btrfs Optimization Service";
-      wantedBy = [ "multi-user.target" ];
-      serviceConfig = {
-        Type = "oneshot";
-        ExecStart = ''
-          ${pkgs.btrfs-progs}/bin/btrfs filesystem defrag -r -v /
-        '';
-      };
-    };
-  };
-
-  # Btrfs Optimization
-  environment.etc."btrfs-maintenance.xml".text = ''
-    <?xml version="1.0"?>
-    <config>
-      <periodic>
-        <balance enabled="true" interval="monthly" priority="nice">
-          <filters>
-            <usage>80</usage>
-            <dusage>50</usage>
-          </filters>
-        </balance>
-        <scrub enabled="true" interval="weekly" priority="nice" />
-        <trim enabled="true" interval="daily" priority="nice" />
-        <defrag enabled="false" />
-      </periodic>
-      <syslog>warning</syslog>
-    </config>
-  '';
-
-  # Networking & Security
-  networking.hostName = "nyx";
   networking.networkmanager.enable = true;
   networking.enableIPv6 = false;
-  networking.interfaces.enp1s0.macAddress = "11:22:33:33:22:11";
 
   networking.firewall = {
     enable = true;
@@ -213,7 +93,14 @@ in
     logRefusedConnections = true;
   };
 
-  # Hardware & Bluetooth
+  # ==========================================
+  # POWER & HARDWARE
+  # ==========================================
+  powerManagement = {
+    cpuFreqGovernor = "performance";
+    enable = true;
+  };
+
   hardware.enableRedistributableFirmware = true;
   hardware.cpu.amd.updateMicrocode = true;
 
@@ -228,15 +115,10 @@ in
         "--disable-obex"
         "--disable-hid2hci"
       ];
-
-      # If you ever hit flaky unit tests again, keep these:
       doCheck = false;
       doInstallCheck = false;
-
-      # Key bit: avoid Nix failing noBrokenSymlinks when OBEX is disabled
       postFixup = (old.postFixup or "") + ''
         if [ -L "$out/bin/obexd" ] && [ ! -e "$out/bin/obexd" ]; then
-          echo "Removing dangling symlink: $out/bin/obexd"
           rm -f "$out/bin/obexd"
         fi
       '';
@@ -249,15 +131,14 @@ in
       };
     };
   };
-  
-  # Service Optimizations
+
+  # ==========================================
+  # DESKTOP SERVICES
+  # ==========================================
   services = {
+    # Input & Power
     ratbagd.enable = true;
-
-    power-profiles-daemon = {
-      enable = true;
-    };
-
+    power-profiles-daemon.enable = true;
     upower = {
       enable = true;
       criticalPowerAction = "HybridSleep";
@@ -267,48 +148,51 @@ in
       percentageAction = 3;
     };
 
+    # Gnome Integration
     gvfs.enable = true;
     tumbler.enable = true;
-
     gnome = {
-      evolution-data-server = {
-        enable = true;
-      };
-      gnome-keyring = {
-        enable = true;
-      };
+      evolution-data-server.enable = true;
+      gnome-keyring.enable = true;
+    };
+
+    # Display
+    displayManager.sddm = {
+      enable = true;
+      wayland.enable = true;
+    };
+    xserver.enable = false;
+
+    # Audio
+    pipewire = {
+      enable = true;
+      alsa.enable = true;
+      alsa.support32Bit = true;
+      pulse.enable = true;
+      wireplumber.enable = true;
+    };
+
+    # Monitoring Stack
+    netdata.enable = true;
+    grafana = {
+      enable = true;
+      settings.server.http_port = 3000;
+    };
+    prometheus.exporters.node = {
+      enable = true;
+      port = 9100;
+      enabledCollectors = [ "systemd" "btrfs" "textfile" ];
+      extraFlags = [
+        "--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|run)$"
+      ];
+      openFirewall = false;
     };
   };
 
   security.pam.services.login.enableGnomeKeyring = true;
 
-  # Kernel & Boot
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.canTouchEfiVariables = true;
-
-  # Display & Graphics
-  services.displayManager.sddm = {
-    enable = true;
-    wayland.enable = true;
-  };
-
-  services.xserver.enable = false;
-
+  # Niri & Portals
   programs.niri.enable = true;
-
-  hardware.graphics = {
-    enable = true;
-    enable32Bit = true;
-    extraPackages = with pkgs; [
-      rocmPackages.clr
-      rocmPackages.rocm-runtime
-      latencyflex
-    ];
-  };
-
-  systemd.tmpfiles.rules = [
-    "L+    /opt/rocm/hip   -    -    -     -    ${pkgs.rocmPackages.clr}"
-  ];
 
   xdg.portal = {
     enable = true;
@@ -316,46 +200,58 @@ in
     config.common.default = "gtk";
   };
 
-  # Audio
-  services.pipewire = {
-    enable = true;
-    alsa.enable = true;
-    alsa.support32Bit = true;
-    pulse.enable = true;
-    wireplumber.enable = true;
-  };
+  # Note: hardware.graphics and ROCm configuration moved to modules/hardware/amd-gpu.nix
 
-  # Users & Shells
-  users.users.ashy = {
+  # ==========================================
+  # USERS
+  # ==========================================
+  users.mutableUsers = true;
+
+  users.users."${config.my.install.userName}" = {
     isNormalUser = true;
-    description = "Ashy";
+    description = config.my.install.userName;
     extraGroups = [ "wheel" "networkmanager" "video" "audio" "input" "render" ];
     shell = pkgs.fish;
     createHome = true;
-    initialPassword = "icecream";
+    # No initialPassword. Set via 'passwd' on first boot.
   };
 
-  # System packages
+  programs.fish.enable = true;
+  programs.bash.enable = true;
+
+  # ==========================================
+  # PACKAGES & SCRIPTS
+  # ==========================================
   environment.systemPackages = with pkgs;
     [
+      # Core Tools
       btrfs-progs btrbk snapper
       git curl wget micro
       unzip unrar p7zip
       libnotify wl-clipboard cliphist
-      grim slurp
-      udiskie
+      grim slurp udiskie
+
+      # File Management
       xfce.thunar xfce.thunar-volman mate.engrampa
+
+      # Web & Media
       brave firefox
       pwvucontrol pavucontrol playerctl ffmpeg mpv
       gst_all_1.gstreamer gst_all_1.gst-plugins-base
       gst_all_1.gst-plugins-good gst_all_1.gst-plugins-bad
       gst_all_1.gst-plugins-ugly gst_all_1.gst-libav
+
+      # Python / AI
       (python311.withPackages (ps: with ps; [ pygobject3 numpy pandas ]))
-      rocmPackages.rocm-smi rocmPackages.rocminfo
-      eza lsd bat fzf zoxide starship ripgrep fd jq age gum glow rucola trash-cli
-      fastfetch macchina btop nvtopPackages.amd
-      dualsensectl libratbag mangohud
-      latencyflex
+
+      # Terminal Enhancements
+      eza lla bat fzf zoxide starship ripgrep fd jq age gum glow rucola trash-cli
+      fastfetch macchina btop
+
+      # Gaming / Input
+      dualsensectl libratbag mangohud latencyflex
+
+      # Theming
       bibata-cursors
       (pkgs.catppuccin-sddm.override { flavor = "mocha"; })
       pkgs.nerd-fonts.fira-code
@@ -363,18 +259,10 @@ in
       pkgs.nerd-fonts.jetbrains-mono
       pkgs.nerd-fonts.meslo-lg
       noto-fonts-cjk-sans noto-fonts-color-emoji
-      util-linux
-      procps
-      iputils
-      iproute2
-      mkpasswd
-      stress-ng
-      iperf3
-      sysstat
-      iotop
-      iftop
-      nmon
-      powertop
+
+      # Sysadmin Utils
+      util-linux procps iputils iproute2 mkpasswd
+      stress-ng iperf3 sysstat iotop iftop nmon powertop
     ]
     ++ [
       (writeShellScriptBin "g502-manager" ''
@@ -552,13 +440,6 @@ in
         exit 0
       '')
     ];
-
-  # Shells
-  programs.fish.enable = true;
-  programs.bash.enable = true;
-
-  # Timezone configuration
-  time.timeZone = "UTC";
 
   system.stateVersion = "25.11";
 }
