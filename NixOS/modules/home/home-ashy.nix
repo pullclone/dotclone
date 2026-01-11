@@ -7,19 +7,19 @@
 
   imports = [
     # --- 1. CORE DEFINITIONS ---
-    ./modules/home/options.nix
-    ./modules/home/shells.nix
-    ./modules/home/niri-shared.nix
+    ./core/options.nix
+    ./shell/shells.nix
+    ./niri/niri-shared.nix
 
     # --- 2. GLOBAL APPS & TERMINALS ---
-    ./modules/home/apps/brave-webapps.nix
-    ./modules/home/apps/btop.nix
-    ./modules/home/apps/cava.nix
-    ./modules/home/terminals/kitty.nix
+    ./apps/brave-webapps.nix
+    ./apps/btop.nix
+    ./apps/cava.nix
+    ./terminals/kitty.nix
 
     # --- 3. PANELS (Gated internally via mkIf) ---
-    ./modules/noctalia/default.nix
-    ./modules/waybar/default.nix
+    ./noctalia/default.nix
+    ./waybar/default.nix
   ];
 
   # --- CONFIGURATION TOGGLES ---

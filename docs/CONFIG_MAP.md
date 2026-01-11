@@ -5,79 +5,92 @@ This document provides a structured map of the NyxOS repository, showing where m
 ## Repository Structure
 
 ```
-.
-├── AGENTS.md                  # Agent guidelines and operational rules
-├── Justfile                   # Primary developer interface
-├── README.md                 # Project overview
-├── docs/                     # Documentation
-│   ├── ASSERTIONS.md         # Runtime invariants and contracts
-│   └── CONFIG_MAP.md         # This file
-└── NixOS/                    # NixOS configuration
-    ├── modules/              # Reusable NixOS modules
-    │   ├── home/             # Home Manager configurations
-    │   │   ├── apps/         # Application configurations
-    │   │   ├── terminals/    # Terminal configurations
-    │   │   ├── niri-shared.nix # Niri compositor shared config
-    │   │   ├── options.nix    # Home Manager options
-    │   │   └── shells.nix     # Shell configurations
-    │   ├── noctalia/         # Noctalia-specific modules
-    │   ├── waybar/           # Waybar configurations
-    │   │   ├── dynamic-island.nix # Dynamic island config
-    │   │   ├── scripts.nix    # Waybar scripts
-    │   │   └── default.nix   # Main Waybar config
-    │   ├── zram-*            # ZRAM configurations
-    │   └── ...
-    ├── configuration.nix     # Main system configuration
-    ├── directory structure.mmf # Mind map of directory structure
-    ├── flake.nix             # Flake definition
-    ├── latencyflex.nix       # LatencyFleX Vulkan layer package
-    └── home-ashy.nix         # Home Manager configuration
+NixOS/
+├── configuration.nix               # Main System Policy Orchestrator (Users, Services, Packages)
+├── flake.lock
+├── flake.nix                       # Flake Entry Point & Module Wiring
+├── hardware-configuration.nix      # Generated Hardware Config (Mounts/Filesystems)
+├── install.sh                      # Repository-based Installer Script
+├── pkgs/                           # Custom Package Derivations
+│   ├── latencyflex.nix
+│   └── overlay.nix
+├── scripts/                        # Maintenance & Test Scripts
+│   ├── test-configuration.sh
+│   └── test-optimizations.sh
+└── modules/                        # Reusable Modules (Domain-Driven)
+    ├── boot/                       # Bootloader & Secure Boot Logic
+    │   └── boot-profile.nix        # Switchable profile (UKI Baseline vs Lanzaboote)
+    ├── core/                       # Installation Facts & Data
+    │   └── install-answers.nix     # JSON-like attribute set of install facts (Host, Time, User)
+    ├── hardware/                   # Hardware-Specific configurations
+    │   └── amd-gpu.nix             # AMD Strix Point kernel params, ROCm, & Graphics
+    ├── programs/                   # System-level Program Modules
+    │   └── latencyflex-module.nix  # Toggle for the LatencyFleX Vulkan layer
+    ├── tuning/                     # Performance & Kernel Tuning
+    │   ├── sysctl.nix              # Kernel sysctl, I/O schedulers, Btrfs maintenance
+    │   └── zram/                   # ZRAM Profiles
+    │       ├── zram-lz4.nix
+    │       ├── zram-writeback.nix
+    │       ├── zram-zstd-aggressive.nix
+    │       └── zram-zstd-balanced.nix
+    └── home/                       # Home Manager Configuration
+        ├── home-ashy.nix           # HM Entry Point
+        ├── apps/                   # User Applications (Brave, Btop, Cava)
+        ├── core/                   # Home Options Definition
+        ├── niri/                   # Compositor Settings (Niri)
+        ├── noctalia/               # Noctalia Panel Config
+        ├── shell/                  # Shell Environments (Bash/Fish/Starship)
+        ├── terminals/              # Terminal Emulators (Kitty)
+        └── waybar/                 # Waybar Panel Config
 ```
 
 ## Build-Time vs Runtime Boundary
 
 ### Build-Time Components
 
-- **Flake Definition** (`NixOS/flake.nix`): Defines inputs, outputs, and system configurations
-- **Modules** (`NixOS/modules/`): Reusable NixOS modules evaluated at build time
-- **System Configuration** (`NixOS/configuration.nix`): Main system configuration
-- **Home Manager Config** (`NixOS/home-ashy.nix`): User environment configuration
+- **Flake Definition** (`NixOS/flake.nix`): Defines inputs, outputs, system wiring, and module injection order.
+- **Install Facts** (`modules/core/install-answers.nix`): Dynamic facts (Hostname, Timezone, Username, MAC) generated at install time.
+- **Domain Modules** (`modules/*`): Specialized logic for Boot, Hardware, and Tuning evaluated at build time.
+- **System Policy** (`NixOS/configuration.nix`): High-level policy orchestrator for Services, Users, and Packages.
+- **Home Manager Config** (`modules/home/home-ashy.nix`): User environment configuration.
 
 ### Runtime Components
 
-- **Services**: Systemd services defined in modules
-- **Waybar**: Status bar with dynamic island
-- **Niri**: Wayland compositor
-- **ZRAM**: Memory compression configurations
-- **Applications**: User applications configured via Home Manager
+- **Services**: Systemd services (SDDM, NetworkManager, Power Profiles) defined in `configuration.nix`.
+- **Bootloader**: systemd-boot or Lanzaboote managed by `modules/boot/boot-profile.nix`.
+- **Waybar / Noctalia**: Status panels defined in `modules/home/`.
+- **Niri**: Wayland compositor.
+- **ZRAM**: Memory compression managed by `modules/tuning/zram/`.
 
 ## Quick Implementation Guide
 
 ### Adding a New Module
 
-1. **Location**: Create in `NixOS/modules/` with appropriate subdirectory
-2. **Structure**: Follow existing module patterns (options + config)
-3. **Integration**: Import in `configuration.nix` or relevant parent module
-4. **Documentation**: Update this map and add to `ASSERTIONS.md`
+1. **Identify Domain**: Determine if it fits in `programs`, `services`, `hardware`, or `tuning`.
+2. **Location**: Create in `NixOS/modules/<domain>/`.
+3. **Structure**: Follow existing module patterns (`{ config, lib, pkgs, ... }: ...`).
+4. **Integration**: Import in `flake.nix` (global) or `configuration.nix` (policy-specific).
 
 ### Adding a New Service
 
-1. **Module**: Create in `NixOS/modules/` (e.g., `services/my-service.nix`)
-2. **Configuration**: Define service options and implementation
-3. **Enable**: Add to system configuration via module imports
-4. **Assertions**: Add runtime checks to `ASSERTIONS.md`
+1. **Configuration**: Add the service definition to `NixOS/configuration.nix` under the `services = { ... }` block.
+2. **Optimization**: If the service requires kernel tuning, add `sysctl` rules to `modules/tuning/sysctl.nix`.
+3. **Assertions**: Add runtime checks to `ASSERTIONS.md`.
 
 ### Adding Home Manager Configuration
 
-1. **Location**: `NixOS/modules/home/` with appropriate category
-2. **Structure**: Follow Home Manager module conventions
-3. **Integration**: Import in `home-ashy.nix`
-4. **Testing**: Verify with `home-manager switch`
+1. **Location**: Create in `NixOS/modules/home/<category>/`.
+2. **Structure**: Follow Home Manager module conventions.
+3. **Integration**: Import the new file in `modules/home/home-ashy.nix`.
+4. **Testing**: Verify with `nixos-rebuild switch` (since HM is integrated into the system flake).
 
 ## Kernel Tuning Reference
 
-- Sysctl tuning is consolidated under **Advanced Memory & Kernel Tuning** in `NixOS/configuration.nix`
-- Add or adjust kernel and VM sysctls in that single block to avoid conflicting definitions
+- **Sysctl Tuning**: Consolidated in `modules/tuning/sysctl.nix`.
+  - *Do not* add `boot.kernel.sysctl` to `configuration.nix` to avoid collision errors.
+- **Boot Parameters**:
+  - General params: `modules/boot/boot-profile.nix`.
+  - AMD/Hardware params: `modules/hardware/amd-gpu.nix`.
 
 ## Evolving Runtime Component Map
 
@@ -85,41 +98,46 @@ This document provides a structured map of the NyxOS repository, showing where m
 
 | Component | Type | Location | Responsibility |
 |-----------|------|----------|----------------|
-| Waybar | Service | `modules/waybar/` | Status bar with dynamic island |
-| Niri | Service | `modules/home/niri-shared.nix` | Wayland compositor |
-| ZRAM | Module | `modules/zram-*` | Memory compression |
-| Node Exporter | Service | `configuration.nix` | Prometheus metrics on port 9100 (systemd/btrfs/textfile collectors) |
-| Home Apps | Config | `modules/home/apps/` | Application configurations |
-| Terminals | Config | `modules/home/terminals/` | Terminal emulator configs |
-| LatencyFleX | Package | `latencyflex.nix` | Vulkan implicit layer for latency reduction |
+| Bootloader| System | `modules/boot/profile.nix` | Switchable UKI / Secure Boot provider |
+| Hardware  | Config | `modules/hardware/amd-gpu.nix` | ROCm, Graphics, Kernel P-States |
+| Sysctl    | Config | `modules/tuning/sysctl.nix` | Kernel knobs, I/O scheduling, Btrfs |
+| Waybar    | Service| `modules/home/waybar/` | Status bar with dynamic island |
+| Niri      | Service| `modules/home/niri/` | Wayland compositor |
+| ZRAM      | Module | `modules/tuning/zram/` | Memory compression |
+| LatencyFleX| Package| `pkgs/latencyflex.nix` | Vulkan implicit layer for latency reduction |
 
 ### Component Relationships
 
 ```mermaid
 graph TD
-    A[Flake] --> B[System Config]
-    A --> C[Home Config]
-    B --> D[Modules]
-    C --> E[Home Modules]
-    D --> F[Services]
-    D --> G[ZRAM]
-    D --> H[Waybar]
-    E --> I[Niri]
-    E --> J[Apps]
-    E --> K[Terminals]
+    A[Flake Entry] --> B[Boot Profile]
+    A --> C[Install Answers]
+    A --> D[Hardware & Tuning Modules]
+    A --> E[System Policy (Config.nix)]
+    A --> F[Home Manager]
+    
+    C -->|Feeds Facts| E
+    D -->|Configures Kernel| E
+    
+    E --> G[Services]
+    E --> H[Packages]
+    
+    F --> I[Shells]
+    F --> J[Desktop (Niri/Waybar/Noctalia)]
+    F --> K[Apps]
 ```
 
 ## Change Implementation Flow
 
-1. **Identify Component Type**: Module, Service, or Configuration
-2. **Locate Appropriate Directory**: Use this map as guide
-3. **Follow Existing Patterns**: Match style and structure of similar components
-4. **Update Documentation**: Modify this map and assertions
-5. **Test**: Run `just ci` to validate changes
+1. **Identify Component Domain**: Does this belong in System Policy (`configuration.nix`) or a specialized Domain (`modules/*`)?
+2. **Locate Appropriate Directory**: Use this map as a guide.
+3. **Follow Existing Patterns**: Match style and structure of similar components.
+4. **Update Documentation**: Modify this map if directory structure changes.
+5. **Test**: Run `nix flake check` to validate paths and syntax.
 
 ## Future Component Planning
 
-- **Container Runtime**: For server profile
-- **Gaming Layer**: Steam, Wine, etc.
-- **Backup System**: Borg or similar
-- **Monitoring**: Prometheus/Grafana stack
+- **Container Runtime**: For server profile (likely `modules/virtualization/`).
+- **Gaming Layer**: Steam, Wine, etc. (likely `modules/programs/gaming.nix`).
+- **Backup System**: Borg or similar (likely `modules/services/backup.nix`).
+- **Monitoring**: Prometheus/Grafana stack (currently in `configuration.nix`, candidate for `modules/services/monitoring.nix`).

@@ -9,10 +9,10 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    # If you already package it in an overlay or pkgs set, use that.
-    # Otherwise, import the derivation directly from the repo.
+    # We moved the package definition to pkgs/latencyflex.nix in the root.
+    # From modules/programs/latencyflex-module.nix, that is ../../pkgs/latencyflex.nix
     environment.systemPackages = [
-      (pkgs.callPackage ../latencyflex.nix { })
+      (pkgs.callPackage ../../pkgs/latencyflex.nix { })
     ];
   };
 }

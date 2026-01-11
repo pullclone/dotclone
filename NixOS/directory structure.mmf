@@ -1,26 +1,48 @@
-/etc/nixos/
-├── flake.nix
-├── configuration.nix
-├── hardware-configuration.nix  (Your existing hardware file)
-├── home-ashy.nix
-└── modules
-    ├── zram-lz4.nix
-    ├── zram-writeback.nix
-    ├── zram-ztsd-aggressive.nix
-    ├── zram-ztsd-balanced.nix
-    ├── home
-    │   ├── niri-shared.nix
-    │   ├── options.nix
-    │   ├── shells.nix
-    │   ├── apps
-    │   │  ├── brave-webapps.nix
-    │   │  ├── btop.nix
-    │   │  └── cava.nix
-    │   └── terminals
-    │       └── kitty.nix
-    ├── noctalia
-    │   └── default.nix
-    └── waybar
-        ├── default.nix
-        ├── dynamic-island.nix
-        └── scripts.nix
+NixOS/
+├── configuration.nix               # Main System Policy Orchestrator
+├── flake.lock
+├── flake.nix                       # Flake Entry Point
+├── hardware-configuration.nix      # Generated Hardware Config
+├── install.sh                      # Installer Script
+├── pkgs/                           # Custom Package Derivations
+│   ├── latencyflex.nix
+│   └── overlay.nix
+├── scripts/                        # Maintenance & Test Scripts
+│   ├── test-configuration.sh
+│   └── test-optimizations.sh
+└── modules/                        # Reusable Modules
+    ├── boot/                       # Bootloader & Secure Boot Logic
+    │   └── boot-profile.nix
+    ├── core/                       # Installation Facts & Data
+    │   └── install-answers.nix
+    ├── hardware/                   # Hardware-Specific configurations
+    │   └── amd-gpu.nix
+    ├── programs/                   # System-level Program Modules
+    │   └── latencyflex-module.nix
+    ├── tuning/                     # Performance & Kernel Tuning
+    │   ├── sysctl.nix
+    │   └── zram/
+    │       ├── zram-lz4.nix
+    │       ├── zram-writeback.nix
+    │       ├── zram-zstd-aggressive.nix
+    │       └── zram-zstd-balanced.nix
+    └── home/                       # Home Manager Configuration
+        ├── home-ashy.nix           # HM Entry Point
+        ├── apps/                   # User Applications
+        │   ├── brave-webapps.nix
+        │   ├── btop.nix
+        │   └── cava.nix
+        ├── core/                   # Home Options
+        │   └── options.nix
+        ├── niri/                   # Compositor Settings
+        │   └── niri-shared.nix
+        ├── noctalia/               # Noctalia Panel Config
+        │   └── default.nix
+        ├── shell/                  # Shell Environments (Bash/Fish)
+        │   └── shells.nix
+        ├── terminals/              # Terminal Emulators
+        │   └── kitty.nix
+        └── waybar/                 # Waybar Panel Config
+            ├── default.nix
+            ├── dynamic-island.nix
+            └── scripts.nix

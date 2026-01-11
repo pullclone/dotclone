@@ -53,43 +53,32 @@ case "$MAC_CHOICE" in
        ;;
 esac
 
-# 3. Disk Selection & Partitioning
-echo ""
-lsblk -dpno NAME,SIZE,MODEL,TYPE | awk '$4=="disk"{print}'
-ask "Target Disk (e.g. /dev/nvme0n1)" "" DISK
-
-if [ ! -b "$DISK" ]; then echo "❌ Invalid disk."; exit 1; fi
-
-echo "⚠️  WARNING: ALL DATA ON $DISK WILL BE ERASED."
-read -r -p "Type YES to continue: " CONFIRM
-[ "$CONFIRM" = "YES" ] || exit 1
-
-echo "Partitioning..."
-# Determine partition prefix (p for nvme)
-PART_PREFIX=""
-[[ "$DISK" =~ "nvme" || "$DISK" =~ "mmcblk" ]] && PART_PREFIX="p"
-
-wipefs -a "$DISK"
-parted -s "$DISK" mklabel gpt
-parted -s "$DISK" mkpart ESP fat32 1MiB 512MiB
-parted -s "$DISK" set 1 esp on
-parted -s "$DISK" mkpart primary 512MiB 100%
+# 3. Root Partition (Rest of disk)
+parted -s "$DISK" mkpart primary 32.5GiB 100%
 
 udevadm settle
-mkfs.fat -F32 -n ESP "${DISK}${PART_PREFIX}1"
-mkfs.btrfs -f -L nixos "${DISK}${PART_PREFIX}2"
 
-mount "${DISK}${PART_PREFIX}2" /mnt
+# Format
+mkfs.fat -F32 -n ESP "${DISK}${PART_PREFIX}1"
+
+# We format swap and label it so the randomEncryption module finds it by label
+mkswap -L SWAP "${DISK}${PART_PREFIX}2"
+
+mkfs.btrfs -f -L nixos "${DISK}${PART_PREFIX}3"
+
+# Mounts (Updated for partition numbers)
+mount "${DISK}${PART_PREFIX}3" /mnt
 btrfs subvolume create /mnt/@
 btrfs subvolume create /mnt/@home
 btrfs subvolume create /mnt/@nix
 umount /mnt
 
 MOUNT_OPTS="noatime,ssd,space_cache=v2,compress=zstd:3"
-mount -o "$MOUNT_OPTS,subvol=@" "${DISK}${PART_PREFIX}2" /mnt
+mount -o "$MOUNT_OPTS,subvol=@" "${DISK}${PART_PREFIX}3" /mnt
 mkdir -p /mnt/{boot,home,nix,etc/nixos}
-mount -o "$MOUNT_OPTS,subvol=@home" "${DISK}${PART_PREFIX}2" /mnt/home
-mount -o "$MOUNT_OPTS,subvol=@nix" "${DISK}${PART_PREFIX}2" /mnt/nix
+mount -o "$MOUNT_OPTS,subvol=@home" "${DISK}${PART_PREFIX}3" /mnt/home
+mount -o "$MOUNT_OPTS,subvol=@nix" "${DISK}${PART_PREFIX}3" /mnt/nix
+
 mount "${DISK}${PART_PREFIX}1" /mnt/boot
 
 # 4. Generate Hardware Config

@@ -1,23 +1,18 @@
 { config, pkgs, lib, stylix, inputs, ... }:
 
 let
-  latencyflex = pkgs.callPackage ./latencyflex.nix { };
+  latencyflex = pkgs.callPackage ./pkgs/latencyflex.nix { };
 in
+
 {
   imports = [ ./hardware-configuration.nix ];
 
   # ==========================================
-  # KERNEL & BOOT
+  # CORE SYSTEM
   # ==========================================
-  boot.kernelPackages = pkgs.linuxPackages_latest;
-  # Note: AMD-specific params moved to modules/hardware/amd-gpu.nix
-  boot.kernelParams = [ "quiet" "splash" ];
+  system.stateVersion = "25.11";
+  nixpkgs.config.allowUnfree = true;
 
-  boot.plymouth.enable = true;
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.canTouchEfiVariables = true;
-
-  # Enable experimental features for Nix
   nix.settings = {
     experimental-features = [
       "nix-command"
@@ -27,10 +22,23 @@ in
     auto-optimise-store = true;
   };
 
-  nixpkgs.config.allowUnfree = true;
+  # NOTE: Bootloader, Kernel Params, and Microcode are now handled
+  # by modules/boot-profile.nix and modules/hardware/amd-gpu.nix
 
   # ==========================================
-  # SYSTEM SERVICES
+  # SWAP & STORAGE
+  # ==========================================
+  # Randomly encrypted swap (Ephemeral, key regenerated at boot)
+  swapDevices = [
+    {
+      device = "/dev/disk/by-partlabel/SWAP";
+      randomEncryption.enable = true;
+      priority = 10; # Lower priority than ZRAM (100)
+    }
+  ];
+
+  # ==========================================
+  # SERVICES
   # ==========================================
   systemd = {
     services = {
@@ -45,14 +53,6 @@ in
     };
   };
 
-  # Journal optimizations
-  services.journald.extraConfig = ''
-    Compress=yes
-    SystemMaxFileSize=50M
-    RateLimitIntervalSec=30s
-    RateLimitBurst=1000
-  '';
-
   # Service Optimization Timer
   systemd.services."optimize-services" = {
     description = "Service Optimization Timer";
@@ -65,10 +65,18 @@ in
     };
   };
 
+  # Journal optimizations
+  services.journald.extraConfig = ''
+    Compress=yes
+    SystemMaxFileSize=50M
+    RateLimitIntervalSec=30s
+    RateLimitBurst=1000
+  '';
+
   # ==========================================
   # NETWORKING
   # ==========================================
-  # Facts (Hostname, Timezone, MAC) handled by modules/install-answers.nix
+  # Hostname/Timezone/MAC handled by modules/install-answers.nix
   networking = {
     nameservers = [
       "142.242.2.2"      # Mullvad
@@ -102,7 +110,6 @@ in
   };
 
   hardware.enableRedistributableFirmware = true;
-  hardware.cpu.amd.updateMicrocode = true;
 
   hardware.bluetooth = {
     enable = true;
@@ -200,8 +207,6 @@ in
     config.common.default = "gtk";
   };
 
-  # Note: hardware.graphics and ROCm configuration moved to modules/hardware/amd-gpu.nix
-
   # ==========================================
   # USERS
   # ==========================================
@@ -245,7 +250,7 @@ in
       (python311.withPackages (ps: with ps; [ pygobject3 numpy pandas ]))
 
       # Terminal Enhancements
-      eza lla bat fzf zoxide starship ripgrep fd jq age gum glow rucola trash-cli
+      eza lsd bat fzf zoxide starship ripgrep fd jq age gum glow rucola trash-cli
       fastfetch macchina btop
 
       # Gaming / Input

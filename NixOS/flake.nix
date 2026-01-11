@@ -8,6 +8,12 @@
     home-manager.url = "github:nix-community/home-manager/release-25.11";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
 
+    # Added Lanzaboote for Secure Boot support
+    lanzaboote = {
+      url = "github:nix-community/lanzaboote/v1.0.0";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     stylix.url = "github:danth/stylix";
     niri.url = "github:sodiboo/niri-flake";
 
@@ -26,7 +32,7 @@
     };
 
     mkNyx =
-      { zramModule ? ./modules/zram-lz4.nix
+      { zramModule ? ./modules/tuning/zram/zram-lz4.nix
       , latencyflexEnable ? true
       }:
       lib.nixosSystem {
@@ -37,25 +43,41 @@
         };
 
         modules = [
-          # 1. ZRAM Profile (Passed via argument)
+          # 1. ZRAM Profile (Argument)
           zramModule
 
-          # 2. Installation Facts (Answers File)
-          ./modules/install-answers.nix
+          # 2. Boot Profile (The Switch)
+          ./modules/boot/boot-profile.nix
+          {
+            # Default state: Standard UKI-ready boot.
+            # To enable Secure Boot later: set uki=false, secureBoot=true.
+            my.boot.uki.enable = true;
+            my.boot.secureBoot.enable = false;
+          }
 
-          # 3. Domain Modules (Hardware & Tuning)
+          # 3. Installation Facts
+          ./modules/core/install-answers.nix
+
+          # 4. Domain Modules (Hardware & Tuning)
           ./modules/hardware/amd-gpu.nix
           ./modules/tuning/sysctl.nix
 
-          # 4. Main Configuration (Policy & Services)
+          # 5. Main Policy Configuration
           ./configuration.nix
 
-          # 5. Desktop & Features
+          # 6. Desktop & Features
           niri.nixosModules.niri
-          ./modules/latencyflex-module.nix
+          ./modules/programs/latencyflex-module.nix
           { my.performance.latencyflex.enable = latencyflexEnable; }
 
-          # 6. Home Manager
+          # 7. Writeback Configuration (Default: Disabled)
+          (import ./modules/tuning/zram/zram-writeback.nix)
+          {
+             my.swap.writeback.enable = false;
+             my.swap.writeback.device = null;
+          }
+
+          # 8. Home Manager
           home-manager.nixosModules.home-manager
           {
             home-manager.useGlobalPkgs = true;
@@ -63,31 +85,21 @@
             home-manager.extraSpecialArgs = {
               inherit inputs pkgsUnstable stylix system;
             };
-            # Ideally this should eventually be ./home-${config.my.install.userName}.nix
-            # but we keep it static for now as requested.
-            home-manager.users.ashy = import ./home-ashy.nix;
+            home-manager.users.ashy = import ./modules/home/home-ashy.nix;
           }
         ];
       };
   in
   {
     nixosConfigurations = {
-      nyx                 = mkNyx { zramModule = ./modules/zram-lz4.nix;            latencyflexEnable = true; };
-      nyx-lfx-off         = mkNyx { zramModule = ./modules/zram-lz4.nix;            latencyflexEnable = false; };
+      nyx                 = mkNyx { zramModule = ./modules/tuning/zram/zram-lz4.nix;            latencyflexEnable = true; };
+      nyx-lfx-off         = mkNyx { zramModule = ./modules/tuning/zram/zram-lz4.nix;            latencyflexEnable = false; };
 
-      nyx-zstdb-lfx       = mkNyx { zramModule = ./modules/zram-zstd-balanced.nix;  latencyflexEnable = true; };
-      nyx-zstdb-lfx-off   = mkNyx { zramModule = ./modules/zram-zstd-balanced.nix;  latencyflexEnable = false; };
-
-      nyx-zstda-lfx       = mkNyx { zramModule = ./modules/zram-zstd-aggressive.nix; latencyflexEnable = true; };
-      nyx-zstda-lfx-off   = mkNyx { zramModule = ./modules/zram-zstd-aggressive.nix; latencyflexEnable = false; };
-
-      nyx-zstdwb-lfx      = mkNyx { zramModule = ./modules/zram-writeback.nix;      latencyflexEnable = true; };
-      nyx-zstdwb-lfx-off  = mkNyx { zramModule = ./modules/zram-writeback.nix;      latencyflexEnable = false; };
-
-      # ZRAM-only aliases
-      nyx-zstd-balanced   = mkNyx { zramModule = ./modules/zram-zstd-balanced.nix; };
-      nyx-zstd-aggressive = mkNyx { zramModule = ./modules/zram-zstd-aggressive.nix; };
-      nyx-writeback       = mkNyx { zramModule = ./modules/zram-writeback.nix; };
+      # ZRAM Writeback Enabled Variants
+      nyx-writeback       = mkNyx {
+          zramModule = ./modules/tuning/zram/zram-writeback.nix;
+          latencyflexEnable = true;
+      };
     };
   };
 }
