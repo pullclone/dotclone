@@ -17,7 +17,7 @@ the latest refactor.
     ├── overlays/                       # Overrride, extend + pkgs ensure visibility to 🏠 manager & system
     │   └── latencyflex.nix             # Exposes the locally-packaged LatencyFleX as pkgs.latencyflex
     ├── pkgs/                           # Custom package derivations
-    │   └── overlay.nix                 # Overlays for third‑party packages
+    ├── profiles/                       # Flake-native system + ZRAM profile set
     ├── scripts/                        # Maintenance & test scripts
     │   ├── test-configuration.sh       # Static sanity checks against configuration files
     │   └── test-optimizations.sh       # Runtime optimisation checks (optional)
@@ -31,8 +31,7 @@ the latest refactor.
         ├── programs/                   # System-level program modules
         │   └── latencyflex-module.nix  # Toggle for the LatencyFleX Vulkan layer
         ├── tuning/                     # Performance & kernel tuning
-        │   ├── sysctl.nix              # Kernel sysctl, I/O schedulers, Btrfs maintenance
-        │   └── zram/                   # ZRAM profiles (lz4, zstd balanced/aggressive, writeback)
+        │   └── sysctl.nix              # Kernel sysctl, I/O schedulers, Btrfs maintenance
         └── home/                       # Home Manager configuration
             ├── home-ashy.nix           # HM entry point
             ├── apps/                   # User applications (Brave, Btop, Cava)
@@ -53,8 +52,10 @@ the latest refactor.
   assertions.
 - `NixOS/modules/tuning/sysctl.nix` -- the **sole** source for
   `boot.kernel.sysctl` definitions and Btrfs maintenance services.
-- `NixOS/modules/tuning/zram/` -- a collection of ZRAM profiles. Select
-  exactly one profile when building.
+- `NixOS/profiles/` -- flake-native system + ZRAM profile modules;
+  `systemProfile` flake arg selects one of
+  `latency|balanced|throughput|battery|memory-saver` (each imports a
+  ZRAM profile).
 - `NixOS/pkgs/latencyflex.nix` -- custom derivation that installs the
   LatencyFleX implicit layer and its manifest.
 
@@ -84,7 +85,8 @@ the latest refactor.
 - **Wayland compositor**: Niri, configured in `modules/home/niri/`.
 - **Panels**: Waybar and/or Noctalia, configured in
   `modules/home/waybar` or `modules/home/noctalia`.
-- **ZRAM devices**: created by profiles under `modules/tuning/zram/`.
+- **System/ZRAM profile**: created by flake-selected profiles under
+  `profiles/`.
 - **Filesystem maintenance**: periodic defragmentation, balance, scrub
   and TRIM configured in `sysctl.nix`.
 
@@ -167,9 +169,9 @@ the latest refactor.
                                                                        knobs, I/O
                                                                        scheduler, Btrfs
 
-  ZRAM            Module          `modules/tuning/zram/`               Memory
-                                                                       compression
-                                                                       profiles
+  System Profile  Module          `profiles/system/`                  System + ZRAM
+                                                                       tuning (flake
+                                                                       arg driven)
 
   Waybar          Service         `modules/home/waybar/`               Status bar with
                                                                        dynamic island

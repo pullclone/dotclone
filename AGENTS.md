@@ -113,8 +113,10 @@ roles.
   modules.
 - **Boot Parameters** -- Only the boot profile or hardware modules may
   set `boot.kernelParams`.
-- **ZRAM Exclusivity** -- Import exactly one ZRAM profile under
-  `modules/tuning/zram/`.
+- **System/ZRAM Profiles** -- Select exactly one system profile via the
+  flake argument `systemProfile` (profiles live under `profiles/` and
+  include ZRAM + tuning). Do not import multiple profiles or add ad-hoc
+  ZRAM modules.
 - **No Circular Imports** -- Ensure module imports form a directed
   acyclic graph (DAG).
 

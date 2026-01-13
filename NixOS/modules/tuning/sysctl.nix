@@ -12,9 +12,8 @@
     "vm.overcommit_memory"            = 1;
     "vm.overcommit_ratio"             = 50;
     "vm.zone_reclaim_mode"            = 0;
-    "vm.dirty_background_bytes"       = "16777216";
-    "vm.dirty_bytes"                  = "67108864";
-    "vm.dirty_ratio"                  = 10;
+    # Base writeback defaults; profile modules may override.
+    "vm.dirty_ratio"                  = lib.mkDefault 10;
     "vm.max_map_count"                = 262144;
     "vm.mmap_rnd_bits"                = 32;
 

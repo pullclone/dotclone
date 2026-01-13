@@ -1,4 +1,6 @@
 export system := env("SYSTEM", "nyx")
+export system_profile := env("SYSTEM_PROFILE", "balanced")
+export latencyflex_enable := env("LATENCYFLEX_ENABLE", "true")
 
 [group('Utility')]
 bootstrap:
@@ -32,49 +34,57 @@ check:
 build:
     #!/usr/bin/env bash
     set -euo pipefail
-    nix build "./NixOS#nixosConfigurations.nyx.config.system.build.toplevel"
+    nix build --impure --expr '
+      let
+        flake = builtins.getFlake (builtins.getEnv "PWD" + "/NixOS");
+      in
+        (flake.nixosConfigurations.nyx {
+          systemProfile = "{{ system_profile }}";
+          latencyflexEnable = {{ latencyflex_enable }};
+        }).config.system.build.toplevel
+    '
 
 [group('Nix')]
 switch:
     #!/usr/bin/env bash
     set -euo pipefail
-    # Switch to default (LZ4) ZRAM profile
+    # Switch to default system profile (balanced)
     sudo nixos-rebuild switch --flake ".#nyx"
 
 [group('Nix')]
 switch-balanced:
     #!/usr/bin/env bash
     set -euo pipefail
-    # Switch to balanced ZSTD profile
-    sudo nixos-rebuild switch --flake ".#nyx-zstd-balanced"
+    # Switch to balanced system profile
+    sudo nixos-rebuild switch --flake ".#nyx" --argstr systemProfile balanced
 
 [group('Nix')]
 switch-aggressive:
     #!/usr/bin/env bash
     set -euo pipefail
-    # Switch to aggressive ZSTD profile
-    sudo nixos-rebuild switch --flake ".#nyx-zstd-aggressive"
+    # Switch to throughput profile (higher dirty ratios)
+    sudo nixos-rebuild switch --flake ".#nyx" --argstr systemProfile throughput
 
 [group('Nix')]
 switch-writeback:
     #!/usr/bin/env bash
     set -euo pipefail
-    # Switch to writeback (ZSTD → disk) profile
-    sudo nixos-rebuild switch --flake ".#nyx-writeback"
+    # Switch to memory-saver profile
+    sudo nixos-rebuild switch --flake ".#nyx" --argstr systemProfile memory-saver
 
 [group('Nix')]
 switch-latencyflex-on:
     #!/usr/bin/env bash
     set -euo pipefail
     # Switch to the default target (assumes LatencyFleX enabled in .#nyx)
-    sudo nixos-rebuild switch --flake ".#nyx"
+    sudo nixos-rebuild switch --flake ".#nyx" --arg latencyflexEnable true
 
 [group('Nix')]
 switch-latencyflex-off:
     #!/usr/bin/env bash
     set -euo pipefail
-    # Switch to LatencyFleX-disabled target (requires flake output .#nyx-nolfx)
-    sudo nixos-rebuild switch --flake ".#nyx-nolfx"
+    # Switch to LatencyFleX-disabled target
+    sudo nixos-rebuild switch --flake ".#nyx" --arg latencyflexEnable false
 
 [group('Nix')]
 show:

@@ -442,6 +442,17 @@
         "type": "github"
       }
     },
+    "profiles": {
+      "locked": {
+        "path": "./profiles",
+        "type": "path"
+      },
+      "original": {
+        "path": "./profiles",
+        "type": "path"
+      },
+      "parent": []
+    },
     "root": {
       "inputs": {
         "home-manager": "home-manager",
@@ -450,6 +461,7 @@
         "nixpkgs": "nixpkgs_2",
         "nixpkgs-unstable": "nixpkgs-unstable",
         "noctalia": "noctalia",
+        "profiles": "profiles",
         "stylix": "stylix"
       }
     },

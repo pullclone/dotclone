@@ -80,52 +80,58 @@ sudo nixos-rebuild switch --flake .#nyx
 
 ---
 
-## 🗜️ ZRAM & LatencyFleX profiles
+## 🗜️ System & LatencyFleX profiles
 
-NyxOS exposes **memory compression (ZRAM)** and **graphics latency reduction (LatencyFleX)** as **first-class flake outputs**.
-Each output is a fully declarative, reproducible system configuration.
+NyxOS exposes **system profiles** (VM/sysctl/ZRAM/CPU governor) and **LatencyFleX** as flake arguments.
+Profiles are selected via `--argstr systemProfile <name>`; LatencyFleX via `--arg latencyflexEnable <bool>`.
+Selection happens at flake evaluation time—no runtime toggling.
 
-### Configuration matrix
+### System profiles (`--argstr systemProfile …`)
 
-| Flake target         | ZRAM profile      | LatencyFleX |
-| -------------------- | ----------------- | ----------- |
-| `nyx`                | LZ4 (low-latency) | ON          |
-| `nyx-lfx-off`        | LZ4               | OFF         |
-| `nyx-zstdb-lfx`      | ZSTD (balanced)   | ON          |
-| `nyx-zstdb-lfx-off`  | ZSTD (balanced)   | OFF         |
-| `nyx-zstda-lfx`      | ZSTD (aggressive) | ON          |
-| `nyx-zstda-lfx-off`  | ZSTD (aggressive) | OFF         |
-| `nyx-zstdwb-lfx`     | ZSTD writeback    | ON          |
-| `nyx-zstdwb-lfx-off` | ZSTD writeback    | OFF         |
+| Profile           | Priority                      | ZRAM              | CPU governor  | Notes                                  |
+| ----------------- | ----------------------------- | ----------------- | ------------- | -------------------------------------- |
+| `latency`         | interactive responsiveness    | LZ4               | performance   | lower dirty ratios, faster writeback   |
+| `balanced` (default) | general desktop           | ZSTD balanced     | schedutil     | sane defaults                          |
+| `throughput`      | long-running jobs             | ZSTD balanced     | schedutil     | higher dirty ratios, warmer caches     |
+| `battery`         | efficiency/thermals           | ZSTD balanced     | powersave     | gentler writeback + reclaim            |
+| `memory-saver`    | fit more in RAM               | ZSTD aggressive   | schedutil     | more compression + higher swappiness   |
 
-The default target is **`nyx`**: LZ4-based ZRAM with LatencyFleX enabled.
+### LatencyFleX (`--arg latencyflexEnable …`)
+
+| Value  | Effect              |
+| ------ | ------------------- |
+| `true` | LatencyFleX ON      |
+| `false`| LatencyFleX OFF     |
+
+### Examples
 
 ```bash
-### Selecting a profile
-
-Choose the desired configuration by selecting the corresponding flake output:
-
-```bash
+# Default: balanced + LatencyFleX ON
 sudo nixos-rebuild switch --flake .#nyx
-sudo nixos-rebuild switch --flake .#nyx-zstdb-lfx
-sudo nixos-rebuild switch --flake .#nyx-zstdwb-lfx-off
+
+# Latency-first
+sudo nixos-rebuild switch --flake .#nyx --argstr systemProfile latency
+
+# Throughput-heavy
+sudo nixos-rebuild switch --flake .#nyx --argstr systemProfile throughput
+
+# Battery-first with LatencyFleX off
+sudo nixos-rebuild switch --flake .#nyx --argstr systemProfile battery --arg latencyflexEnable false
 ```
 
 #### 🧰 Justfile helpers
 
-For convenience, thin wrappers are provided:
-
 ```bash
-just switch                   # nyx (LZ4 + LatencyFleX)
-just switch-balanced          # ZSTD balanced
-just switch-aggressive        # ZSTD aggressive
-just switch-writeback         # ZSTD writeback
+just switch                   # default (balanced + LatencyFleX on)
+just switch-balanced          # balanced + LatencyFleX on
+just switch-aggressive        # throughput profile
+just switch-writeback         # memory-saver profile (configure writeback device if desired)
 
 just switch-latencyflex-on
 just switch-latencyflex-off
 ```
 
-These helpers **only select flake outputs**. They do not mutate configuration files, inject CLI arguments, or reduce reproducibility.
+These helpers only pass flake arguments—they do not mutate configuration files or runtime state.
 
 ---
 

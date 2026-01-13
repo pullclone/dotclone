@@ -81,13 +81,13 @@ Modules such as ZRAM may override specific keys via `mkDefault` or
 - **Centralization** -- There must be exactly one source of
   `boot.kernel.sysctl` definitions. If any module outside
   `modules/tuning` defines `boot.kernel.sysctl`, the build should fail.
-- **ZRAM Profiles** -- Exactly one ZRAM profile from
-  `modules/tuning/zram/` may be imported. Each profile sets
-  `zramSwap.enable = true` and establishes defaults for `memoryPercent`,
-  `priority`, `vm.swappiness`, `vm.watermark_scale_factor` and
-  `vm.page-cluster`. When using the writeback profile, a backing device
-  must be specified when
-  `my.swap.writeback.enable = true`[\[11\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/tuning/zram/zram-writeback.nix#L40-L47).
+- **System/ZRAM Profiles** -- Exactly one system profile is selected via
+  the flake argument `systemProfile`, sourced from `profiles/`. Each
+  system profile imports a ZRAM profile and sets `zramSwap.enable = true`
+  plus defaults for `memoryPercent`, `priority`, `vm.swappiness`,
+  `vm.watermark_scale_factor`, `vm.page-cluster`, and writeback knobs
+  when applicable. Using the writeback profile still requires setting a
+  backing device when `my.swap.writeback.enable = true`[\[11\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/profiles/zram/writeback.nix#L6-L46).
 - **I/O Schedulers & Btrfs Maintenance** -- The `sysctl` module defines
   the I/O scheduler and a one‑shot `btrfs-optimize` service plus
   periodic maintenance via
@@ -295,10 +295,10 @@ sysctl.nix
 
 <https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/tuning/sysctl.nix>
 
-[\[11\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/tuning/zram/zram-writeback.nix#L40-L47)
-zram-writeback.nix
+[\[11\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/profiles/zram/writeback.nix#L6-L46)
+profiles/zram/writeback.nix
 
-<https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/tuning/zram/zram-writeback.nix>
+<https://github.com/pullclone/dotclone/blob/HEAD/NixOS/profiles/zram/writeback.nix>
 
 [\[13\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/hardware/amd-gpu.nix#L7-L10)
 [\[14\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/hardware/amd-gpu.nix#L15-L21)

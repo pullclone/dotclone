@@ -19,9 +19,12 @@
 
     noctalia.url = "github:noctalia-dev/noctalia-shell";
     noctalia.inputs.nixpkgs.follows = "nixpkgs-unstable";
+
+    # Profile framework (system + zram)
+    profiles.url = "path:./profiles";
   };
 
-  outputs = { self, nixpkgs, nixpkgs-unstable, home-manager, stylix, niri, noctalia, ... }@inputs:
+  outputs = { self, nixpkgs, nixpkgs-unstable, home-manager, stylix, niri, noctalia, profiles, ... }@inputs:
   let
     system = "x86_64-linux";
     lib = nixpkgs.lib;
@@ -34,22 +37,27 @@
     };
 
     mkNyx =
-      { zramModule ? ./modules/tuning/zram/zram-lz4.nix
-      , latencyflexEnable ? true
-      }:
+      { systemProfile ? "balanced", latencyflexEnable ? true }:
+      let
+        allowedSystemProfiles = builtins.attrNames inputs.profiles.nyxProfiles.system;
+        _ = lib.assertMsg (lib.elem systemProfile allowedSystemProfiles) ''
+          NyxOS: invalid systemProfile '${systemProfile}'. Allowed: ${lib.concatStringsSep ", " allowedSystemProfiles}
+        '';
+        chosenSystemProfile = inputs.profiles.nyxProfiles.system.${systemProfile};
+      in
       lib.nixosSystem {
         inherit system;
 
         specialArgs = {
-          inherit inputs pkgsUnstable stylix;
+          inherit inputs pkgsUnstable stylix systemProfile;
         };
 
         modules = [
           # 0. Overlays
           { nixpkgs.overlays = [ latencyflexOverlay ]; }
 
-          # 1. ZRAM Profile (Argument)
-          zramModule
+          # 1. System Profile (Argument) - includes ZRAM + tuning
+          chosenSystemProfile
 
           # 2. Boot Profile (The Switch)
           ./modules/boot/boot-profile.nix
@@ -90,14 +98,7 @@
   in
   {
     nixosConfigurations = {
-      nyx                 = mkNyx { zramModule = ./modules/tuning/zram/zram-lz4.nix;            latencyflexEnable = true; };
-      nyx-lfx-off         = mkNyx { zramModule = ./modules/tuning/zram/zram-lz4.nix;            latencyflexEnable = false; };
-
-      # ZRAM Writeback Enabled Variants
-      nyx-writeback       = mkNyx {
-          zramModule = ./modules/tuning/zram/zram-writeback.nix;
-          latencyflexEnable = true;
-      };
+      nyx = mkNyx;
     };
   };
 }
