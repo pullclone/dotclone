@@ -26,6 +26,8 @@
     system = "x86_64-linux";
     lib = nixpkgs.lib;
 
+    latencyflexOverlay = import ./overlays/latencyflex.nix;
+
     pkgsUnstable = import nixpkgs-unstable {
       inherit system;
       config.allowUnfree = true;
@@ -43,6 +45,9 @@
         };
 
         modules = [
+          # 0. Overlays
+          { nixpkgs.overlays = [ latencyflexOverlay ]; }
+
           # 1. ZRAM Profile (Argument)
           zramModule
 
@@ -70,14 +75,7 @@
           ./modules/programs/latencyflex-module.nix
           { my.performance.latencyflex.enable = latencyflexEnable; }
 
-          # 7. Writeback Configuration (Default: Disabled)
-          (import ./modules/tuning/zram/zram-writeback.nix)
-          {
-             my.swap.writeback.enable = false;
-             my.swap.writeback.device = null;
-          }
-
-          # 8. Home Manager
+          # 7. Home Manager
           home-manager.nixosModules.home-manager
           {
             home-manager.useGlobalPkgs = true;

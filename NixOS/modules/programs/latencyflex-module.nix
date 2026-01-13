@@ -1,18 +1,18 @@
+# NixOS/modules/latencyflex-module.nix
 { config, lib, pkgs, ... }:
 
 let
   cfg = config.my.performance.latencyflex;
 in
 {
-  options.my.performance.latencyflex = {
-    enable = lib.mkEnableOption "Enable LatencyFleX Vulkan implicit layer";
-  };
+  options.my.performance.latencyflex.enable =
+    lib.mkEnableOption "Enable LatencyFleX Vulkan implicit layer";
 
   config = lib.mkIf cfg.enable {
-    # We moved the package definition to pkgs/latencyflex.nix in the root.
-    # From modules/programs/latencyflex-module.nix, that is ../../pkgs/latencyflex.nix
-    environment.systemPackages = [
-      (pkgs.callPackage ../../pkgs/latencyflex.nix { })
-    ];
+    environment.systemPackages = [ pkgs.latencyflex ];
+
+    # Important: makes /run/current-system/sw/share/vulkan populated
+    # so Vulkan loader can discover implicit layers
+    environment.pathsToLink = [ "/share/vulkan" ];
   };
 }

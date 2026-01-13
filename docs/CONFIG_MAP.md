@@ -13,9 +13,10 @@ the latest refactor.
     ├── flake.lock
     ├── flake.nix                       # Flake entry point & module wiring
     ├── hardware-configuration.nix      # Generated hardware config (mounts/filesystems)
-    ├── install.sh                      # Repository-based installer script
+    ├── install-nyxos.sh                # Repository-based installer script
+    ├── overlays/                       # Overrride, extend + pkgs ensure visibility to 🏠 manager & system
+    │   └── latencyflex.nix             # Exposes the locally-packaged LatencyFleX as pkgs.latencyflex
     ├── pkgs/                           # Custom package derivations
-    │   ├── latencyflex.nix             # LatencyFleX derivation (installs layer & manifest)
     │   └── overlay.nix                 # Overlays for third‑party packages
     ├── scripts/                        # Maintenance & test scripts
     │   ├── test-configuration.sh       # Static sanity checks against configuration files

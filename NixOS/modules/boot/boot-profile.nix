@@ -4,6 +4,9 @@ let
   cfg = config.my.boot;
 in
 {
+  # Import Lanzaboote so its options (boot.lanzaboote.*) are available even when disabled.
+  imports = [ inputs.lanzaboote.nixosModules.lanzaboote ];
+
   options.my.boot = {
     secureBoot.enable = lib.mkEnableOption "Secure Boot via Lanzaboote";
     uki.enable = lib.mkEnableOption "Standard systemd-boot / UKI baseline";
@@ -63,8 +66,6 @@ in
     # OPTION B: SECURE BOOT
     # -----------------------------
     (lib.mkIf cfg.secureBoot.enable {
-      imports = [ inputs.lanzaboote.nixosModules.lanzaboote ];
-
       environment.systemPackages = [ pkgs.sbctl ];
 
       # Lanzaboote replaces the systemd-boot module logic
