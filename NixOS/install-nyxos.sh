@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2034  # Some collected answers are written out but not used during this script
 set -euo pipefail
 
 # NyxOS "Option B" Installer

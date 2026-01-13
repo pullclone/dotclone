@@ -12,6 +12,7 @@ in
   # ==========================================
   system.stateVersion = "25.11";
   nixpkgs.config.allowUnfree = true;
+  nixpkgs.config.permittedInsecurePackages = [ "ventoy-gtk3-1.1.07" ];
 
   nix.settings = {
     experimental-features = [
@@ -21,6 +22,9 @@ in
     ];
     auto-optimise-store = true;
   };
+
+  # Kernel modules
+  boot.kernelModules = [ "i2c-dev" "spi-dev" ];
 
   # NOTE: Bootloader, Kernel Params, and Microcode are now handled
   # by modules/boot-profile.nix and modules/hardware/amd-gpu.nix
@@ -93,6 +97,7 @@ in
   };
 
   networking.networkmanager.enable = true;
+  networking.networkmanager.wifi.backend = "iwd";
   networking.enableIPv6 = false;
 
   networking.firewall = {
@@ -179,6 +184,9 @@ in
       wireplumber.enable = true;
     };
 
+    # Storage / devices
+    udisks2.enable = true;
+
     # Monitoring Stack
     netdata.enable = true;
     grafana = {
@@ -196,6 +204,9 @@ in
     };
   };
 
+  # RNG daemon (rngd removed upstream; jitterentropy provides the service)
+  services.jitterentropy-rngd.enable = true;
+
   security.pam.services.login.enableGnomeKeyring = true;
 
   # Niri & Portals
@@ -205,6 +216,16 @@ in
     enable = true;
     extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
     config.common.default = "gtk";
+  };
+
+  # User-level udiskie session (no upstream module available)
+  systemd.user.services.udiskie = {
+    description = "udiskie automounter";
+    wantedBy = [ "default.target" ];
+    serviceConfig = {
+      ExecStart = "${pkgs.udiskie}/bin/udiskie --tray";
+      Restart = "on-failure";
+    };
   };
 
   # ==========================================
@@ -268,6 +289,69 @@ in
       # Sysadmin Utils
       util-linux procps iputils iproute2 mkpasswd
       stress-ng iperf3 sysstat iotop iftop nmon powertop
+
+      # Security / crypto
+      gnupg tpm2-tools tpm2-tss gopass pinentry-gnome3 gocryptfs
+
+      # CLI / network / utils
+      lla skim mtr rsync which whois
+
+      # OCR
+      tesseract5 tesseract5.languages.eng
+
+      # Debug / monitoring
+      strace lm_sensors linuxPackages.iio-utils evtest
+
+      # Storage / disk tools
+      hdparm nvme-cli smartmontools parted gptfdisk e2fsprogs dosfstools ntfs3g xz xfsprogs
+
+      # Terminal / session tools
+      screen minicom picocom tmux
+
+      # Media / audio tools
+      lame flac fdk_aac ffmpeg alsa-utils sox amberol abcde
+
+      # PDF / poppler tools
+      poppler poppler-utils
+
+      # iOS device support
+      libimobiledevice ifuse usbmuxd
+
+      # Clipboard / Wayland
+      wl-clipboard
+
+      # Networking / analysis
+      wireshark
+
+      # Performance
+      ananicy-rules-cachyos ananicy-cpp
+
+      # Framework tooling
+      framework-tool framework-tool-tui
+
+      # Boot/install media + video tools
+      ventoy-full-gtk shotcut handbrake
+
+      # Auth / escalation
+      shadow
+
+      # Dev tooling
+      rustup
+
+      # GPIO / hardware tooling
+      i2c-tools dtc sigrok-cli pulseview libgpiod
+
+      # Python hardware libs
+      python3Packages.smbus2 python3Packages.pyserial python3Packages.rpi-gpio
+
+      # Qt theming
+      libsForQt5.qt5ct
+
+      # COSMIC apps and storage helpers
+      cosmic-files cosmic-edit cosmic-player cosmic-term udisks2 udiskie
+
+      # RNG tools
+      rng-tools
     ]
     ++ [
       (writeShellScriptBin "g502-manager" ''
@@ -445,5 +529,24 @@ in
         exit 0
       '')
     ];
+
+  fonts.packages = with pkgs; [
+    maple-mono.truetype
+    maple-mono.NF-unhinted
+  ];
+
+  security = {
+    sudo.enable = false;
+    doas = {
+      enable = true;
+      extraRules = [
+        {
+          users = [ "ashy" ];
+          keepEnv = true;
+          persist = true;
+        }
+      ];
+    };
+  };
 
 }
