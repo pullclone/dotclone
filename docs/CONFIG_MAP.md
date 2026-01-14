@@ -262,6 +262,7 @@ and are re-exported as a **typed, structured interface** at:
 | Encryption intent                       | `encryption.mode`                         | Future LUKS wiring (intent signalling)                                   |
 | Swap mode/size                          | `swap.mode/sizeGiB`                       | Swap provisioning (partition vs none)                                    |
 | System profile                          | `profile.system`                          | Flake arg → system profile selection (already wired)                     |
+| Container stack                         | `my.programs.containers.enable`           | `modules/programs/containers.nix` (Podman + Distrobox)                   |
 
 ## Change Implementation Flow
 

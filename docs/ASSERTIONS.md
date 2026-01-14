@@ -188,6 +188,9 @@ asserts:
   system packages. They operate on the user's home environment only.
 - **No Broken Symlinks** -- Home Manager must not produce dead symlinks
   in the user's home.
+- **Dev/ML Isolation** -- Container tooling (Podman + Distrobox) is the
+  supported path for dev/ML stacks. Host remains minimal; GPU
+  passthrough should be configured per container as needed.
 
 ### 8. Package Requirements
 

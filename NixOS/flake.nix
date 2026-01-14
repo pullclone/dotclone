@@ -83,6 +83,7 @@
           # 6. Desktop & Features
           niri.nixosModules.niri
           ./modules/programs/latencyflex-module.nix
+          ./modules/programs/containers.nix
           { my.performance.latencyflex.enable = latencyflexEnable; }
 
           # 7. Home Manager
