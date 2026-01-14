@@ -151,6 +151,23 @@ Each ZRAM profile sets appropriate swappiness and priority values automatically.
 
 ## ⚙️ Install & configuration
 
+### Installer Prompts → Answers Fields
+
+| Prompt                                | Answers field                       | Notes |
+| ------------------------------------- | ------------------------------------ | ----- |
+| Username                              | `userName`                          | Default `ashy`; change after install |
+| Hostname                              | `hostName`                          | Default `nyx` |
+| Timezone                              | `timeZone`                          | Default `UTC` |
+| MAC policy                            | `mac.mode/interface/address`        | `default`/`random`/`stable`/`fixed` |
+| Boot mode                             | `boot.mode`                         | `uki` (systemd-boot UKI) or `secureboot` (Lanzaboote) |
+| Trust phase                           | `trust.phase`                       | `dev` (no firmware/TPM enforcement) or `enforced` |
+| Snapshot policy                       | `snapshots.retention/schedule/prePost/remote.*` | See Snapshot section below |
+| Trim policy                           | `storage.trim.*`                    | Weekly fstrim by default; no `discard` mounts |
+| Encryption intent                     | `encryption.mode`                   | Intent only; enrollment/manual steps documented |
+| Swap intent                           | `swap.mode/sizeGiB`                 | Installer creates swap partition when mode=`partition` |
+| System profile                        | `profile.system`                    | `balanced` (default), `latency`, `throughput`, `battery` |
+| Containers                            | `my.programs.containers.enable`     | Podman + Distrobox toggle |
+
 ### Default user
 
 * **Username:** `ashy`
@@ -172,6 +189,31 @@ For a declarative hash:
 ```nix
 networking.interfaces.enp1s0.macAddress = "11:22:33:33:22:11";
 ```
+
+### Snapshots (btrbk)
+
+- Recommended retention: **7–15** snapshots; default is **11**.
+- `retention = -1` → do not configure snapshots.
+- `retention = 0`  → explicitly disable snapshots.
+- `retention > 0`  → enable btrbk snapshots (exclude `/nix`) and optional pre/post rebuild snapshots.
+- A warning is shown if you select retention **>33** (high churn risk).
+
+Remote replication (opt-in):
+
+- Enable only with `snapshots.remote.enable = true` **and** a non-empty `target`.
+- Use SSH transport with **ed25519** keys restricted to `btrfs receive` and disable port/agent/X11/PTY forwarding.
+- Firewall allowlist on the receiver; encrypt backup storage at rest.
+- Log/monitor btrbk runs and alert on failures.
+
+### Boot modes (UKI vs Secure Boot)
+
+- **UKI baseline:** systemd-boot + unified kernel image; simplest path, good for dev.
+- **Secure Boot (Lanzaboote):** signed UKI via sbctl/Lanzaboote; requires signing keys and firmware SB enablement when `trust.phase = "enforced"`. In `dev`, readiness is built but firmware/TPM enforcement is not required.
+
+### Trust phase
+
+- **dev (default):** build readiness without requiring firmware SB or TPM. Enrollment (e.g., `systemd-cryptenroll` with TPM+PIN) is manual and optional.
+- **enforced:** may require firmware SB and TPM checks; TPM+PIN recommended with passphrase fallback.
 
 ---
 ### Custom scripts

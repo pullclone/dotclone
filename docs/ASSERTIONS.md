@@ -165,6 +165,11 @@ packages[\[14\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/h
   forwarding).
 - **Btrfs Requirement for Snapshots** -- When `my.install.snapshots.retention > 0`,
   the root filesystem must be Btrfs (or builds must fail).
+- **Remote Snapshot Hardening** -- Remote replication must use SSH
+  (ed25519 keys), restrict the authorized key to `btrfs receive`, and
+  disable port-forwarding, agent-forwarding, X11-forwarding, and PTY.
+  Restrict SSH via firewall allowlists, encrypt backup storage at rest,
+  and log/monitor btrbk runs (alert on failures).
 - **Snapshot Semantics** -- Snapshot behavior must be derived from
   `my.install.snapshots.retention`:
   - `-1` means snapshots are not configured and no snapshot
