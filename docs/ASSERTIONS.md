@@ -191,6 +191,9 @@ asserts:
 - **Dev/ML Isolation** -- Container tooling (Podman + Distrobox) is the
   supported path for dev/ML stacks. Host remains minimal; GPU
   passthrough should be configured per container as needed.
+- **Homebrew (Userland Only)** -- Homebrew may be installed by the user
+  post-install for ad-hoc tooling. Do not install system libraries or
+  compilers via brew; base system remains Nix-managed.
 
 ### 8. Package Requirements
 
