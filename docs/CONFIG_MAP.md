@@ -60,13 +60,38 @@ the latest refactor.
   LatencyFleX implicit layer and its manifest.
 
 ## Build‑Time vs Runtime Boundary
-
-### Build‑Time Components
+  
+### Build-Time Components
 
 - **Flake definition** (`NixOS/flake.nix`): pins inputs, defines
   outputs, and wires together modules.
+
 - **Install facts** (`modules/core/install-answers.nix`): dynamic facts
   generated during installation (hostname, timezone, username, MAC).
+
+### Install Facts Contract (Authoritative)
+
+Install-time facts are collected once by `install-nyxos.sh` and written to:
+
+- `/etc/nixos/nyxos-install.nix`
+
+These facts are loaded **exactly once** by:
+
+- `modules/core/install-answers.nix`
+
+and are re-exported as a **typed, structured interface** at:
+
+- `config.my.install`
+
+**Rules:**
+
+- No other module may import `nyxos-install.nix` directly
+  (including Home Manager modules).
+- All system, boot, tuning, snapshot, and trust logic must consume
+  install-time decisions exclusively via `config.my.install`.
+- This file represents *facts*, not *policy* — interpretation belongs to
+  domain modules.
+
 - **Domain modules** (`modules/*`): specialized logic for boot,
   hardware, tuning, and home evaluated during evaluation.
 - **System policy** (`NixOS/configuration.nix`): orchestrates services,

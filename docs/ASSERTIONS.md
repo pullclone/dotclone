@@ -34,6 +34,14 @@ assertion[\[1\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/b
 - **Exclusive Selection** -- Exactly one of `my.boot.uki.enable` or
   `my.boot.secureBoot.enable` must be set. Builds must fail if both or
   neither are enabled.
+- **Trust Phase Awareness** -- Assertions related to Secure Boot
+  enforcement and TPM state must respect `my.trust.phase`. When
+  `my.trust.phase = "dev"`, firmware enforcement and TPM sealing
+  assertions must not be required.
+- **Secure Boot Readiness (Dev)** -- When Secure Boot is selected and
+  `my.trust.phase = "dev"`, NyxOS must be capable of producing signed
+  boot artifacts (Lanzaboote + sbctl) or a UKI (systemd‑boot path), but
+  must not assert firmware Secure Boot enforcement or TPM PCR state.
 - **UKI Profile** -- When `my.boot.uki.enable = true`, the following
   must hold:
 - `boot.loader.systemd-boot.enable = true` with `editor = false` and a
@@ -55,6 +63,10 @@ The module `modules/core/install-answers.nix` reads an
 `/etc/nixos/nyxos-install.nix` file containing attributes such as
 `hostName`, `timeZone`, `userName`, and
 `mac`[\[6\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/core/install-answers.nix#L4-L11).
+The answers file may also include additional install-time facts (e.g.,
+snapshot policy, storage preferences, encryption intent). These are
+normalized by `modules/core/install-answers.nix` and re-exported via
+`config.my.install`.
 
 - **Required Fact** -- `my.install.userName` must be a non‑empty
   string[\[7\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/core/install-answers.nix#L14-L18).
@@ -117,7 +129,7 @@ packages[\[14\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/h
 
 ### 6. Service Definitions
 
-System services are declared in `configuration.nix` and modules under
+  System services are declared in `configuration.nix` and modules under
 `modules/`. The build contract asserts:
 
 - **Critical Services Active** -- Systemd must start all enabled
@@ -127,6 +139,13 @@ System services are declared in `configuration.nix` and modules under
 - **Filesystems & Snapshots** -- All filesystems declared in
   `hardware-configuration.nix` must mount successfully. If snapshots via
   Btrfs are enabled, the snapshot services must be present.
+- **Snapshot Semantics** -- Snapshot behavior must be derived from
+  `my.install.snapshots.retention`:
+  - `-1` means snapshots are not configured and no snapshot
+    tooling/services are enabled.
+  - `0` means snapshots are explicitly disabled.
+  - `>0` means snapshot tooling/services must be enabled and retention
+    enforced.
 
 ### 7. User Environment & Home Manager
 
