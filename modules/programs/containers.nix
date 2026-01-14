@@ -1,4 +1,9 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 {
   options.my.programs.containers.enable = lib.mkEnableOption "Containers (Podman + Distrobox)";

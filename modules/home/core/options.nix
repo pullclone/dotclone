@@ -7,13 +7,19 @@ in
     enable = mkEnableOption "Enable custom desktop";
 
     panel = mkOption {
-      type = types.enum [ "noctalia" "waybar" ];
+      type = types.enum [
+        "noctalia"
+        "waybar"
+      ];
       default = "noctalia";
       description = "Choose the panel/bar interface.";
     };
 
     terminal = mkOption {
-      type = types.enum [ "kitty" "alacritty" ];
+      type = types.enum [
+        "kitty"
+        "alacritty"
+      ];
       default = "kitty";
     };
   };

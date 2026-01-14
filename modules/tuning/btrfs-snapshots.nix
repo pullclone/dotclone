@@ -1,9 +1,19 @@
-{ config, lib, pkgs, modulesPath, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  modulesPath,
+  ...
+}:
 
 let
   snaps = config.my.install.snapshots or { };
   retention = snaps.retention or (-1);
-  remote = snaps.remote or { enable = false; target = ""; };
+  remote =
+    snaps.remote or {
+      enable = false;
+      target = "";
+    };
 
   snapshotsEnabled = retention > 0;
   remoteEnabled = snapshotsEnabled && (remote.enable or false);
@@ -28,7 +38,8 @@ in
           message = "btrbk remote replication enabled but snapshots.remote.target is empty";
         }
         {
-          assertion = config.boot.supportedFilesystems == null || lib.elem "btrfs" config.boot.supportedFilesystems;
+          assertion =
+            config.boot.supportedFilesystems == null || lib.elem "btrfs" config.boot.supportedFilesystems;
           message = "btrbk snapshots require Btrfs root when retention > 0";
         }
       ];

@@ -1,12 +1,19 @@
-{ config, pkgs, lib, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 
 let
   cfg = config.my.desktop;
 
-  pythonEnv = pkgs.python311.withPackages (ps: with ps; [
-    pygobject3
-    dbus-python
-  ]);
+  pythonEnv = pkgs.python311.withPackages (
+    ps: with ps; [
+      pygobject3
+      dbus-python
+    ]
+  );
 
   dynamicIslandScript = pkgs.writeScriptBin "waybar-dynamic-island" ''
     #!${pythonEnv}/bin/python

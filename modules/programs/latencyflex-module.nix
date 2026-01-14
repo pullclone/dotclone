@@ -1,5 +1,10 @@
 # modules/latencyflex-module.nix
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   cfg = config.my.performance.latencyflex;

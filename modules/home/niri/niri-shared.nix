@@ -11,15 +11,32 @@
 
     spawn-at-startup = [
       { command = [ "${pkgs.polkit_gnome}/bin/polkit-gnome-authentication-agent-1" ]; }
-      { command = [ "g502-manager" "setup" ]; }
+      {
+        command = [
+          "g502-manager"
+          "setup"
+        ];
+      }
       { command = [ "xwayland-satellite" ]; }
-      { command = [ "wl-paste" "--type" "text" "--watch" "cliphist" "store" ]; }
+      {
+        command = [
+          "wl-paste"
+          "--type"
+          "text"
+          "--watch"
+          "cliphist"
+          "store"
+        ];
+      }
     ];
 
     # --- 2. Input & Layout ---
     input = {
       keyboard.xkb.layout = "us"; # Or "br" if that was your pref
-      touchpad = { tap = true; natural-scroll = true; };
+      touchpad = {
+        tap = true;
+        natural-scroll = true;
+      };
       mouse.enable = true;
     };
 
@@ -40,7 +57,9 @@
         { proportion = 0.5; }
         { proportion = 0.66667; }
       ];
-      default-column-width = { proportion = 0.5; };
+      default-column-width = {
+        proportion = 0.5;
+      };
     };
 
     # --- 3. CORE BINDS (Shared) ---
@@ -121,7 +140,9 @@
       {
         matches = [ { title = "Picture-in-Picture"; } ];
         open-floating = true;
-        default-column-width = { fixed = 480; };
+        default-column-width = {
+          fixed = 480;
+        };
       }
     ];
   };

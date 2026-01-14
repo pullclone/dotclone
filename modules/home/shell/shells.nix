@@ -26,7 +26,7 @@ let
 
     # Editors & Tools
     "edit" = "micro";
-	
+
     # AI Chat Swapper
     "aiswap" = "aichat-swap";
     "altostrat" = "aichat-swap c";
@@ -35,9 +35,11 @@ let
     "stargate" = "aichat-swap o";
 
     # Quick AI Models (Sed replacement)
-    "align" = "sed -i \"s/^model:.*/model: openai:gpt-4o-2024-05-13/\" ~/.config/aichat/config.yaml && aichat";
+    "align" =
+      "sed -i \"s/^model:.*/model: openai:gpt-4o-2024-05-13/\" ~/.config/aichat/config.yaml && aichat";
     "core" = "sed -i \"s/^model:.*/model: openai:gpt-5.2/\" ~/.config/aichat/config.yaml && aichat";
-    "crunch" = "sed -i \"s/^model:.*/model: openai:o4-mini-high/\" ~/.config/aichat/config.yaml && aichat";
+    "crunch" =
+      "sed -i \"s/^model:.*/model: openai:o4-mini-high/\" ~/.config/aichat/config.yaml && aichat";
     "zero" = "sed -i \"s/^model:.*/model: openai:o4-mini/\" ~/.config/aichat/config.yaml && aichat";
 
     # Config Shortcuts
@@ -164,7 +166,7 @@ in
           end
         '';
       };
-      
+
       md = {
         body = ''
           cd "$HOME/Documents/Notes"; or return
@@ -172,8 +174,12 @@ in
         '';
       };
 
-      mkcd = { body = "mkdir -p $argv[1]; and cd $argv[1]"; };
-      up = { body = "cd (string repeat -n $argv[1] '../')"; };
+      mkcd = {
+        body = "mkdir -p $argv[1]; and cd $argv[1]";
+      };
+      up = {
+        body = "cd (string repeat -n $argv[1] '../')";
+      };
     };
 
     interactiveShellInit = ''

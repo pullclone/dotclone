@@ -1,4 +1,10 @@
-{ config, pkgs, lib, inputs, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  inputs,
+  ...
+}:
 
 let
   cfg = config.my.desktop;
@@ -6,7 +12,12 @@ let
   # Helper for cleaner Noctalia calls
   noctalia = cmd: {
     action = config.lib.niri.actions.spawn (
-      [ "noctalia-shell" "ipc" "call" ] ++ (pkgs.lib.splitString " " cmd)
+      [
+        "noctalia-shell"
+        "ipc"
+        "call"
+      ]
+      ++ (pkgs.lib.splitString " " cmd)
     );
   };
 
@@ -29,7 +40,9 @@ in
   config = lib.mkIf (cfg.panel == "noctalia") {
 
     # 1. Set the shell variable for this profile
-    home.sessionVariables = { LAUNCHER_CMD = "fuzzel -d"; };
+    home.sessionVariables = {
+      LAUNCHER_CMD = "fuzzel -d";
+    };
 
     # 2. Install packages ONLY for the Noctalia profile
     home.packages = with pkgs; [
@@ -100,14 +113,28 @@ in
           density = "comfortable";
           widgets = {
             left = [
-              { id = "Clock"; formatHorizontal = "HH:mm"; }
-              { id = "SystemMonitor"; showCpuUsage = true; }
+              {
+                id = "Clock";
+                formatHorizontal = "HH:mm";
+              }
+              {
+                id = "SystemMonitor";
+                showCpuUsage = true;
+              }
             ];
-            center = [ { id = "Workspace"; labelMode = "none"; } ];
+            center = [
+              {
+                id = "Workspace";
+                labelMode = "none";
+              }
+            ];
             right = [
               { id = "Tray"; }
               { id = "Battery"; }
-              { id = "ControlCenter"; icon = "cat"; }
+              {
+                id = "ControlCenter";
+                icon = "cat";
+              }
             ];
           };
         };

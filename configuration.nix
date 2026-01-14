@@ -1,4 +1,11 @@
-{ config, pkgs, lib, stylix, inputs, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  stylix,
+  inputs,
+  ...
+}:
 
 let
   latencyflex = pkgs.callPackage ./pkgs/latencyflex.nix { };
@@ -24,7 +31,10 @@ in
   };
 
   # Kernel modules
-  boot.kernelModules = [ "i2c-dev" "spi-dev" ];
+  boot.kernelModules = [
+    "i2c-dev"
+    "spi-dev"
+  ];
 
   # NOTE: Bootloader, Kernel Params, and Microcode are now handled
   # by modules/boot-profile.nix and modules/hardware/amd-gpu.nix
@@ -48,7 +58,10 @@ in
     services = {
       sddm = {
         wantedBy = [ "multi-user.target" ];
-        after = [ "network.target" "dbus.service" ];
+        after = [
+          "network.target"
+          "dbus.service"
+        ];
       };
       NetworkManager = {
         wantedBy = [ "multi-user.target" ];
@@ -83,15 +96,15 @@ in
   # Hostname/Timezone/MAC handled by modules/install-answers.nix
   networking = {
     nameservers = [
-      "142.242.2.2"      # Mullvad
-      "94.140.14.14"     # AdGuard
-      "94.140.15.15"     # AdGuard
-      "149.112.112.112"  # Quad9
-      "9.9.9.9"          # Quad9
-      "1.1.1.2"          # Cloudflare
-      "1.0.0.2"          # Cloudflare
-      "1.1.1.1"          # Cloudflare
-      "1.0.0.1"          # Cloudflare
+      "142.242.2.2" # Mullvad
+      "94.140.14.14" # AdGuard
+      "94.140.15.15" # AdGuard
+      "149.112.112.112" # Quad9
+      "9.9.9.9" # Quad9
+      "1.1.1.2" # Cloudflare
+      "1.0.0.2" # Cloudflare
+      "1.1.1.1" # Cloudflare
+      "1.0.0.1" # Cloudflare
     ];
     useDHCP = false;
   };
@@ -121,7 +134,7 @@ in
     powerOnBoot = true;
 
     package = pkgs.bluez.overrideAttrs (old: {
-      configureFlags = (old.configureFlags or []) ++ [
+      configureFlags = (old.configureFlags or [ ]) ++ [
         "--disable-cups"
         "--disable-mesh"
         "--disable-obex"
@@ -196,7 +209,11 @@ in
     prometheus.exporters.node = {
       enable = true;
       port = 9100;
-      enabledCollectors = [ "systemd" "btrfs" "textfile" ];
+      enabledCollectors = [
+        "systemd"
+        "btrfs"
+        "textfile"
+      ];
       extraFlags = [
         "--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|run)$"
       ];
@@ -242,7 +259,14 @@ in
   users.users."${config.my.install.userName}" = {
     isNormalUser = true;
     description = config.my.install.userName;
-    extraGroups = [ "wheel" "networkmanager" "video" "audio" "input" "render" ];
+    extraGroups = [
+      "wheel"
+      "networkmanager"
+      "video"
+      "audio"
+      "input"
+      "render"
+    ];
     shell = pkgs.fish;
     createHome = true;
     # No initialPassword. Set via 'passwd' on first boot.
@@ -254,34 +278,79 @@ in
   # ==========================================
   # PACKAGES & SCRIPTS
   # ==========================================
-  environment.systemPackages = with pkgs;
+  environment.systemPackages =
+    with pkgs;
     [
       # Core Tools
-      btrfs-progs btrbk
-      git curl wget micro
-      unzip unrar p7zip
-      libnotify wl-clipboard cliphist
-      grim slurp udiskie
+      btrfs-progs
+      btrbk
+      git
+      curl
+      wget
+      micro
+      unzip
+      unrar
+      p7zip
+      libnotify
+      wl-clipboard
+      cliphist
+      grim
+      slurp
+      udiskie
 
       # File Management
-      xfce.thunar xfce.thunar-volman mate.engrampa
+      xfce.thunar
+      xfce.thunar-volman
+      mate.engrampa
 
       # Web & Media
-      brave firefox
-      pwvucontrol pavucontrol playerctl ffmpeg mpv
-      gst_all_1.gstreamer gst_all_1.gst-plugins-base
-      gst_all_1.gst-plugins-good gst_all_1.gst-plugins-bad
-      gst_all_1.gst-plugins-ugly gst_all_1.gst-libav
+      brave
+      firefox
+      pwvucontrol
+      pavucontrol
+      playerctl
+      ffmpeg
+      mpv
+      gst_all_1.gstreamer
+      gst_all_1.gst-plugins-base
+      gst_all_1.gst-plugins-good
+      gst_all_1.gst-plugins-bad
+      gst_all_1.gst-plugins-ugly
+      gst_all_1.gst-libav
 
       # Python / AI
-      (python311.withPackages (ps: with ps; [ pygobject3 numpy pandas ]))
+      (python311.withPackages (
+        ps: with ps; [
+          pygobject3
+          numpy
+          pandas
+        ]
+      ))
 
       # Terminal Enhancements
-      eza lsd bat fzf zoxide starship ripgrep fd jq age gum glow rucola trash-cli
-      fastfetch macchina btop
+      eza
+      lsd
+      bat
+      fzf
+      zoxide
+      starship
+      ripgrep
+      fd
+      jq
+      age
+      gum
+      glow
+      rucola
+      trash-cli
+      fastfetch
+      macchina
+      btop
 
       # Gaming / Input
-      dualsensectl libratbag mangohud latencyflex
+      dualsensectl
+      libratbag
+      mangohud
+      latencyflex
 
       # Theming
       bibata-cursors
@@ -290,38 +359,85 @@ in
       pkgs.nerd-fonts.hack
       pkgs.nerd-fonts.jetbrains-mono
       pkgs.nerd-fonts.meslo-lg
-      noto-fonts-cjk-sans noto-fonts-color-emoji
+      noto-fonts-cjk-sans
+      noto-fonts-color-emoji
 
       # Sysadmin Utils
-      util-linux procps iputils iproute2 mkpasswd
-      stress-ng iperf3 sysstat iotop iftop nmon powertop
+      util-linux
+      procps
+      iputils
+      iproute2
+      mkpasswd
+      stress-ng
+      iperf3
+      sysstat
+      iotop
+      iftop
+      nmon
+      powertop
 
       # Security / crypto
-      gnupg tpm2-tools tpm2-tss gopass pinentry-gnome3 gocryptfs
+      gnupg
+      tpm2-tools
+      tpm2-tss
+      gopass
+      pinentry-gnome3
+      gocryptfs
 
       # CLI / network / utils
-      lla skim mtr rsync which whois
+      lla
+      skim
+      mtr
+      rsync
+      which
+      whois
 
       # OCR
-      tesseract5 tesseract5.languages.eng
+      tesseract5
+      tesseract5.languages.eng
 
       # Debug / monitoring
-      strace lm_sensors linuxPackages.iio-utils evtest
+      strace
+      lm_sensors
+      linuxPackages.iio-utils
+      evtest
 
       # Storage / disk tools
-      hdparm nvme-cli smartmontools parted gptfdisk e2fsprogs dosfstools ntfs3g xz xfsprogs
+      hdparm
+      nvme-cli
+      smartmontools
+      parted
+      gptfdisk
+      e2fsprogs
+      dosfstools
+      ntfs3g
+      xz
+      xfsprogs
 
       # Terminal / session tools
-      screen minicom picocom tmux
+      screen
+      minicom
+      picocom
+      tmux
 
       # Media / audio tools
-      lame flac fdk_aac ffmpeg alsa-utils sox amberol abcde
+      lame
+      flac
+      fdk_aac
+      ffmpeg
+      alsa-utils
+      sox
+      amberol
+      abcde
 
       # PDF / poppler tools
-      poppler poppler-utils
+      poppler
+      poppler-utils
 
       # iOS device support
-      libimobiledevice ifuse usbmuxd
+      libimobiledevice
+      ifuse
+      usbmuxd
 
       # Clipboard / Wayland
       wl-clipboard
@@ -330,13 +446,17 @@ in
       wireshark
 
       # Performance
-      ananicy-rules-cachyos ananicy-cpp
+      ananicy-rules-cachyos
+      ananicy-cpp
 
       # Framework tooling
-      framework-tool framework-tool-tui
+      framework-tool
+      framework-tool-tui
 
       # Boot/install media + video tools
-      ventoy-full-gtk shotcut handbrake
+      ventoy-full-gtk
+      shotcut
+      handbrake
 
       # Auth / escalation
       shadow
@@ -345,16 +465,27 @@ in
       rustup
 
       # GPIO / hardware tooling
-      i2c-tools dtc sigrok-cli pulseview libgpiod
+      i2c-tools
+      dtc
+      sigrok-cli
+      pulseview
+      libgpiod
 
       # Python hardware libs
-      python3Packages.smbus2 python3Packages.pyserial python3Packages.rpi-gpio
+      python3Packages.smbus2
+      python3Packages.pyserial
+      python3Packages.rpi-gpio
 
       # Qt theming
       libsForQt5.qt5ct
 
       # COSMIC apps and storage helpers
-      cosmic-files cosmic-edit cosmic-player cosmic-term udisks2 udiskie
+      cosmic-files
+      cosmic-edit
+      cosmic-player
+      cosmic-term
+      udisks2
+      udiskie
 
       # RNG tools
       rng-tools

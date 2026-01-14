@@ -22,19 +22,42 @@
 
       # Optional metadata (docs/help)
       meta.system = {
-        latency.bestFor = [ "low-latency" "gaming" "interactive" ];
-        latency.tradeoffs = [ "higher power" "possible throughput loss under sustained load" ];
+        latency.bestFor = [
+          "low-latency"
+          "gaming"
+          "interactive"
+        ];
+        latency.tradeoffs = [
+          "higher power"
+          "possible throughput loss under sustained load"
+        ];
 
-        balanced.bestFor = [ "daily-driver" "mixed workloads" ];
+        balanced.bestFor = [
+          "daily-driver"
+          "mixed workloads"
+        ];
         balanced.tradeoffs = [ "none" ];
 
-        throughput.bestFor = [ "compiles" "rendering" "batch jobs" ];
-        throughput.tradeoffs = [ "latency spikes" "higher memory pressure" ];
+        throughput.bestFor = [
+          "compiles"
+          "rendering"
+          "batch jobs"
+        ];
+        throughput.tradeoffs = [
+          "latency spikes"
+          "higher memory pressure"
+        ];
 
-        battery.bestFor = [ "portable" "quiet" ];
+        battery.bestFor = [
+          "portable"
+          "quiet"
+        ];
         battery.tradeoffs = [ "lower peak performance" ];
 
-        memory-saver.bestFor = [ "low-ram" "many apps" ];
+        memory-saver.bestFor = [
+          "low-ram"
+          "many apps"
+        ];
         memory-saver.tradeoffs = [ "more CPU compression work" ];
       };
     };

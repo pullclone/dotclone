@@ -24,124 +24,169 @@
     profiles.url = "path:./profiles";
   };
 
-  outputs = { self, nixpkgs, nixpkgs-unstable, home-manager, stylix, niri, noctalia, profiles, ... }@inputs:
-  let
-    system = "x86_64-linux";
-    lib = nixpkgs.lib;
+  outputs =
+    {
+      self,
+      nixpkgs,
+      nixpkgs-unstable,
+      home-manager,
+      stylix,
+      niri,
+      noctalia,
+      profiles,
+      ...
+    }@inputs:
+    let
+      system = "x86_64-linux";
+      lib = nixpkgs.lib;
 
-    latencyflexOverlay = import ./overlays/latencyflex.nix;
+      latencyflexOverlay = import ./overlays/latencyflex.nix;
 
-    pkgsUnstable = import nixpkgs-unstable {
-      inherit system;
-      config.allowUnfree = true;
-    };
-
-    officialProfiles = [ "latency" "balanced" "throughput" "battery" "memory-saver" ];
-    availableProfiles = builtins.attrNames inputs.profiles.nyxProfiles.system;
-
-    _ = lib.assertMsg (lib.all (p: lib.elem p availableProfiles) officialProfiles) ''
-      NyxOS: officialProfiles contains a profile not provided by profiles flake.
-      officialProfiles=${lib.concatStringsSep ", " officialProfiles}
-      available=${lib.concatStringsSep ", " availableProfiles}
-    '';
-
-    mkNyx =
-      { systemProfile ? "balanced", latencyflexEnable ? true }:
-      let
-        _ = lib.assertMsg (lib.elem systemProfile officialProfiles) ''
-          NyxOS: invalid systemProfile '${systemProfile}'. Official profiles: ${lib.concatStringsSep ", " officialProfiles}
-        '';
-        chosenSystemProfile = inputs.profiles.nyxProfiles.system.${systemProfile};
-      in
-      lib.nixosSystem {
+      pkgsUnstable = import nixpkgs-unstable {
         inherit system;
+        config.allowUnfree = true;
+      };
 
-        specialArgs = {
-          inherit inputs pkgsUnstable stylix systemProfile;
+      officialProfiles = [
+        "latency"
+        "balanced"
+        "throughput"
+        "battery"
+        "memory-saver"
+      ];
+      availableProfiles = builtins.attrNames inputs.profiles.nyxProfiles.system;
+
+      _ = lib.assertMsg (lib.all (p: lib.elem p availableProfiles) officialProfiles) ''
+        NyxOS: officialProfiles contains a profile not provided by profiles flake.
+        officialProfiles=${lib.concatStringsSep ", " officialProfiles}
+        available=${lib.concatStringsSep ", " availableProfiles}
+      '';
+
+      mkNyx =
+        {
+          systemProfile ? "balanced",
+          latencyflexEnable ? true,
+        }:
+        let
+          _ = lib.assertMsg (lib.elem systemProfile officialProfiles) ''
+            NyxOS: invalid systemProfile '${systemProfile}'. Official profiles: ${lib.concatStringsSep ", " officialProfiles}
+          '';
+          chosenSystemProfile = inputs.profiles.nyxProfiles.system.${systemProfile};
+        in
+        lib.nixosSystem {
+          inherit system;
+
+          specialArgs = {
+            inherit
+              inputs
+              pkgsUnstable
+              stylix
+              systemProfile
+              ;
+          };
+
+          modules = [
+            # 0. Overlays
+            { nixpkgs.overlays = [ latencyflexOverlay ]; }
+
+            # 1. System Profile (Argument) - includes ZRAM + tuning
+            chosenSystemProfile
+
+            # 2. Boot Profile (The Switch)
+            ./modules/boot/boot-profile.nix
+            {
+              # Default state: Standard UKI-ready boot.
+              # To enable Secure Boot later: set uki=false, secureBoot=true.
+              my.boot.uki.enable = true;
+              my.boot.secureBoot.enable = false;
+            }
+
+            # 3. Installation Facts
+            ./modules/core/install-answers.nix
+
+            # 4. Domain Modules (Hardware & Tuning)
+            ./modules/hardware/amd-gpu.nix
+            ./modules/tuning/sysctl.nix
+            (inputs.nixpkgs.outPath + "/nixos/modules/services/backup/btrbk.nix")
+            ./modules/tuning/btrfs-snapshots.nix
+
+            # 5. Main Policy Configuration
+            ./configuration.nix
+
+            # 6. Desktop & Features
+            niri.nixosModules.niri
+            ./modules/programs/latencyflex-module.nix
+            ./modules/programs/containers.nix
+            { my.performance.latencyflex.enable = latencyflexEnable; }
+
+            # 7. Home Manager
+            home-manager.nixosModules.home-manager
+            {
+              home-manager.useGlobalPkgs = true;
+              home-manager.useUserPackages = true;
+              home-manager.extraSpecialArgs = {
+                inherit
+                  inputs
+                  pkgsUnstable
+                  stylix
+                  system
+                  ;
+              };
+              home-manager.users.ashy = import ./modules/home/home-ashy.nix;
+            }
+          ];
         };
+    in
+    {
+      formatter.${system} = nixpkgs.legacyPackages.${system}.nixfmt-rfc-style;
 
-        modules = [
-          # 0. Overlays
-          { nixpkgs.overlays = [ latencyflexOverlay ]; }
+      packages.${system} = {
+        nixfmt = nixpkgs.legacyPackages.${system}.nixfmt-rfc-style;
+        statix = nixpkgs.legacyPackages.${system}.statix;
+        deadnix = nixpkgs.legacyPackages.${system}.deadnix;
+      };
 
-          # 1. System Profile (Argument) - includes ZRAM + tuning
-          chosenSystemProfile
-
-          # 2. Boot Profile (The Switch)
-          ./modules/boot/boot-profile.nix
-          {
-            # Default state: Standard UKI-ready boot.
-            # To enable Secure Boot later: set uki=false, secureBoot=true.
-            my.boot.uki.enable = true;
-            my.boot.secureBoot.enable = false;
-          }
-
-          # 3. Installation Facts
-          ./modules/core/install-answers.nix
-
-          # 4. Domain Modules (Hardware & Tuning)
-          ./modules/hardware/amd-gpu.nix
-          ./modules/tuning/sysctl.nix
-          (inputs.nixpkgs.outPath + "/nixos/modules/services/backup/btrbk.nix")
-          ./modules/tuning/btrfs-snapshots.nix
-
-          # 5. Main Policy Configuration
-          ./configuration.nix
-
-          # 6. Desktop & Features
-          niri.nixosModules.niri
-          ./modules/programs/latencyflex-module.nix
-          ./modules/programs/containers.nix
-          { my.performance.latencyflex.enable = latencyflexEnable; }
-
-          # 7. Home Manager
-          home-manager.nixosModules.home-manager
-          {
-            home-manager.useGlobalPkgs = true;
-            home-manager.useUserPackages = true;
-            home-manager.extraSpecialArgs = {
-              inherit inputs pkgsUnstable stylix system;
-            };
-            home-manager.users.ashy = import ./modules/home/home-ashy.nix;
-          }
+      devShells.${system}.default = nixpkgs.legacyPackages.${system}.mkShell {
+        packages = with nixpkgs.legacyPackages.${system}; [
+          just
+          git
+          ripgrep
+          shellcheck
+          shfmt
+          nixfmt-rfc-style
+          statix
+          deadnix
         ];
       };
-  in
-  {
-    formatter.${system} = nixpkgs.legacyPackages.${system}.nixfmt-rfc-style;
 
-    packages.${system} = {
-      nixfmt = nixpkgs.legacyPackages.${system}.nixfmt-rfc-style;
-      statix = nixpkgs.legacyPackages.${system}.statix;
-      deadnix = nixpkgs.legacyPackages.${system}.deadnix;
-    };
-
-    devShells.${system}.default = nixpkgs.legacyPackages.${system}.mkShell {
-      packages = with nixpkgs.legacyPackages.${system}; [
-        just
-        git
-        ripgrep
-        shellcheck
-        shfmt
-        nixfmt-rfc-style
-        statix
-        deadnix
-      ];
-    };
-
-    nixosConfigurations =
-      lib.listToAttrs
-        ([
-          { name = "nyx"; value = mkNyx { systemProfile = "balanced"; latencyflexEnable = true; }; }
-        ] ++ lib.flatten (map (profile: [
+      nixosConfigurations = lib.listToAttrs (
+        [
           {
-            name = "nyx-${profile}-lfx-on";
-            value = mkNyx { systemProfile = profile; latencyflexEnable = true; };
+            name = "nyx";
+            value = mkNyx {
+              systemProfile = "balanced";
+              latencyflexEnable = true;
+            };
           }
-          {
-            name = "nyx-${profile}-lfx-off";
-            value = mkNyx { systemProfile = profile; latencyflexEnable = false; };
-          }
-        ]) officialProfiles));
-  };
+        ]
+        ++ lib.flatten (
+          map (profile: [
+            {
+              name = "nyx-${profile}-lfx-on";
+              value = mkNyx {
+                systemProfile = profile;
+                latencyflexEnable = true;
+              };
+            }
+            {
+              name = "nyx-${profile}-lfx-off";
+              value = mkNyx {
+                systemProfile = profile;
+                latencyflexEnable = false;
+              };
+            }
+          ]) officialProfiles
+        )
+      );
+    };
 }

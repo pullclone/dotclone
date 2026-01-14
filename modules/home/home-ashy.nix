@@ -1,4 +1,9 @@
-{ config, pkgs, lib, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 
 {
   home.stateVersion = "25.11";
@@ -25,7 +30,7 @@
   # --- CONFIGURATION TOGGLES ---
   my.desktop = {
     enable = true;
-    panel = "noctalia";   # Change to "waybar" to switch
+    panel = "noctalia"; # Change to "waybar" to switch
     terminal = "kitty";
   };
 
@@ -35,7 +40,8 @@
   # Only packages that must exist regardless of profile
   home.packages = with pkgs; [
     # Core
-    kitty alacritty
+    kitty
+    alacritty
     niri
     xfce.thunar
 
@@ -48,7 +54,7 @@
 
     # Btrfs management tools
     btrfs-progs
-    btrbk  # Btrfs backup tool
+    btrbk # Btrfs backup tool
     snapper # Btrfs snapshot management
 
     # Performance monitoring tools

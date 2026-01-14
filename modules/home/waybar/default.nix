@@ -1,4 +1,9 @@
-{ config, pkgs, lib, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 
 let
   cfg = config.my.desktop;
@@ -131,9 +136,14 @@ in
           modules-left = [ "niri/workspaces" ];
           modules-center = [ "custom/dynamic_pill" ];
           modules-right = [
-            "temperature" "network" "battery"
-            "custom/screenshot" "custom/cycle_wall" "custom/expand"
-            "cpu" "clock"
+            "temperature"
+            "network"
+            "battery"
+            "custom/screenshot"
+            "custom/cycle_wall"
+            "custom/expand"
+            "cpu"
+            "clock"
           ];
 
           "niri/workspaces" = {
@@ -154,7 +164,16 @@ in
           "cpu" = {
             interval = 1;
             format = "{icon0} {icon1} {icon2} {icon3}";
-            "format-icons" = ["▁" "▂" "▃" "▄" "▅" "▆" "▇" "█"];
+            "format-icons" = [
+              "▁"
+              "▂"
+              "▃"
+              "▄"
+              "▅"
+              "▆"
+              "▇"
+              "█"
+            ];
           };
 
           "memory" = {
@@ -175,7 +194,13 @@ in
             format = "{icon}";
             "format-charging" = "";
             "format-plugged" = "";
-            "format-icons" = ["" "" "" "" ""];
+            "format-icons" = [
+              ""
+              ""
+              ""
+              ""
+              ""
+            ];
           };
 
           "network" = {

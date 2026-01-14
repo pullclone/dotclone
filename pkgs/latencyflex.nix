@@ -1,9 +1,10 @@
 # pkgs/latencyflex.nix
-{ lib
-, stdenv
-, fetchurl
-, autoPatchelfHook
-, vulkan-loader
+{
+  lib,
+  stdenv,
+  fetchurl,
+  autoPatchelfHook,
+  vulkan-loader,
 }:
 
 stdenv.mkDerivation rec {

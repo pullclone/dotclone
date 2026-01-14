@@ -158,11 +158,47 @@ fmt-shell:
     fi
     /usr/bin/find install-nyxos.sh scripts -iname "*.sh" -type f -exec shfmt --write "{}" ';'
 
+[group('Format')]
+fmt-nix:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    nix fmt .
+
+[group('Format')]
+check-nixfmt:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    nix fmt .
+    if ! git diff --quiet --exit-code; then
+        echo "nix fmt introduced changes; please commit formatting."
+        exit 1
+    fi
+
+[group('Lint')]
+lint-nix-report:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    mkdir -p reports
+    nix run .#statix -- check . > reports/statix.txt || true
+    nix run .#deadnix -- . > reports/deadnix.txt || true
+
 [group('Lint')]
 lint:
     @just check
     @just lint-shell
     @echo "Lint OK"
+
+[group('Audit')]
+audit:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    just check-nixfmt
+    just check
+    just lint-shell
+    if [ -x scripts/audit-repo.sh ]; then
+        scripts/audit-repo.sh
+    fi
+    @echo "Audit OK"
 
 [group('Test')]
 test-g502:
@@ -229,7 +265,7 @@ test:
 
 [group('CI')]
 ci:
-    just lint
+    just audit
     just build
     just test
     @echo "CI OK"

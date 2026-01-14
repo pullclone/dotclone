@@ -1,4 +1,10 @@
-{ lib, config, pkgs, inputs, ... }:
+{
+  lib,
+  config,
+  pkgs,
+  inputs,
+  ...
+}:
 
 let
   cfg = config.my.boot;
@@ -33,7 +39,10 @@ in
           message = "NyxOS: boot.initrd.systemd.enable must remain true when a boot profile is selected.";
         }
         {
-          assertion = !((config.my.install.trust.phase or "dev") == "enforced") || cfg.secureBoot.enable || cfg.uki.enable;
+          assertion =
+            !((config.my.install.trust.phase or "dev") == "enforced")
+            || cfg.secureBoot.enable
+            || cfg.uki.enable;
           message = "NyxOS: trust.phase=enforced requires a boot profile selection.";
         }
       ];
