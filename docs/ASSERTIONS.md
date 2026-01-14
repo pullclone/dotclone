@@ -45,6 +45,10 @@ assertion[\[1\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/b
   `my.trust.phase = "dev"`, NyxOS must be capable of producing signed
   boot artifacts (Lanzaboote + sbctl) or a UKI (systemd‑boot path), but
   must not assert firmware Secure Boot enforcement or TPM PCR state.
+- **Secure Boot Enforcement (Prod)** -- When `my.trust.phase = "enforced"`
+  and Secure Boot is selected, the build may require firmware Secure
+  Boot to be enabled and the signing path to be present; TPM checks are
+  deferred until this phase.
 - **UKI Profile** -- When `my.boot.uki.enable = true`, the following
   must hold:
 - `boot.loader.systemd-boot.enable = true` with `editor = false` and a

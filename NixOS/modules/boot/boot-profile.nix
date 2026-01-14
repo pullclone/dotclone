@@ -28,6 +28,10 @@ in
           assertion = !(cfg.uki.enable && cfg.secureBoot.enable);
           message = "NyxOS: Choose exactly one of my.boot.uki.enable or my.boot.secureBoot.enable.";
         }
+        {
+          assertion = !(cfg.uki.enable || cfg.secureBoot.enable) || config.boot.initrd.systemd.enable;
+          message = "NyxOS: boot.initrd.systemd.enable must remain true when a boot profile is selected.";
+        }
       ];
     }
 
