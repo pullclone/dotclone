@@ -19,6 +19,7 @@ the latest refactor.
     ├── pkgs/                           # Custom package derivations
     ├── profiles/                       # Flake-native system + ZRAM profile set
     ├── scripts/                        # Maintenance & test scripts
+    │   ├── audit-repo.sh               # Contract + flake/build audit
     │   ├── test-configuration.sh       # Static sanity checks against configuration files
     │   └── test-optimizations.sh       # Runtime optimisation checks (optional)
     └── modules/                        # Reusable modules (domain‑driven)
@@ -47,17 +48,32 @@ the latest refactor.
 - `modules/core/install-answers.nix` -- reads
   `/etc/nixos/nyxos-install.nix` to inject dynamic **facts** (hostName,
   timeZone, userName, MAC) into the system configuration.
+  Installs expanded facts (snapshots, trim, trust, boot, swap, profile)
+  and exports them via `config.my.install`.
 - `modules/boot/boot-profile.nix` -- defines mutually exclusive
   boot profiles (UKI vs Secure Boot via Lanzaboote) and the associated
   assertions.
 - `modules/tuning/sysctl.nix` -- the **sole** source for
   `boot.kernel.sysctl` definitions and Btrfs maintenance services.
 - `profiles/` -- flake-native system + ZRAM profile modules;
-  `systemProfile` flake arg selects one of
-  `latency|balanced|throughput|battery|memory-saver` (each imports a
-  ZRAM profile).
+  `systemProfile` flake arg selects one of the official profiles
+  (`latency`, `balanced`, `throughput`, `battery`, `memory-saver`),
+  each composing a ZRAM module. Flake outputs export 10 realized configs
+  named `nyx-<profile>-lfx-{on,off}` plus alias `nyx`
+  (`balanced` + `lfx-on`).
 - `pkgs/latencyflex.nix` -- custom derivation that installs the
   LatencyFleX implicit layer and its manifest.
+
+### Build & Lint Workflow (authoritative)
+
+- `just audit` — runs `nix fmt` gate, `nix flake check`, contract greps,
+  and shellcheck; CI enforces the same gate.
+- `nix fmt .` / `just fmt-nix` — canonical formatter (nixfmt rfc style).
+- `just lint-nix-report` — produces advisory `reports/{statix,deadnix}.txt`.
+- `just lint-shell` / `just fmt-shell` — shellcheck/shfmt for
+  `install-nyxos.sh` + `scripts/**/*.sh`.
+- `just build` / `just switch` — pure builds against finite configs
+  (`nyx-<profile>-lfx-{on,off}`), default `nyx`.
 
 ## Build‑Time vs Runtime Boundary
   

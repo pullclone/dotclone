@@ -31,9 +31,9 @@ encapsulates a self‑contained slice of functionality:
     ├── flake.nix              # Flake entry point & module wiring
     ├── flake.lock             # Pinned versions of all dependencies
     ├── hardware-configuration.nix  # Auto‑generated hardware config (read‑only)
-    ├── install.sh             # Installer script (generates install answers)
+    ├── install-nyxos.sh       # Installer script (writes nyxos-install.nix answers)
     ├── pkgs/                  # Custom derivations (e.g., LatencyFleX)
-    ├── scripts/               # Maintenance & test scripts
+    ├── scripts/               # Maintenance & test scripts (audit, lint helpers)
     └── modules/               # Domain‑driven NixOS modules
         ├── boot/              # Bootloader & Secure Boot logic
         ├── core/              # Installation facts & answers
@@ -79,6 +79,9 @@ roles.
 - **Flake‑Based** -- Always build via flakes: `nix flake check` to test,
   `nix build .#nixosConfigurations.<host>.config.system.build.toplevel`
   to build.
+- **Audit Gate** -- `just audit` (runs nix fmt check, flake check,
+  shellcheck, contract greps) is the preferred pre-push workflow; CI
+  enforces the same formatting gate.
 - **Default System** -- The canonical host is `nyx`. This can be
   overridden by setting the `SYSTEM` environment variable, but changes
   must still pass CI for `nyx`.
@@ -93,10 +96,11 @@ roles.
 
 1.  **Bootstrap** -- Run `just bootstrap` to install and verify required
     tools (Nix, direnv, etc.).
-2.  **Lint** -- Run `just lint` to ensure that shell scripts, Nix
-    expressions, and other files pass style checks.
-3.  **Build** -- Run `just build` or `nix build` to ensure that the
-    configuration evaluates and builds successfully.
+2.  **Lint/Format** -- Run `just audit` (or `just check-nixfmt` +
+    `just lint-shell`) to enforce nixfmt and shellcheck gates. For
+    advisory Nix lint, use `just lint-nix-report`.
+3.  **Build** -- Run `just build` or `nix build .#nixosConfigurations.nyx.config.system.build.toplevel`
+    to ensure that the configuration evaluates and builds successfully.
 4.  **Test** -- Run `just test` and, where appropriate, the scripts
     under `scripts/` to validate runtime expectations (e.g., Btrfs
     maintenance, service status).
@@ -116,7 +120,10 @@ roles.
 - **System/ZRAM Profiles** -- Select exactly one system profile via the
   flake argument `systemProfile` (profiles live under `profiles/` and
   include ZRAM + tuning). Do not import multiple profiles or add ad-hoc
-  ZRAM modules.
+  ZRAM modules. Official profiles:
+  `latency|balanced|throughput|battery|memory-saver`. Only the 10
+  realized configs (`nyx-<profile>-lfx-{on,off}`) plus alias `nyx` are
+  supported.
 - **No Circular Imports** -- Ensure module imports form a directed
   acyclic graph (DAG).
 
