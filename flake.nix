@@ -108,6 +108,27 @@
       };
   in
   {
+    formatter.${system} = nixpkgs.legacyPackages.${system}.nixfmt-rfc-style;
+
+    packages.${system} = {
+      nixfmt = nixpkgs.legacyPackages.${system}.nixfmt-rfc-style;
+      statix = nixpkgs.legacyPackages.${system}.statix;
+      deadnix = nixpkgs.legacyPackages.${system}.deadnix;
+    };
+
+    devShells.${system}.default = nixpkgs.legacyPackages.${system}.mkShell {
+      packages = with nixpkgs.legacyPackages.${system}; [
+        just
+        git
+        ripgrep
+        shellcheck
+        shfmt
+        nixfmt-rfc-style
+        statix
+        deadnix
+      ];
+    };
+
     nixosConfigurations =
       lib.listToAttrs
         ([
