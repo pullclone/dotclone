@@ -251,7 +251,7 @@ in
   environment.systemPackages = with pkgs;
     [
       # Core Tools
-      btrfs-progs btrbk snapper
+      btrfs-progs btrbk
       git curl wget micro
       unzip unrar p7zip
       libnotify wl-clipboard cliphist
