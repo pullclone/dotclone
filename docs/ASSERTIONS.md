@@ -245,6 +245,9 @@ from CI scripts. Adjust variant names as needed.
     # Check user panels
     systemctl --user status waybar || systemctl --user status noctalia
 
+    # Noctalia service ownership (HM module only; avoid NixOS service duplication)
+    systemctl --user show -p FragmentPath noctalia-shell.service
+
 ## Assertion Maintenance
 
 ### Adding New Assertions

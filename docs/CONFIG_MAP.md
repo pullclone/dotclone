@@ -177,8 +177,9 @@ the latest refactor.
                                                                        dynamic island
 
   Noctalia        Service         `modules/home/noctalia/`             Alternative
-                                                                       panel (retro
-                                                                       style)
+                                                                       panel via
+                                                                       upstream HM
+                                                                       module
 
   Niri            Service         `modules/home/niri/`                 Wayland
                                                                        compositor

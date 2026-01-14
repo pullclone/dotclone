@@ -1,4 +1,4 @@
-{ config, pkgs, lib, pkgsUnstable, ... }:
+{ config, pkgs, lib, inputs, ... }:
 
 let
   cfg = config.my.desktop;
@@ -24,11 +24,7 @@ let
   };
 in
 {
-  options.programs.noctalia-shell = lib.mkOption {
-    type = lib.types.attrs;
-    default = { };
-    description = "Noctalia shell configuration (stubbed when Stylix is disabled).";
-  };
+  imports = [ inputs.noctalia.homeModules.default ];
 
   config = lib.mkIf (cfg.panel == "noctalia") {
 
@@ -37,7 +33,6 @@ in
 
     # 2. Install packages ONLY for the Noctalia profile
     home.packages = with pkgs; [
-      pkgsUnstable.noctalia-shell
       fuzzel
       papirus-nord
       pwvucontrol
@@ -48,6 +43,7 @@ in
     programs.noctalia-shell = with palette; {
       enable = true;
       systemd.enable = true; # Use the Home Manager service
+      package = inputs.noctalia.packages.${pkgs.stdenv.hostPlatform.system}.default;
 
       # Theming logic (Merged from old ui.nix / stylix.nix)
       colors = {
