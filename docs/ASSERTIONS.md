@@ -140,7 +140,15 @@ packages[\[14\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/h
   state.
 - **Filesystems & Snapshots** -- All filesystems declared in
   `hardware-configuration.nix` must mount successfully. If snapshots via
-  Btrfs are enabled, the snapshot services must be present.
+  Btrfs are enabled, the snapshot services must be present. When
+  `my.install.snapshots.retention = -1`, snapshot tooling remains
+  disabled. When `retention = 0`, btrbk must be explicitly disabled.
+  When `retention > 0`, btrbk services and timers must be enabled and
+  exclude `/nix` from targets.
+- **Remote Snapshot Guardrails** -- If `my.install.snapshots.remote.enable = true`,
+  `my.install.snapshots.remote.target` must be non-empty. Remote targets
+  should be restricted (SSH key limited to `btrfs receive`, no agent
+  forwarding).
 - **Snapshot Semantics** -- Snapshot behavior must be derived from
   `my.install.snapshots.retention`:
   - `-1` means snapshots are not configured and no snapshot

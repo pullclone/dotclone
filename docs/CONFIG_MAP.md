@@ -193,6 +193,9 @@ and are re-exported as a **typed, structured interface** at:
   Sysctl          Config          `modules/tuning/sysctl.nix`          Kernel sysctl
                                                                        knobs, I/O
                                                                        scheduler, Btrfs
+                                                                       tuning
+  Snapshots       Service         `modules/tuning/btrfs-snapshots.nix` Btrfs snapshot
+                                                                       policy (btrbk)
 
   System Profile  Module          `profiles/system/`                  System + ZRAM
                                                                        tuning (flake
