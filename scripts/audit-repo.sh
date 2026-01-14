@@ -25,6 +25,27 @@ if rg "builtins\\.fetchGit" --glob "*.nix"; then
   exit 1
 fi
 
+echo "==> contract: fetchTarball/fetchzip must be hashed"
+missing_hash=false
+while IFS= read -r f; do
+  if ! rg -q "hash\\s*=" "$f" && ! rg -q "sha256\\s*=" "$f"; then
+    echo "Missing hash for fetchTarball/fetchzip in $f"
+    missing_hash=true
+  fi
+done < <(rg -l "fetch(Tarball|zip)" --glob "*.nix" || true)
+
+echo "==> contract: fetchgit must be hashed"
+while IFS= read -r f; do
+  if ! rg -q "hash\\s*=" "$f" && ! rg -q "sha256\\s*=" "$f"; then
+    echo "Missing hash for fetchgit in $f"
+    missing_hash=true
+  fi
+done < <(rg -l "fetchgit" --glob "*.nix" || true)
+
+if [ "$missing_hash" = true ]; then
+  exit 1
+fi
+
 echo "==> shellcheck installer + scripts"
 shellcheck install-nyxos.sh scripts/**/*.sh
 

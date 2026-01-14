@@ -4,6 +4,7 @@
   stdenv,
   fetchurl,
   autoPatchelfHook,
+  file,
   vulkan-loader,
 }:
 
@@ -18,14 +19,24 @@ stdenv.mkDerivation rec {
 
   sourceRoot = "latencyflex-v${version}";
 
-  nativeBuildInputs = [ autoPatchelfHook ];
+  nativeBuildInputs = [
+    autoPatchelfHook
+    file
+  ];
 
   buildInputs = [
     vulkan-loader
     stdenv.cc.cc.lib
   ];
 
+  dontConfigure = true;
+  dontBuild = true;
   dontStrip = true;
+
+  preInstall = ''
+    test -f "layer/usr/lib/x86_64-linux-gnu/liblatencyflex_layer.so"
+    test -f "layer/usr/share/vulkan/implicit_layer.d/latencyflex.json"
+  '';
 
   installPhase = ''
     runHook preInstall
@@ -44,6 +55,13 @@ stdenv.mkDerivation rec {
 
     test -f "$out/lib/liblatencyflex_layer.so"
     test -f "$out/share/vulkan/implicit_layer.d/latencyflex.json"
+  '';
+
+  doInstallCheck = true;
+  installCheckPhase = ''
+    test -s "$out/lib/liblatencyflex_layer.so"
+    test -s "$out/share/vulkan/implicit_layer.d/latencyflex.json"
+    file "$out/lib/liblatencyflex_layer.so"
   '';
 
   meta = with lib; {
