@@ -36,6 +36,8 @@
       config.allowUnfree = true;
     };
 
+    officialProfiles = [ "latency" "balanced" "throughput" "battery" "memory-saver" ];
+
     mkNyx =
       { systemProfile ? "balanced", latencyflexEnable ? true }:
       let
@@ -100,8 +102,17 @@
       };
   in
   {
-    nixosConfigurations = {
-      nyx = mkNyx;
-    };
+    nixosConfigurations =
+      lib.listToAttrs
+        (lib.flatten (map (profile: [
+          {
+            name = "nyx-${profile}";
+            value = mkNyx { systemProfile = profile; latencyflexEnable = true; };
+          }
+          {
+            name = "nyx-${profile}-nolfx";
+            value = mkNyx { systemProfile = profile; latencyflexEnable = false; };
+          }
+        ]) officialProfiles));
   };
 }
