@@ -27,6 +27,10 @@ in
           assertion = !(remoteEnabled && (remote.target or "") == "");
           message = "btrbk remote replication enabled but snapshots.remote.target is empty";
         }
+        {
+          assertion = config.boot.supportedFilesystems == null || lib.elem "btrfs" config.boot.supportedFilesystems;
+          message = "btrbk snapshots require Btrfs root when retention > 0";
+        }
       ];
 
       environment.systemPackages = [ pkgs.btrbk ];

@@ -37,6 +37,9 @@ assertion[\[1\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/b
   neither are enabled.
   When `my.install.boot.mode` is provided, it must map to exactly one
   of these flags.
+- **Trust Enforcement (Prod)** -- When `my.trust.phase = "enforced"`,
+  a boot profile must be selected and Secure Boot/TPM enforcement checks
+  may be required (dev phase defers these).
 - **Trust Phase Awareness** -- Assertions related to Secure Boot
   enforcement and TPM state must respect `my.trust.phase`. When
   `my.trust.phase = "dev"`, firmware enforcement and TPM sealing
@@ -160,6 +163,8 @@ packages[\[14\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/h
   `my.install.snapshots.remote.target` must be non-empty. Remote targets
   should be restricted (SSH key limited to `btrfs receive`, no agent
   forwarding).
+- **Btrfs Requirement for Snapshots** -- When `my.install.snapshots.retention > 0`,
+  the root filesystem must be Btrfs (or builds must fail).
 - **Snapshot Semantics** -- Snapshot behavior must be derived from
   `my.install.snapshots.retention`:
   - `-1` means snapshots are not configured and no snapshot
