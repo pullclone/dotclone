@@ -34,11 +34,11 @@ in
   # ==========================================
   # Randomly encrypted swap (Ephemeral, key regenerated at boot)
   swapDevices = [
-    {
+    (lib.mkIf (config.my.install.swap.mode == "partition") {
       device = "/dev/disk/by-partlabel/SWAP";
       randomEncryption.enable = true;
       priority = 10; # Lower priority than ZRAM (100)
-    }
+    })
   ];
 
   # ==========================================
