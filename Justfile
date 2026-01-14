@@ -1,6 +1,6 @@
-export system := env("SYSTEM", "nyx")
 export system_profile := env("SYSTEM_PROFILE", "balanced")
 export latencyflex_enable := env("LATENCYFLEX_ENABLE", "true")
+export config_name := "nyx-{{ system_profile }}-lfx-{{ if eq latencyflex_enable \"true\" }}on{{ else }}off{{ end }}"
 
 [group('Utility')]
 bootstrap:
@@ -34,57 +34,103 @@ check:
 build:
     #!/usr/bin/env bash
     set -euo pipefail
-    nix build --impure --expr '
-      let
-        flake = builtins.getFlake (builtins.getEnv "PWD");
-      in
-        (flake.nixosConfigurations.nyx {
-          systemProfile = "{{ system_profile }}";
-          latencyflexEnable = {{ latencyflex_enable }};
-        }).config.system.build.toplevel
-    '
+    nix build ".#nixosConfigurations.{{ config_name }}.config.system.build.toplevel"
 
 [group('Nix')]
 switch:
     #!/usr/bin/env bash
     set -euo pipefail
-    # Switch to default system profile (balanced)
-    sudo nixos-rebuild switch --flake ".#nyx"
+    sudo nixos-rebuild switch --flake ".#{{ config_name }}"
 
 [group('Nix')]
 switch-balanced:
     #!/usr/bin/env bash
     set -euo pipefail
-    # Switch to balanced system profile
-    sudo nixos-rebuild switch --flake ".#nyx" --argstr systemProfile balanced
+    sudo nixos-rebuild switch --flake ".#nyx-balanced-lfx-on"
 
 [group('Nix')]
 switch-aggressive:
     #!/usr/bin/env bash
     set -euo pipefail
-    # Switch to throughput profile (higher dirty ratios)
-    sudo nixos-rebuild switch --flake ".#nyx" --argstr systemProfile throughput
+    sudo nixos-rebuild switch --flake ".#nyx-throughput-lfx-on"
 
 [group('Nix')]
 switch-writeback:
     #!/usr/bin/env bash
     set -euo pipefail
-    # Switch to memory-saver profile
-    sudo nixos-rebuild switch --flake ".#nyx" --argstr systemProfile memory-saver
+    sudo nixos-rebuild switch --flake ".#nyx-memory-saver-lfx-on"
 
 [group('Nix')]
 switch-latencyflex-on:
     #!/usr/bin/env bash
     set -euo pipefail
-    # Switch to the default target (assumes LatencyFleX enabled in .#nyx)
-    sudo nixos-rebuild switch --flake ".#nyx" --arg latencyflexEnable true
+    sudo nixos-rebuild switch --flake ".#nyx-{{ system_profile }}-lfx-on"
 
 [group('Nix')]
 switch-latencyflex-off:
     #!/usr/bin/env bash
     set -euo pipefail
-    # Switch to LatencyFleX-disabled target
-    sudo nixos-rebuild switch --flake ".#nyx" --arg latencyflexEnable false
+    sudo nixos-rebuild switch --flake ".#nyx-{{ system_profile }}-lfx-off"
+
+[group('Nix')]
+switch-latency-lfx-on:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    sudo nixos-rebuild switch --flake ".#nyx-latency-lfx-on"
+
+[group('Nix')]
+switch-latency-lfx-off:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    sudo nixos-rebuild switch --flake ".#nyx-latency-lfx-off"
+
+[group('Nix')]
+switch-balanced-lfx-on:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    sudo nixos-rebuild switch --flake ".#nyx-balanced-lfx-on"
+
+[group('Nix')]
+switch-balanced-lfx-off:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    sudo nixos-rebuild switch --flake ".#nyx-balanced-lfx-off"
+
+[group('Nix')]
+switch-throughput-lfx-on:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    sudo nixos-rebuild switch --flake ".#nyx-throughput-lfx-on"
+
+[group('Nix')]
+switch-throughput-lfx-off:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    sudo nixos-rebuild switch --flake ".#nyx-throughput-lfx-off"
+
+[group('Nix')]
+switch-battery-lfx-on:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    sudo nixos-rebuild switch --flake ".#nyx-battery-lfx-on"
+
+[group('Nix')]
+switch-battery-lfx-off:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    sudo nixos-rebuild switch --flake ".#nyx-battery-lfx-off"
+
+[group('Nix')]
+switch-memory-saver-lfx-on:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    sudo nixos-rebuild switch --flake ".#nyx-memory-saver-lfx-on"
+
+[group('Nix')]
+switch-memory-saver-lfx-off:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    sudo nixos-rebuild switch --flake ".#nyx-memory-saver-lfx-off"
 
 [group('Nix')]
 show:
