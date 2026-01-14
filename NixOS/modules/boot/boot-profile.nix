@@ -13,6 +13,7 @@ in
   };
 
   config = lib.mkMerge [
+    # TODO(batch1): Gate boot assertions/config off install answers (boot.mode) and trust.phase.
     # -----------------------------
     # GUARDS
     # -----------------------------

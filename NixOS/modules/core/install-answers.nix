@@ -71,12 +71,22 @@ in {
       description = "Whether to take snapshots before and after nixos-rebuild.";
     };
     snapshots.remote = lib.mkOption {
-      type        = lib.types.attrs;
+      type = lib.types.submodule {
+        options = {
+          enable = lib.mkOption {
+            type = lib.types.bool;
+            default = snapshots.remote.enable or false;
+            description = "Enable remote snapshot replication.";
+          };
+          target = lib.mkOption {
+            type = lib.types.str;
+            default = snapshots.remote.target or "";
+            description = "Remote target (e.g., user@host:/path).";
+          };
+        };
+      };
       default     = snapshots.remote;
-      description = ''
-        Remote snapshot replication settings.
-        “enable” must be true and “target” non-empty to activate remote send/receive.
-      '';
+      description = "Remote snapshot replication settings.";
     };
     storage.trim.enable = lib.mkOption {
       type        = lib.types.bool;
@@ -106,7 +116,7 @@ in {
       description = "Swap provisioning strategy.";
     };
     swap.sizeGiB = lib.mkOption {
-      type        = lib.types.int;
+      type        = lib.types.ints.nonNegative;
       default     = swap.sizeGiB;
       description = "Swap size in GiB (used when swap.mode = “partition”).";
     };
@@ -141,5 +151,12 @@ in {
       swap          = swap;
       profile       = profile;
     };
+
+    assertions = [
+      {
+        assertion = swap.sizeGiB >= 0;
+        message = "install answers: swap.sizeGiB must be non-negative";
+      }
+    ];
   };
 }

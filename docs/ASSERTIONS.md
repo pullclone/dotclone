@@ -30,6 +30,7 @@ NyxOS supports two mutually exclusive boot flows defined in
 and a **Secure Boot** profile using Lanzaboote and `sbctl`. The module
 itself enforces this exclusivity with a Nix
 assertion[\[1\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/boot/boot-profile.nix#L16-L21).
+<!-- TODO(batch1): Expand with trust.phase-driven enforcement once install facts are hooked in. -->
 
 - **Exclusive Selection** -- Exactly one of `my.boot.uki.enable` or
   `my.boot.secureBoot.enable` must be set. Builds must fail if both or
@@ -67,6 +68,7 @@ The answers file may also include additional install-time facts (e.g.,
 snapshot policy, storage preferences, encryption intent). These are
 normalized by `modules/core/install-answers.nix` and re-exported via
 `config.my.install`.
+<!-- TODO(batch1): Document expanded schema defaults/validation once wired into modules. -->
 
 - **Required Fact** -- `my.install.userName` must be a non‑empty
   string[\[7\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/core/install-answers.nix#L14-L18).

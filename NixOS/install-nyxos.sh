@@ -319,7 +319,7 @@ btrfs subvolume create /mnt/@nix
 umount /mnt
 
 MOUNT_OPTS="noatime,ssd,space_cache=v2,compress=zstd:3"
-mount -o "$MOUNT_OPTS,subvol=@\" \"$ROOT_PART\" /mnt
+mount -o "$MOUNT_OPTS,subvol=@" "$ROOT_PART" /mnt
 mkdir -p /mnt/{boot,home,nix,etc/nixos}
 mount -o "$MOUNT_OPTS,subvol=@home" "$ROOT_PART" /mnt/home
 mount -o "$MOUNT_OPTS,subvol=@nix" "$ROOT_PART" /mnt/nix

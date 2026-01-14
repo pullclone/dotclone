@@ -238,6 +238,28 @@ and are re-exported as a **typed, structured interface** at:
         F --> J[Desktop (Niri/Waybar/Noctalia)]
         F --> K[Apps]
 
+## Planned Updates (install/trust/snapshot wiring)
+
+- Align boot profile selection with install answers (`boot.mode`) and trust phase (`trust.phase`).
+- Derive snapshot services and retention from `my.install.snapshots.*` instead of static defaults.
+- Normalize storage trim and encryption intent from the expanded `nyxos-install.nix` schema.
+
+### Installer → Answers → Consumer Map
+
+| Installer prompt                        | Answers file field                        | Consumed by                               |
+| --------------------------------------- | ----------------------------------------- | ----------------------------------------- |
+| Username                                | `userName`                                | `modules/core/install-answers.nix` → `config.my.install.userName` (users) |
+| Hostname                                | `hostName`                                | `modules/core/install-answers.nix` → `networking.hostName`                |
+| Timezone                                | `timeZone`                                | `modules/core/install-answers.nix` → `time.timeZone`                     |
+| MAC mode/interface/address              | `mac.mode/interface/address`              | `modules/core/install-answers.nix` → NetworkManager policy                |
+| Boot mode                               | `boot.mode`                               | `modules/boot/boot-profile.nix` (planned wiring via install facts)       |
+| Trust phase                             | `trust.phase`                             | Boot/Secure Boot assertions (planned trust-aware gating)                 |
+| Snapshot policy (retention/schedule/remote/prePost) | `snapshots.*`                   | Snapshot services (planned: derive enablement/retention)                 |
+| Trim policy                             | `storage.trim.*`                          | Storage maintenance (planned: trim scheduling/allowDiscards)             |
+| Encryption intent                       | `encryption.mode`                         | Future LUKS wiring (intent signalling)                                   |
+| Swap mode/size                          | `swap.mode/sizeGiB`                       | Swap provisioning (partition vs none)                                    |
+| System profile                          | `profile.system`                          | Flake arg → system profile selection (already wired)                     |
+
 ## Change Implementation Flow
 
 1.  **Identify the domain**: does your change belong in system policy

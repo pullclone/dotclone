@@ -1,0 +1,44 @@
+{
+  userName = "ashy";
+  hostName = "nyx";
+  timeZone = "UTC";
+
+  mac = {
+    mode = "default"; # default | random | stable | fixed
+    interface = "wlan0";
+    address = ""; # e.g., "00:11:22:33:44:55" when mode = "fixed"
+  };
+
+  boot = {
+    mode = "uki"; # uki | secureboot
+  };
+
+  trust.phase = "dev"; # dev | enforced
+
+  snapshots = {
+    retention = 11; # -1 (not configured), 0 (disabled), >0 (enabled)
+    schedule = "daily";
+    prePostRebuild = true;
+    remote = {
+      enable = false;
+      target = "";
+    };
+  };
+
+  storage.trim = {
+    enable = true;
+    interval = "weekly";
+    allowDiscardsInLuks = false;
+  };
+
+  encryption = {
+    mode = "luks2"; # luks2 intent or "none"
+  };
+
+  swap = {
+    mode = "partition"; # partition | none
+    sizeGiB = 8;
+  };
+
+  profile.system = "balanced"; # balanced | latency | throughput | battery
+}
