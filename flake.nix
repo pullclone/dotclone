@@ -37,13 +37,19 @@
     };
 
     officialProfiles = [ "latency" "balanced" "throughput" "battery" "memory-saver" ];
+    availableProfiles = builtins.attrNames inputs.profiles.nyxProfiles.system;
+
+    _ = lib.assertMsg (lib.all (p: lib.elem p availableProfiles) officialProfiles) ''
+      NyxOS: officialProfiles contains a profile not provided by profiles flake.
+      officialProfiles=${lib.concatStringsSep ", " officialProfiles}
+      available=${lib.concatStringsSep ", " availableProfiles}
+    '';
 
     mkNyx =
       { systemProfile ? "balanced", latencyflexEnable ? true }:
       let
-        allowedSystemProfiles = builtins.attrNames inputs.profiles.nyxProfiles.system;
-        _ = lib.assertMsg (lib.elem systemProfile allowedSystemProfiles) ''
-          NyxOS: invalid systemProfile '${systemProfile}'. Allowed: ${lib.concatStringsSep ", " allowedSystemProfiles}
+        _ = lib.assertMsg (lib.elem systemProfile officialProfiles) ''
+          NyxOS: invalid systemProfile '${systemProfile}'. Official profiles: ${lib.concatStringsSep ", " officialProfiles}
         '';
         chosenSystemProfile = inputs.profiles.nyxProfiles.system.${systemProfile};
       in
@@ -104,13 +110,15 @@
   {
     nixosConfigurations =
       lib.listToAttrs
-        (lib.flatten (map (profile: [
+        ([
+          { name = "nyx"; value = mkNyx { systemProfile = "balanced"; latencyflexEnable = true; }; }
+        ] ++ lib.flatten (map (profile: [
           {
-            name = "nyx-${profile}";
+            name = "nyx-${profile}-lfx-on";
             value = mkNyx { systemProfile = profile; latencyflexEnable = true; };
           }
           {
-            name = "nyx-${profile}-nolfx";
+            name = "nyx-${profile}-lfx-off";
             value = mkNyx { systemProfile = profile; latencyflexEnable = false; };
           }
         ]) officialProfiles));
