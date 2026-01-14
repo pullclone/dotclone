@@ -1,4 +1,4 @@
-# NixOS/modules/latencyflex-module.nix
+# modules/latencyflex-module.nix
 { config, lib, pkgs, ... }:
 
 let

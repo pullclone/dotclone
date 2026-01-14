@@ -1,4 +1,4 @@
-NixOS/
+
 ├── configuration.nix               # Main system policy orchestrator (services, users, packages)
 ├── flake.lock
 ├── flake.nix                       # Flake entry point & module wiring

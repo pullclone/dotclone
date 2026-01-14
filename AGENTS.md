@@ -26,7 +26,7 @@ Both profiles share a common core and follow the same design principles:
 The repository is organized according to **domains**. Each directory
 encapsulates a self‑contained slice of functionality:
 
-    NixOS/
+    
     ├── configuration.nix      # System policy orchestrator (services, users, packages)
     ├── flake.nix              # Flake entry point & module wiring
     ├── flake.lock             # Pinned versions of all dependencies

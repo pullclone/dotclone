@@ -28,7 +28,7 @@ default:
 check:
     #!/usr/bin/env bash
     set -euo pipefail
-    nix flake check ./NixOS
+    nix flake check .
 
 [group('Nix')]
 build:
@@ -36,7 +36,7 @@ build:
     set -euo pipefail
     nix build --impure --expr '
       let
-        flake = builtins.getFlake (builtins.getEnv "PWD" + "/NixOS");
+        flake = builtins.getFlake (builtins.getEnv "PWD");
       in
         (flake.nixosConfigurations.nyx {
           systemProfile = "{{ system_profile }}";
@@ -90,7 +90,7 @@ switch-latencyflex-off:
 show:
     #!/usr/bin/env bash
     set -euo pipefail
-    nix flake show
+    nix flake show .
 
 [group('Lint')]
 lint-shell:
@@ -100,7 +100,7 @@ lint-shell:
         echo "shellcheck could not be found. Please install it."
         exit 1
     fi
-    /usr/bin/find NixOS -iname "*.sh" -type f -exec shellcheck "{}" ';'
+    /usr/bin/find install-nyxos.sh scripts -iname "*.sh" -type f -exec shellcheck "{}" ';'
 
 [group('Format')]
 fmt-shell:
@@ -110,7 +110,7 @@ fmt-shell:
         echo "shfmt could not be found. Please install it."
         exit 1
     fi
-    /usr/bin/find NixOS -iname "*.sh" -type f -exec shfmt --write "{}" ';'
+    /usr/bin/find install-nyxos.sh scripts -iname "*.sh" -type f -exec shfmt --write "{}" ';'
 
 [group('Lint')]
 lint:

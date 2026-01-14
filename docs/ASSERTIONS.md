@@ -29,7 +29,7 @@ NyxOS supports two mutually exclusive boot flows defined in
 `modules/boot/boot-profile.nix`: a **UKI baseline** using systemd‑boot
 and a **Secure Boot** profile using Lanzaboote and `sbctl`. The module
 itself enforces this exclusivity with a Nix
-assertion[\[1\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/boot/boot-profile.nix#L16-L21).
+assertion[\[1\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/boot/boot-profile.nix#L16-L21).
 <!-- TODO(batch1): Expand with trust.phase-driven enforcement once install facts are hooked in. -->
 
 - **Exclusive Selection** -- Exactly one of `my.boot.uki.enable` or
@@ -61,14 +61,14 @@ assertion[\[1\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/b
   must hold:
 - `boot.loader.systemd-boot.enable = true` with `editor = false` and a
   finite
-  `configurationLimit`[\[2\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/boot/boot-profile.nix#L52-L59).
+  `configurationLimit`[\[2\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/boot/boot-profile.nix#L52-L59).
 - `boot.initrd.systemd.enable = true` and
-  `boot.loader.efi.canTouchEfiVariables = true`[\[3\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/boot/boot-profile.nix#L29-L35).
+  `boot.loader.efi.canTouchEfiVariables = true`[\[3\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/boot/boot-profile.nix#L29-L35).
 - **Secure Boot Profile** -- When `my.boot.secureBoot.enable = true`,
   the Lanzaboote module must be imported and the package `sbctl`
-  available[\[4\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/boot/boot-profile.nix#L64-L70).
+  available[\[4\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/boot/boot-profile.nix#L64-L70).
   Systemd‑boot must be disabled
-  (`lib.mkForce false`)[\[5\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/boot/boot-profile.nix#L70-L72)
+  (`lib.mkForce false`)[\[5\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/boot/boot-profile.nix#L70-L72)
   and the `lanzaboote` options configured.
 
 ### 3. Install Facts
@@ -77,7 +77,7 @@ NyxOS separates **facts** (collected at install time) from **policy**.
 The module `modules/core/install-answers.nix` reads an
 `/etc/nixos/nyxos-install.nix` file containing attributes such as
 `hostName`, `timeZone`, `userName`, and
-`mac`[\[6\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/core/install-answers.nix#L4-L11).
+`mac`[\[6\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/core/install-answers.nix#L4-L11).
 The answers file may also include additional install-time facts (e.g.,
 snapshot policy, storage preferences, encryption intent). These are
 normalized by `modules/core/install-answers.nix` and re-exported via
@@ -85,16 +85,16 @@ normalized by `modules/core/install-answers.nix` and re-exported via
 <!-- TODO(batch1): Document expanded schema defaults/validation once wired into modules. -->
 
 - **Required Fact** -- `my.install.userName` must be a non‑empty
-  string[\[7\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/core/install-answers.nix#L14-L18).
+  string[\[7\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/core/install-answers.nix#L14-L18).
   The build must fail if it is empty or missing.
 - **Hostname & Timezone** -- `networking.hostName` and `time.timeZone`
   must be set via install
-  facts[\[8\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/core/install-answers.nix#L22-L24).
+  facts[\[8\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/core/install-answers.nix#L22-L24).
   Defaults (`nyx`, `UTC`) are allowed only when the corresponding field
   is not provided.
 - **MAC Address Mode** -- The `mac.mode` attribute must be one of
   `default`, `random`, `stable`, or `fixed` and drive the NetworkManager
-  configuration[\[9\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/core/install-answers.nix#L25-L32).
+  configuration[\[9\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/core/install-answers.nix#L25-L32).
   If `mac.mode = "fixed"`, `mac.address` and `mac.interface` must be
   provided.
 
@@ -102,7 +102,7 @@ normalized by `modules/core/install-answers.nix` and re-exported via
 
 All kernel tuning lives in `modules/tuning/sysctl.nix`, which defines
 `boot.kernel.sysctl` for memory management, security, and
-networking[\[10\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/tuning/sysctl.nix#L7-L40).
+networking[\[10\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/tuning/sysctl.nix#L7-L40).
 Modules such as ZRAM may override specific keys via `mkDefault` or
 `mkOverride`, but no other files may introduce new sysctl keys.
 
@@ -115,11 +115,11 @@ Modules such as ZRAM may override specific keys via `mkDefault` or
   plus defaults for `memoryPercent`, `priority`, `vm.swappiness`,
   `vm.watermark_scale_factor`, `vm.page-cluster`, and writeback knobs
   when applicable. Using the writeback profile still requires setting a
-  backing device when `my.swap.writeback.enable = true`[\[11\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/profiles/zram/writeback.nix#L6-L46).
+  backing device when `my.swap.writeback.enable = true`[\[11\]](https://github.com/pullclone/dotclone/blob/HEAD/profiles/zram/writeback.nix#L6-L46).
 - **I/O Schedulers & Btrfs Maintenance** -- The `sysctl` module defines
   the I/O scheduler and a one‑shot `btrfs-optimize` service plus
   periodic maintenance via
-  `btrfs-maintenance.xml`[\[12\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/tuning/sysctl.nix#L56-L83).
+  `btrfs-maintenance.xml`[\[12\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/tuning/sysctl.nix#L56-L83).
   These files must exist in the generated system and be enabled.
 
 ### 5. Hardware Profiles
@@ -127,9 +127,9 @@ Modules such as ZRAM may override specific keys via `mkDefault` or
 Hardware‑specific modules encapsulate kernel parameters and packages.
 For example, `modules/hardware/amd-gpu.nix` sets AMD P‑state and GPU
 feature
-masks[\[13\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/hardware/amd-gpu.nix#L7-L10)
+masks[\[13\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/hardware/amd-gpu.nix#L7-L10)
 and enables ROCm
-packages[\[14\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/hardware/amd-gpu.nix#L15-L21).
+packages[\[14\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/hardware/amd-gpu.nix#L15-L21).
 
 - **Kernel Parameters Owned by Hardware Modules** -- Only hardware
   modules may set `boot.kernelParams` for hardware features.
@@ -138,7 +138,7 @@ packages[\[14\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/h
   its declared packages must be included in
   `environment.systemPackages`. For AMD, this includes `rocm-smi`,
   `rocminfo` and
-  `nvtop`[\[15\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/hardware/amd-gpu.nix#L30-L36).
+  `nvtop`[\[15\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/hardware/amd-gpu.nix#L30-L36).
 - **No Cross‑Domain Leakage** -- Hardware modules must not define sysctl
   keys, bootloader settings, or service units. They may only configure
   hardware and install packages.
@@ -210,7 +210,7 @@ from user packages (via Home Manager) and custom packages (under
   installation of additional software.
 - **Custom Packages** -- Packages such as the LatencyFleX Vulkan layer
   must install both the shared library and its manifest
-  file[\[16\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/pkgs/latencyflex.nix#L29-L49).
+  file[\[16\]](https://github.com/pullclone/dotclone/blob/HEAD/pkgs/latencyflex.nix#L29-L49).
   When a hardware profile is enabled, its dependent packages (e.g.,
   ROCm) must be installable.
 - **Quality Gates** -- All packages must build successfully with pinned
@@ -331,42 +331,42 @@ from CI scripts. Adjust variant names as needed.
 
 ------------------------------------------------------------------------
 
-[\[1\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/boot/boot-profile.nix#L16-L21)
-[\[2\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/boot/boot-profile.nix#L52-L59)
-[\[3\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/boot/boot-profile.nix#L29-L35)
-[\[4\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/boot/boot-profile.nix#L64-L70)
-[\[5\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/boot/boot-profile.nix#L70-L72)
+[\[1\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/boot/boot-profile.nix#L16-L21)
+[\[2\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/boot/boot-profile.nix#L52-L59)
+[\[3\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/boot/boot-profile.nix#L29-L35)
+[\[4\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/boot/boot-profile.nix#L64-L70)
+[\[5\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/boot/boot-profile.nix#L70-L72)
 boot-profile.nix
 
-<https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/boot/boot-profile.nix>
+<https://github.com/pullclone/dotclone/blob/HEAD/modules/boot/boot-profile.nix>
 
-[\[6\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/core/install-answers.nix#L4-L11)
-[\[7\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/core/install-answers.nix#L14-L18)
-[\[8\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/core/install-answers.nix#L22-L24)
-[\[9\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/core/install-answers.nix#L25-L32)
+[\[6\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/core/install-answers.nix#L4-L11)
+[\[7\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/core/install-answers.nix#L14-L18)
+[\[8\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/core/install-answers.nix#L22-L24)
+[\[9\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/core/install-answers.nix#L25-L32)
 install-answers.nix
 
-<https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/core/install-answers.nix>
+<https://github.com/pullclone/dotclone/blob/HEAD/modules/core/install-answers.nix>
 
-[\[10\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/tuning/sysctl.nix#L7-L40)
-[\[12\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/tuning/sysctl.nix#L56-L83)
+[\[10\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/tuning/sysctl.nix#L7-L40)
+[\[12\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/tuning/sysctl.nix#L56-L83)
 sysctl.nix
 
-<https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/tuning/sysctl.nix>
+<https://github.com/pullclone/dotclone/blob/HEAD/modules/tuning/sysctl.nix>
 
-[\[11\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/profiles/zram/writeback.nix#L6-L46)
+[\[11\]](https://github.com/pullclone/dotclone/blob/HEAD/profiles/zram/writeback.nix#L6-L46)
 profiles/zram/writeback.nix
 
-<https://github.com/pullclone/dotclone/blob/HEAD/NixOS/profiles/zram/writeback.nix>
+<https://github.com/pullclone/dotclone/blob/HEAD/profiles/zram/writeback.nix>
 
-[\[13\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/hardware/amd-gpu.nix#L7-L10)
-[\[14\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/hardware/amd-gpu.nix#L15-L21)
-[\[15\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/hardware/amd-gpu.nix#L30-L36)
+[\[13\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/hardware/amd-gpu.nix#L7-L10)
+[\[14\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/hardware/amd-gpu.nix#L15-L21)
+[\[15\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/hardware/amd-gpu.nix#L30-L36)
 amd-gpu.nix
 
-<https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/hardware/amd-gpu.nix>
+<https://github.com/pullclone/dotclone/blob/HEAD/modules/hardware/amd-gpu.nix>
 
-[\[16\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/pkgs/latencyflex.nix#L29-L49)
+[\[16\]](https://github.com/pullclone/dotclone/blob/HEAD/pkgs/latencyflex.nix#L29-L49)
 latencyflex.nix
 
-<https://github.com/pullclone/dotclone/blob/HEAD/NixOS/pkgs/latencyflex.nix>
+<https://github.com/pullclone/dotclone/blob/HEAD/pkgs/latencyflex.nix>

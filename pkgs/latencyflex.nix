@@ -1,4 +1,4 @@
-# NixOS/pkgs/latencyflex.nix
+# pkgs/latencyflex.nix
 { lib
 , stdenv
 , fetchurl

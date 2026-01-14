@@ -1,4 +1,4 @@
-# NixOS/overlays/latencyflex.nix
+# overlays/latencyflex.nix
 final: prev: {
   latencyflex = final.callPackage ../pkgs/latencyflex.nix { };
 }

@@ -8,7 +8,7 @@ the latest refactor.
 
 ## Repository Structure
 
-    NixOS/
+    
     ├── configuration.nix               # Main system policy orchestrator (services, users, packages)
     ├── flake.lock
     ├── flake.nix                       # Flake entry point & module wiring
@@ -44,26 +44,26 @@ the latest refactor.
 
 ### Noteworthy Files
 
-- `NixOS/modules/core/install-answers.nix` -- reads
+- `modules/core/install-answers.nix` -- reads
   `/etc/nixos/nyxos-install.nix` to inject dynamic **facts** (hostName,
   timeZone, userName, MAC) into the system configuration.
-- `NixOS/modules/boot/boot-profile.nix` -- defines mutually exclusive
+- `modules/boot/boot-profile.nix` -- defines mutually exclusive
   boot profiles (UKI vs Secure Boot via Lanzaboote) and the associated
   assertions.
-- `NixOS/modules/tuning/sysctl.nix` -- the **sole** source for
+- `modules/tuning/sysctl.nix` -- the **sole** source for
   `boot.kernel.sysctl` definitions and Btrfs maintenance services.
-- `NixOS/profiles/` -- flake-native system + ZRAM profile modules;
+- `profiles/` -- flake-native system + ZRAM profile modules;
   `systemProfile` flake arg selects one of
   `latency|balanced|throughput|battery|memory-saver` (each imports a
   ZRAM profile).
-- `NixOS/pkgs/latencyflex.nix` -- custom derivation that installs the
+- `pkgs/latencyflex.nix` -- custom derivation that installs the
   LatencyFleX implicit layer and its manifest.
 
 ## Build‑Time vs Runtime Boundary
   
 ### Build-Time Components
 
-- **Flake definition** (`NixOS/flake.nix`): pins inputs, defines
+- **Flake definition** (`flake.nix`): pins inputs, defines
   outputs, and wires together modules.
 
 - **Install facts** (`modules/core/install-answers.nix`): dynamic facts
@@ -94,7 +94,7 @@ and are re-exported as a **typed, structured interface** at:
 
 - **Domain modules** (`modules/*`): specialized logic for boot,
   hardware, tuning, and home evaluated during evaluation.
-- **System policy** (`NixOS/configuration.nix`): orchestrates services,
+- **System policy** (`configuration.nix`): orchestrates services,
   users, packages and imports domain modules.
 - **Home Manager config** (`modules/home/home-ashy.nix`): declares the
   user environment; imported via the flake.
@@ -122,7 +122,7 @@ and are re-exported as a **typed, structured interface** at:
 1.  **Identify the domain**: decide if the feature belongs to
     `programs`, `hardware`, `tuning`, `home`, or (future)
     `services`/`virtualization`.
-2.  **Location**: create the file under `NixOS/modules/<domain>/` with a
+2.  **Location**: create the file under `modules/<domain>/` with a
     descriptive name.
 3.  **Structure**: follow the existing module pattern
     (`{ config, lib, pkgs, ... }: {...}`), defining your own options via
@@ -136,7 +136,7 @@ and are re-exported as a **typed, structured interface** at:
 ### Adding a New Service
 
 1.  **Configuration**: add the service to the `services = { ... }` block
-    in `NixOS/configuration.nix` or encapsulate it in a new module under
+    in `configuration.nix` or encapsulate it in a new module under
     `modules/services/` (recommended for reusability).
 2.  **Kernel tuning**: if the service requires kernel parameters or
     sysctl tuning, add them to `modules/tuning/sysctl.nix` rather than
@@ -146,7 +146,7 @@ and are re-exported as a **typed, structured interface** at:
 
 ### Adding Home Manager Configuration
 
-1.  **Location**: create a module under `NixOS/modules/home/<category>/`
+1.  **Location**: create a module under `modules/home/<category>/`
     (e.g., `terminals/kitty.nix`).
 2.  **Structure**: follow Home Manager conventions, defining options and
     using `lib.mkIf` to handle toggles.
@@ -161,16 +161,16 @@ and are re-exported as a **typed, structured interface** at:
 - **Sysctl tuning**: all kernel parameters live in
   `modules/tuning/sysctl.nix`. Do **not** define `boot.kernel.sysctl`
   elsewhere to avoid
-  conflicts[\[1\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/tuning/sysctl.nix#L7-L40).
+  conflicts[\[1\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/tuning/sysctl.nix#L7-L40).
 - **Boot parameters**: general boot parameters (e.g., `quiet`, `splash`)
   are defined in the boot profile. Hardware‑specific parameters (e.g.,
   `amd_pstate=active`) live in hardware modules such as
-  `modules/hardware/amd-gpu.nix`[\[2\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/hardware/amd-gpu.nix#L7-L10).
+  `modules/hardware/amd-gpu.nix`[\[2\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/hardware/amd-gpu.nix#L7-L10).
 - **I/O scheduler**: set via `boot.extraModprobeConfig` in
-  `sysctl.nix`[\[3\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/tuning/sysctl.nix#L46-L51).
+  `sysctl.nix`[\[3\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/tuning/sysctl.nix#L46-L51).
 - **Filesystem maintenance**: `sysctl.nix` defines a one‑shot Btrfs
   optimisation service and periodic maintenance via
-  `/etc/btrfs-maintenance.xml`[\[4\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/tuning/sysctl.nix#L56-L83).
+  `/etc/btrfs-maintenance.xml`[\[4\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/tuning/sysctl.nix#L56-L83).
 
 ## Evolving Runtime Component Map
 
@@ -294,14 +294,14 @@ and are re-exported as a **typed, structured interface** at:
 
 ------------------------------------------------------------------------
 
-[\[1\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/tuning/sysctl.nix#L7-L40)
-[\[3\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/tuning/sysctl.nix#L46-L51)
-[\[4\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/tuning/sysctl.nix#L56-L83)
+[\[1\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/tuning/sysctl.nix#L7-L40)
+[\[3\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/tuning/sysctl.nix#L46-L51)
+[\[4\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/tuning/sysctl.nix#L56-L83)
 sysctl.nix
 
-<https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/tuning/sysctl.nix>
+<https://github.com/pullclone/dotclone/blob/HEAD/modules/tuning/sysctl.nix>
 
-[\[2\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/hardware/amd-gpu.nix#L7-L10)
+[\[2\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/hardware/amd-gpu.nix#L7-L10)
 amd-gpu.nix
 
-<https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/hardware/amd-gpu.nix>
+<https://github.com/pullclone/dotclone/blob/HEAD/modules/hardware/amd-gpu.nix>
