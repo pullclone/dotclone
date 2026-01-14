@@ -142,14 +142,10 @@ in {
 
     # store all answers under config.my.install for use in other modules
     my.install = {
-      inherit userName hostName timeZone mac;
+      inherit userName hostName timeZone mac snapshots encryption swap profile;
       boot          = { mode = boot.mode; };
       trust         = { phase = trust.phase; };
-      snapshots     = snapshots;
       storage.trim  = storage.trim;
-      encryption    = encryption;
-      swap          = swap;
-      profile       = profile;
     };
 
     assertions = [

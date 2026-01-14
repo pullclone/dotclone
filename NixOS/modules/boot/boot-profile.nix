@@ -13,7 +13,12 @@ in
   };
 
   config = lib.mkMerge [
-    # TODO(batch1): Gate boot assertions/config off install answers (boot.mode) and trust.phase.
+    {
+      # Drive boot selection from installer answers (boot.mode)
+      my.boot.uki.enable = lib.mkDefault ((config.my.install.boot.mode or "uki") == "uki");
+      my.boot.secureBoot.enable = lib.mkDefault ((config.my.install.boot.mode or "uki") == "secureboot");
+    }
+
     # -----------------------------
     # GUARDS
     # -----------------------------

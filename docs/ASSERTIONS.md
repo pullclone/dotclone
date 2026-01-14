@@ -35,6 +35,8 @@ assertion[\[1\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/b
 - **Exclusive Selection** -- Exactly one of `my.boot.uki.enable` or
   `my.boot.secureBoot.enable` must be set. Builds must fail if both or
   neither are enabled.
+  When `my.install.boot.mode` is provided, it must map to exactly one
+  of these flags.
 - **Trust Phase Awareness** -- Assertions related to Secure Boot
   enforcement and TPM state must respect `my.trust.phase`. When
   `my.trust.phase = "dev"`, firmware enforcement and TPM sealing
