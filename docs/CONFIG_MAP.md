@@ -66,7 +66,7 @@ the latest refactor.
 
 ### Build & Lint Workflow (authoritative)
 
-- `just audit` — runs `nix fmt` gate, `nix flake check`, contract greps,
+- `just audit` — runs `nix fmt` gate, `nix flake check .`, contract greps,
   and shellcheck; CI enforces the same gate.
 - `nix fmt .` / `just fmt-nix` — canonical formatter (nixfmt rfc style).
 - `just lint-nix-report` — produces advisory `reports/{statix,deadnix}.txt`.
@@ -292,7 +292,7 @@ and are re-exported as a **typed, structured interface** at:
     as needed.
 4.  **Update documentation**: modify this map and `docs/ASSERTIONS.md`
     if the directory structure or invariants change.
-5.  **Test**: run `nix flake check` and build the system to validate
+5.  **Test**: run `nix flake check .` and build the system to validate
     that paths and syntax are correct.
 
 ## Future Component Planning

@@ -48,7 +48,7 @@ roles.
 ## Golden Rules
 
 1.  **Deterministic & Pure** -- All builds must be reproducible. Use Nix
-    flakes (`nix flake check`, `nix build`), pinned dependencies
+    flakes (`nix flake check .`, `nix build .#…`), pinned dependencies
     (`flake.lock`), and avoid any impure operations (no `nix-shell -p`
     or `nix-env -i`).
 2.  **Domain Isolation** -- Keep modules self‑contained. Do not define
@@ -76,8 +76,8 @@ roles.
 
 ## Build Truth
 
-- **Flake‑Based** -- Always build via flakes: `nix flake check` to test,
-  `nix build .#nixosConfigurations.<host>.config.system.build.toplevel`
+- **Flake‑Based** -- Always build via flakes: `nix flake check .` to
+  test, `nix build .#nixosConfigurations.<host>.config.system.build.toplevel`
   to build.
 - **Audit Gate** -- `just audit` (runs nix fmt check, flake check,
   shellcheck, contract greps) is the preferred pre-push workflow; CI
@@ -135,7 +135,7 @@ functionality. The following phases should be covered:
 - **Lint Phase** -- `shellcheck`, `shfmt`, and static checks must pass
   via `just lint`.
 - **Build Phase** -- The flake must evaluate and build for the default
-  system (`nyx`). Use `nix flake check` and `just build`.
+  system (`nyx`). Use `nix flake check .` and `just build`.
 - **Smoke Tests** -- `just test` must verify that critical binaries
   exist (`rocminfo`, `latencyflex.json`, etc.), the correct boot profile
   is selected, and Btrfs maintenance configuration is present.

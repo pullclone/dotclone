@@ -15,7 +15,7 @@ system. They must hold before any runtime logic executes.
 
 ### 1. Flake & Build Graph
 
-- **Determinism** -- `nix flake check` must complete without warnings.
+- **Determinism** -- `nix flake check .` must complete without warnings.
   All inputs are pinned and reproducible, and all declared outputs are
   buildable.
 - **Complete Outputs** -- The flake must expose all system variants
@@ -277,7 +277,7 @@ The following commands can be used to verify the assertions manually or
 from CI scripts. Adjust variant names as needed.
 
     # Flake evaluation
-    nix flake check
+    nix flake check .
 
     # Build system configuration for host 'nyx' (replace with your hostname)
     nix build .#nixosConfigurations.nyx.config.system.build.toplevel
