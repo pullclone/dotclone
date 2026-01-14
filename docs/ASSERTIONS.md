@@ -49,6 +49,11 @@ assertion[\[1\]](https://github.com/pullclone/dotclone/blob/HEAD/NixOS/modules/b
   and Secure Boot is selected, the build may require firmware Secure
   Boot to be enabled and the signing path to be present; TPM checks are
   deferred until this phase.
+- **TPM Unlock (Enforced, Manual Enrollment)** -- In enforced trust
+  phase, TPM+PIN unlock is expected to be available for encrypted
+  installs, but enrollment is manual. The passphrase must remain as a
+  fallback. Manual command (adjust UUID):  
+  `systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=7+14 --tpm2-with-pin=yes /dev/disk/by-uuid/XXXX`
 - **UKI Profile** -- When `my.boot.uki.enable = true`, the following
   must hold:
 - `boot.loader.systemd-boot.enable = true` with `editor = false` and a

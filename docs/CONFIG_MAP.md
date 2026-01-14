@@ -256,7 +256,7 @@ and are re-exported as a **typed, structured interface** at:
 | Timezone                                | `timeZone`                                | `modules/core/install-answers.nix` → `time.timeZone`                     |
 | MAC mode/interface/address              | `mac.mode/interface/address`              | `modules/core/install-answers.nix` → NetworkManager policy                |
 | Boot mode                               | `boot.mode`                               | `modules/boot/boot-profile.nix` (selects UKI vs Secure Boot; trust.phase gates enforcement) |
-| Trust phase                             | `trust.phase`                             | Boot/Secure Boot assertions (planned trust-aware gating)                 |
+| Trust phase                             | `trust.phase`                             | Boot/Secure Boot gating (dev vs enforced; TPM/firmware enforcement deferred until enforced) |
 | Snapshot policy (retention/schedule/remote/prePost) | `snapshots.*`                   | Snapshot services (planned: derive enablement/retention)                 |
 | Trim policy                             | `storage.trim.*`                          | Storage maintenance (planned: trim scheduling/allowDiscards)             |
 | Encryption intent                       | `encryption.mode`                         | Future LUKS wiring (intent signalling)                                   |
