@@ -64,6 +64,7 @@
   };
 
   # Periodic maintenance
+  # We disable btrfs-maintenance trim here to avoid double-trimming; fstrim.timer is controlled via install answers.
   environment.etc."btrfs-maintenance.xml".text = ''
     <?xml version="1.0"?>
     <config>
@@ -75,7 +76,7 @@
           </filters>
         </balance>
         <scrub enabled="true" interval="weekly" priority="nice" />
-        <trim enabled="true" interval="daily" priority="nice" />
+        <trim enabled="false" interval="weekly" priority="nice" />
         <defrag enabled="false" />
       </periodic>
       <syslog>warning</syslog>

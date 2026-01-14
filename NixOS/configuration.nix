@@ -218,6 +218,12 @@ in
     config.common.default = "gtk";
   };
 
+  # Storage hygiene (TRIM) driven by install answers
+  services.fstrim = {
+    enable = config.my.install.storage.trim.enable;
+    interval = config.my.install.storage.trim.interval;
+  };
+
   # User-level udiskie session (no upstream module available)
   systemd.user.services.udiskie = {
     description = "udiskie automounter";
