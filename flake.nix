@@ -111,6 +111,7 @@
             ./modules/tuning/btrfs-snapshots.nix
             ./modules/security/time-sync.nix
             ./modules/security/systemd-hardening.nix
+            ./modules/security/usbguard.nix
 
             # 5. Main Policy Configuration
             ./configuration.nix

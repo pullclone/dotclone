@@ -88,6 +88,22 @@ sudo nixos-rebuild switch --flake .#nyx
 - Verify status at runtime: `chronyc sources -v` (look for `NTS`/`PNTS`)
   and `chronyc tracking`.
 
+### 🔌 USBGuard (declarative policy)
+
+- USBGuard is enabled with a declarative ruleset at `etc/usbguard/rules.conf`
+  (deployed to `/etc/usbguard/rules.conf`).
+- Generate an initial policy from currently attached devices:
+
+  ```bash
+  scripts/usbguard-generate-policy.sh > /tmp/usbguard.rules
+  # review/edit, then replace etc/usbguard/rules.conf with the approved rules
+  sudo nixos-rebuild switch --flake .#nyx
+  ```
+
+- Keep a root shell/TTY/SSH session open when testing to avoid lockout.
+- Refine rules before enabling on untrusted ports; `usbguard list-devices`
+  helps inspect current devices.
+
 ### 🛡️ Systemd hardening
 
 - `DefaultNoNewPrivileges=yes` is set globally via systemd manager
