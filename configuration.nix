@@ -680,10 +680,15 @@ in
         {
           users = [ "ashy" ];
           keepEnv = true;
-          persist = true;
+          persist = false;
         }
       ];
     };
+  };
+
+  services.openssh = {
+    permitRootLogin = "no";
+    settings.PasswordAuthentication = false;
   };
 
 }

@@ -116,6 +116,15 @@ sudo nixos-rebuild switch --flake .#nyx
 
   Use sparingly—most services should run with `NoNewPrivileges=true`.
 
+### 🔑 Privilege escalation
+
+- `doas` is the supported escalation path; `sudo` is disabled.
+- Only the admin user (`ashy` by default) may use `doas`; no persistence
+  tokens are issued by default.
+- Root login is disabled (including over SSH). For recovery, use a
+  console/TTY or boot into a rescue environment and edit
+  `configuration.nix` if needed.
+
 ### 🤖 AI & development
 
 * **Local AI:** `aichat`, `rocm-smi`, Python data stack
