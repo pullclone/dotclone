@@ -17,6 +17,7 @@
     "vm.overcommit_memory" = 1;
     "vm.overcommit_ratio" = 50;
     "vm.zone_reclaim_mode" = 0;
+    "kernel.randomize_va_space" = 2;
     # Base writeback defaults; profile modules may override.
     "vm.dirty_ratio" = lib.mkDefault 10;
     "vm.max_map_count" = 262144;
@@ -24,7 +25,7 @@
 
     # Security
     "kernel.kptr_restrict" = 2;
-    "kernel.dmesg_restrict" = 0;
+    "kernel.dmesg_restrict" = 1;
     "kernel.perf_event_paranoid" = 1;
     "kernel.yama.ptrace_scope" = 1;
     "fs.protected_hardlinks" = 1;

@@ -72,6 +72,13 @@ sudo nixos-rebuild switch --flake .#nyx
 * **LatencyFleX:** optional Vulkan implicit layer for vendor-agnostic latency reduction
 * **Sysctl:** tuned `vm.swappiness`, dirty writeback, and cache pressure
 
+### 🔒 Kernel hardening (defaults)
+
+- `kernel.randomize_va_space=2` enforces full ASLR.
+- `kernel.kptr_restrict=2` hides kernel pointers from unprivileged users.
+- `kernel.dmesg_restrict=1` restricts kernel logs to privileged users.
+  *Tradeoff:* diagnostics/perf tooling may be less informative; temporarily lower these only when debugging.
+
 ### 🤖 AI & development
 
 * **Local AI:** `aichat`, `rocm-smi`, Python data stack
