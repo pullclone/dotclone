@@ -125,6 +125,27 @@ sudo nixos-rebuild switch --flake .#nyx
   console/TTY or boot into a rescue environment and edit
   `configuration.nix` if needed.
 
+### 🎮 NVIDIA support (install-driven)
+
+- Enable via install answers (`nvidia.enable = true`) with mode:
+  - `desktop` (single GPU): uses `videoDrivers = [ "nvidia" ]`
+  - `laptop-offload`: PRIME offload (`nvidia-offload <app>`), `videoDrivers = [ "modesetting" "nvidia" ]`
+  - `laptop-sync`: PRIME sync (iGPU + dGPU sync)
+- Open kernel module is enabled by default for Turing+; set
+  `nvidia.open = false` in answers to force the proprietary module.
+- For hybrid modes provide bus IDs (from `lspci -D`):
+
+  ```bash
+  lspci -D | grep -iE 'vga|3d'
+  # format: PCI:bus:device:function (e.g., PCI:0:2:0, PCI:1:0:0)
+  ```
+
+  In answers: `nvidia.nvidiaBusId = "PCI:1:0:0";` plus either
+  `intelBusId = "PCI:0:2:0"` or `amdgpuBusId = "PCI:0:0:0"` (exactly one).
+- Wayland: Niri/Wayland works with the open module; for the proprietary
+  module or older GPUs, verify compositor support and fall back to X11
+  if necessary.
+
 ### 🤖 AI & development
 
 * **Local AI:** `aichat`, `rocm-smi`, Python data stack

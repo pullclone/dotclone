@@ -35,6 +35,15 @@ let
       sizeGiB = 8;
     };
   profile = answers.profile or { system = "balanced"; };
+  nvidia =
+    answers.nvidia or {
+      enable = false;
+      mode = "desktop";
+      open = true;
+      intelBusId = "";
+      amdgpuBusId = "";
+      nvidiaBusId = "";
+    };
 in
 {
   options.my.install = {
@@ -159,9 +168,46 @@ in
         "latency"
         "throughput"
         "battery"
+        "memory-saver"
       ];
       default = profile.system;
       description = "System tuning profile.";
+    };
+    nvidia = {
+      enable = lib.mkOption {
+        type = lib.types.bool;
+        default = nvidia.enable;
+        description = "Enable NVIDIA support.";
+      };
+      mode = lib.mkOption {
+        type = lib.types.enum [
+          "desktop"
+          "laptop-offload"
+          "laptop-sync"
+        ];
+        default = nvidia.mode;
+        description = "NVIDIA mode: desktop (single GPU) or laptop PRIME offload/sync.";
+      };
+      open = lib.mkOption {
+        type = lib.types.bool;
+        default = nvidia.open;
+        description = "Use the open NVIDIA kernel module when supported.";
+      };
+      intelBusId = lib.mkOption {
+        type = lib.types.str;
+        default = nvidia.intelBusId;
+        description = "Intel iGPU bus ID (PCI:x:y:z) for hybrid laptops.";
+      };
+      amdgpuBusId = lib.mkOption {
+        type = lib.types.str;
+        default = nvidia.amdgpuBusId;
+        description = "AMD iGPU bus ID (PCI:x:y:z) for hybrid laptops.";
+      };
+      nvidiaBusId = lib.mkOption {
+        type = lib.types.str;
+        default = nvidia.nvidiaBusId;
+        description = "NVIDIA dGPU bus ID (PCI:x:y:z). Required for hybrid modes.";
+      };
     };
   };
 
@@ -195,6 +241,7 @@ in
         encryption
         swap
         profile
+        nvidia
         ;
       boot = {
         mode = boot.mode;
@@ -209,6 +256,13 @@ in
       {
         assertion = swap.sizeGiB >= 0;
         message = "install answers: swap.sizeGiB must be non-negative";
+      }
+      {
+        assertion =
+          (!nvidia.enable)
+          || (nvidia.mode == "desktop")
+          || (nvidia.nvidiaBusId != "" && ((nvidia.intelBusId != "") != (nvidia.amdgpuBusId != "")));
+        message = "install answers: NVIDIA hybrid mode requires nvidiaBusId and exactly one of intelBusId or amdgpuBusId.";
       }
     ];
   };

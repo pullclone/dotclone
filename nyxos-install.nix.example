@@ -40,5 +40,14 @@
     sizeGiB = 8;
   };
 
-  profile.system = "balanced"; # balanced | latency | throughput | battery
+  profile.system = "balanced"; # balanced | latency | throughput | battery | memory-saver
+
+  nvidia = {
+    enable = false;
+    mode = "desktop"; # desktop | laptop-offload | laptop-sync
+    open = true; # use open kernel module when supported
+    nvidiaBusId = "PCI:1:0:0"; # required for laptop modes
+    intelBusId = "PCI:0:2:0"; # set one of intelBusId or amdgpuBusId for hybrid
+    amdgpuBusId = "";
+  };
 }

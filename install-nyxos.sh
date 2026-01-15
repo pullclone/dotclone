@@ -232,16 +232,63 @@ echo "  1) balanced (default)"
 echo "  2) latency"
 echo "  3) throughput"
 echo "  4) battery"
+echo "  5) memory-saver"
 ask "Choice" "1" PROFILE_CHOICE
 SYSTEM_PROFILE="balanced"
 case "$PROFILE_CHOICE" in
   2) SYSTEM_PROFILE="latency" ;;
   3) SYSTEM_PROFILE="throughput" ;;
   4) SYSTEM_PROFILE="battery" ;;
+  5) SYSTEM_PROFILE="memory-saver" ;;
 esac
 
 ###############################################################################
-# 9) Remote snapshots (opt-in stub)
+# 9) NVIDIA support (optional)
+###############################################################################
+
+echo ""
+ask_yes_no "Enable NVIDIA support?" "n" NVIDIA_ENABLE
+NVIDIA_MODE="desktop"
+NVIDIA_OPEN="true"
+NVIDIA_NVIDIA_BUS_ID=""
+NVIDIA_INTEL_BUS_ID=""
+NVIDIA_AMD_BUS_ID=""
+
+if [[ "$NVIDIA_ENABLE" == "true" ]]; then
+  echo "Select NVIDIA mode:"
+  echo "  1) desktop (single NVIDIA GPU)"
+  echo "  2) laptop-offload (Optimus/PRIME offload)"
+  echo "  3) laptop-sync (PRIME sync)"
+  ask "Choice" "1" NVIDIA_MODE_CHOICE
+  case "$NVIDIA_MODE_CHOICE" in
+    2) NVIDIA_MODE="laptop-offload" ;;
+    3) NVIDIA_MODE="laptop-sync" ;;
+    *) NVIDIA_MODE="desktop" ;;
+  esac
+
+  ask_yes_no "Use open kernel module (recommended for Turing+)" "y" NVIDIA_OPEN_YN
+  [[ "$NVIDIA_OPEN_YN" == "true" ]] || NVIDIA_OPEN="false"
+
+  if [[ "$NVIDIA_MODE" != "desktop" ]]; then
+    echo "Hybrid graphics requires bus IDs (format PCI:1:0:0)."
+    ask "dGPU (NVIDIA) bus ID" "PCI:1:0:0" NVIDIA_NVIDIA_BUS_ID
+    echo "Select iGPU type:"
+    echo "  1) Intel"
+    echo "  2) AMD"
+    ask "Choice" "1" NVIDIA_IGPU_CHOICE
+    case "$NVIDIA_IGPU_CHOICE" in
+      2)
+        ask "AMD iGPU bus ID" "PCI:0:0:0" NVIDIA_AMD_BUS_ID
+        ;;
+      *)
+        ask "Intel iGPU bus ID" "PCI:0:2:0" NVIDIA_INTEL_BUS_ID
+        ;;
+    esac
+  fi
+fi
+
+###############################################################################
+# 10) Remote snapshots (opt-in stub)
 ###############################################################################
 
 echo ""
@@ -255,7 +302,7 @@ if [[ "$SNAP_REMOTE_ENABLE" == "true" ]]; then
 fi
 
 ###############################################################################
-# 10) Partitioning and formatting
+# 11) Partitioning and formatting
 ###############################################################################
 
 echo ""
@@ -326,7 +373,7 @@ mount -o "$MOUNT_OPTS,subvol=@nix" "$ROOT_PART" /mnt/nix
 mount "$ESP_PART" /mnt/boot
 
 ###############################################################################
-# 11) Generate hardware config
+# 12) Generate hardware config
 ###############################################################################
 
 echo ""
@@ -334,7 +381,7 @@ echo "Generating hardware-configuration.nix..."
 nixos-generate-config --root /mnt
 
 ###############################################################################
-# 12) Write answers file
+# 13) Write answers file
 ###############################################################################
 
 echo ""
@@ -383,11 +430,20 @@ cat > /mnt/etc/nixos/nyxos-install.nix <<EOF
   };
 
   profile.system = "${SYSTEM_PROFILE}";
+
+  nvidia = {
+    enable = ${NVIDIA_ENABLE};
+    mode = "${NVIDIA_MODE}";
+    open = ${NVIDIA_OPEN};
+    nvidiaBusId = "${NVIDIA_NVIDIA_BUS_ID}";
+    intelBusId = "${NVIDIA_INTEL_BUS_ID}";
+    amdgpuBusId = "${NVIDIA_AMD_BUS_ID}";
+  };
 }
 EOF
 
 ###############################################################################
-# 13) Copy repo and install
+# 14) Copy repo and install
 ###############################################################################
 
 echo ""
