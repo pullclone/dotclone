@@ -110,6 +110,7 @@
             (inputs.nixpkgs.outPath + "/nixos/modules/services/backup/btrbk.nix")
             ./modules/tuning/btrfs-snapshots.nix
             ./modules/security/time-sync.nix
+            ./modules/security/systemd-hardening.nix
 
             # 5. Main Policy Configuration
             ./configuration.nix

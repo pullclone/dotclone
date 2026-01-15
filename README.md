@@ -88,6 +88,18 @@ sudo nixos-rebuild switch --flake .#nyx
 - Verify status at runtime: `chronyc sources -v` (look for `NTS`/`PNTS`)
   and `chronyc tracking`.
 
+### 🛡️ Systemd hardening
+
+- `DefaultNoNewPrivileges=yes` is set globally via systemd manager
+  defaults.
+- Override for a specific unit only when necessary:
+
+  ```nix
+  systemd.services.my-service.serviceConfig.NoNewPrivileges = lib.mkForce false;
+  ```
+
+  Use sparingly—most services should run with `NoNewPrivileges=true`.
+
 ### 🤖 AI & development
 
 * **Local AI:** `aichat`, `rocm-smi`, Python data stack
