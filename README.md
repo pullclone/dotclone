@@ -79,6 +79,15 @@ sudo nixos-rebuild switch --flake .#nyx
 - `kernel.dmesg_restrict=1` restricts kernel logs to privileged users.
   *Tradeoff:* diagnostics/perf tooling may be less informative; temporarily lower these only when debugging.
 
+### ⏱️ Secure time sync
+
+- Chrony is enabled with NTS (Network Time Security) against a default
+  set of NTS-capable servers (Cloudflare + Netnod).
+- Override servers via `my.security.timeSync.ntsServers = [ "time.example.net" ... ];`
+  in `configuration.nix` or a host overlay.
+- Verify status at runtime: `chronyc sources -v` (look for `NTS`/`PNTS`)
+  and `chronyc tracking`.
+
 ### 🤖 AI & development
 
 * **Local AI:** `aichat`, `rocm-smi`, Python data stack
