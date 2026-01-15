@@ -110,7 +110,9 @@ Modules such as ZRAM may override specific keys via `mkDefault` or
   `boot.kernel.sysctl` definitions. If any module outside
   `modules/tuning` defines `boot.kernel.sysctl`, the build should fail.
 - **System/ZRAM Profiles** -- Exactly one system profile is selected via
-  the flake argument `systemProfile`, sourced from `profiles/`. Each
+  the flake argument `systemProfile`, sourced from `profiles/`. The only
+  valid values are the official set:
+  `latency`, `balanced`, `throughput`, `battery`, `memory-saver`. Each
   system profile imports a ZRAM profile and sets `zramSwap.enable = true`
   plus defaults for `memoryPercent`, `priority`, `vm.swappiness`,
   `vm.watermark_scale_factor`, `vm.page-cluster`, and writeback knobs
