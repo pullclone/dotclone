@@ -146,6 +146,8 @@ sudo nixos-rebuild switch --flake .#nyx
   module or older GPUs, verify compositor support and fall back to X11
   if necessary.
 
+See `docs/HARDENING.md` for consolidated hardening details.
+
 ### 🤖 AI & development
 
 * **Local AI:** `aichat`, `rocm-smi`, Python data stack

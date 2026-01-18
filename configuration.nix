@@ -687,8 +687,10 @@ in
   };
 
   services.openssh = {
-    permitRootLogin = "no";
-    settings.PasswordAuthentication = false;
+    settings = {
+      PermitRootLogin = "no";
+      PasswordAuthentication = false;
+    };
   };
 
 }

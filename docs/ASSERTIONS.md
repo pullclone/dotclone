@@ -97,6 +97,10 @@ normalized by `modules/core/install-answers.nix` and re-exported via
   configuration[\[9\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/core/install-answers.nix#L25-L32).
   If `mac.mode = "fixed"`, `mac.address` and `mac.interface` must be
   provided.
+- **NVIDIA Facts** -- When `my.install.nvidia.enable = true` in hybrid
+  modes (`laptop-offload` or `laptop-sync`), `nvidiaBusId` must be set
+  and exactly one of `intelBusId` or `amdgpuBusId` must be provided; the
+  build must fail otherwise.
 
 ### 4. Kernel & Tuning
 

@@ -48,6 +48,149 @@ compute_part_prefix() {
   esac
 }
 
+has_command() {
+  command -v "$1" >/dev/null 2>&1
+}
+
+detect_cpu_vendor() {
+  if grep -qi "GenuineIntel" /proc/cpuinfo; then
+    echo "intel"
+    return 0
+  fi
+  if grep -qi "AuthenticAMD" /proc/cpuinfo; then
+    echo "amd"
+    return 0
+  fi
+  echo "unknown"
+}
+
+detect_gpu_from_lspci() {
+  local line
+  local primary="unknown"
+  local has_nvidia="false"
+  local has_amd="false"
+  local has_intel="false"
+
+  while IFS= read -r line; do
+    if echo "$line" | grep -Eqi "\\[10de:"; then
+      has_nvidia="true"
+      [[ "$primary" == "unknown" ]] && primary="nvidia"
+    elif echo "$line" | grep -Eqi "\\[1002:"; then
+      has_amd="true"
+      [[ "$primary" == "unknown" ]] && primary="amd"
+    elif echo "$line" | grep -Eqi "\\[8086:"; then
+      has_intel="true"
+      [[ "$primary" == "unknown" ]] && primary="intel"
+    fi
+  done < <(lspci -nn | grep -Ei "(VGA|3D|Display)" || true)
+
+  echo "${has_nvidia},${has_amd},${has_intel},${primary}"
+}
+
+detect_gpu_from_sysfs() {
+  local dev class vendor
+  local primary="unknown"
+  local has_nvidia="false"
+  local has_amd="false"
+  local has_intel="false"
+
+  for dev in /sys/bus/pci/devices/*; do
+    class="$(cat "$dev/class" 2>/dev/null || true)"
+    [[ "$class" =~ ^0x03 ]] || continue
+    vendor="$(cat "$dev/vendor" 2>/dev/null || true)"
+    case "$vendor" in
+      0x10de)
+        has_nvidia="true"
+        [[ "$primary" == "unknown" ]] && primary="nvidia"
+        ;;
+      0x1002)
+        has_amd="true"
+        [[ "$primary" == "unknown" ]] && primary="amd"
+        ;;
+      0x8086)
+        has_intel="true"
+        [[ "$primary" == "unknown" ]] && primary="intel"
+        ;;
+    esac
+  done
+
+  echo "${has_nvidia},${has_amd},${has_intel},${primary}"
+}
+
+has_nvidia() {
+  [[ "$GPU_HAS_NVIDIA" == "true" ]]
+}
+
+pci_to_xorg_busid() {
+  # 0000:01:00.0 -> PCI:1:0:0
+  local pci="$1"
+  local bus dev func
+  bus="$(echo "$pci" | cut -d: -f2)"
+  dev="$(echo "$pci" | cut -d: -f3 | cut -d. -f1)"
+  func="$(echo "$pci" | cut -d. -f2)"
+  printf "PCI:%d:%d:%d" "0x$bus" "0x$dev" "0x$func"
+}
+
+first_pci_of_lspci() {
+  # $1 = vendor regex (NVIDIA|Intel|AMD|ATI)
+  lspci -D | grep -Ei "(VGA|3D|Display).*$1" | awk "NR==1{print \$1}"
+}
+
+first_pci_of_sysfs() {
+  # $1 = vendor id (0x10de, 0x1002, 0x8086)
+  local dev class vendor
+  for dev in /sys/bus/pci/devices/*; do
+    class="$(cat "$dev/class" 2>/dev/null || true)"
+    [[ "$class" =~ ^0x03 ]] || continue
+    vendor="$(cat "$dev/vendor" 2>/dev/null || true)"
+    if [[ "$vendor" == "$1" ]]; then
+      basename "$dev"
+      return 0
+    fi
+  done
+  return 1
+}
+
+detect_nvidia_busid() {
+  local pci=""
+  if has_command lspci; then
+    pci="$(first_pci_of_lspci "NVIDIA" || true)"
+  fi
+  if [[ -z "$pci" ]]; then
+    pci="$(first_pci_of_sysfs "0x10de" || true)"
+  fi
+  [[ -n "$pci" ]] || return 1
+  pci_to_xorg_busid "$pci"
+}
+
+detect_igpu_busid() {
+  local pci=""
+  if has_command lspci; then
+    pci="$(first_pci_of_lspci "Intel" || true)"
+    if [[ -n "$pci" ]]; then
+      echo "intel:$(pci_to_xorg_busid "$pci")"
+      return 0
+    fi
+    pci="$(first_pci_of_lspci "AMD|ATI" || true)"
+    if [[ -n "$pci" ]]; then
+      echo "amd:$(pci_to_xorg_busid "$pci")"
+      return 0
+    fi
+  fi
+
+  pci="$(first_pci_of_sysfs "0x8086" || true)"
+  if [[ -n "$pci" ]]; then
+    echo "intel:$(pci_to_xorg_busid "$pci")"
+    return 0
+  fi
+  pci="$(first_pci_of_sysfs "0x1002" || true)"
+  if [[ -n "$pci" ]]; then
+    echo "amd:$(pci_to_xorg_busid "$pci")"
+    return 0
+  fi
+  return 1
+}
+
 ###############################################################################
 # 0) Disk selection
 ###############################################################################
@@ -243,47 +386,101 @@ case "$PROFILE_CHOICE" in
 esac
 
 ###############################################################################
-# 9) NVIDIA support (optional)
+# 9) Hardware detection + NVIDIA support (optional)
 ###############################################################################
 
 echo ""
-ask_yes_no "Enable NVIDIA support?" "n" NVIDIA_ENABLE
+CPU_VENDOR="$(detect_cpu_vendor)"
+
+GPU_HAS_NVIDIA="false"
+GPU_HAS_AMD="false"
+GPU_HAS_INTEL="false"
+GPU_PRIMARY="unknown"
+
+if has_command lspci; then
+  IFS="," read -r GPU_HAS_NVIDIA GPU_HAS_AMD GPU_HAS_INTEL GPU_PRIMARY < <(detect_gpu_from_lspci)
+fi
+
+if [[ "$GPU_PRIMARY" == "unknown" ]]; then
+  IFS="," read -r GPU_HAS_NVIDIA GPU_HAS_AMD GPU_HAS_INTEL GPU_PRIMARY < <(detect_gpu_from_sysfs)
+fi
+
 NVIDIA_MODE="desktop"
 NVIDIA_OPEN="true"
 NVIDIA_NVIDIA_BUS_ID=""
 NVIDIA_INTEL_BUS_ID=""
 NVIDIA_AMD_BUS_ID=""
+NVIDIA_ENABLE="false"
+NVIDIA_INCLUDE="false"
 
-if [[ "$NVIDIA_ENABLE" == "true" ]]; then
+if ! has_nvidia; then
+  echo "No NVIDIA GPU detected; skipping NVIDIA configuration."
+else
+  echo "NVIDIA GPU detected."
   echo "Select NVIDIA mode:"
   echo "  1) desktop (single NVIDIA GPU)"
   echo "  2) laptop-offload (Optimus/PRIME offload)"
   echo "  3) laptop-sync (PRIME sync)"
-  ask "Choice" "1" NVIDIA_MODE_CHOICE
+  echo "  4) skip (do not enable NVIDIA)"
+  ask "Choice" "2" NVIDIA_MODE_CHOICE
   case "$NVIDIA_MODE_CHOICE" in
     2) NVIDIA_MODE="laptop-offload" ;;
     3) NVIDIA_MODE="laptop-sync" ;;
+    4)
+      NVIDIA_MODE="desktop"
+      NVIDIA_ENABLE="false"
+      NVIDIA_INCLUDE="true"
+      ;;
     *) NVIDIA_MODE="desktop" ;;
   esac
 
-  ask_yes_no "Use open kernel module (recommended for Turing+)" "y" NVIDIA_OPEN_YN
-  [[ "$NVIDIA_OPEN_YN" == "true" ]] || NVIDIA_OPEN="false"
+  if [[ "$NVIDIA_MODE_CHOICE" != "4" ]]; then
+    NVIDIA_ENABLE="true"
+    NVIDIA_INCLUDE="true"
+    ask_yes_no "Use open kernel module (recommended for Turing+)" "y" NVIDIA_OPEN_YN
+    [[ "$NVIDIA_OPEN_YN" == "true" ]] || NVIDIA_OPEN="false"
 
-  if [[ "$NVIDIA_MODE" != "desktop" ]]; then
-    echo "Hybrid graphics requires bus IDs (format PCI:1:0:0)."
-    ask "dGPU (NVIDIA) bus ID" "PCI:1:0:0" NVIDIA_NVIDIA_BUS_ID
-    echo "Select iGPU type:"
-    echo "  1) Intel"
-    echo "  2) AMD"
-    ask "Choice" "1" NVIDIA_IGPU_CHOICE
-    case "$NVIDIA_IGPU_CHOICE" in
-      2)
-        ask "AMD iGPU bus ID" "PCI:0:0:0" NVIDIA_AMD_BUS_ID
-        ;;
-      *)
-        ask "Intel iGPU bus ID" "PCI:0:2:0" NVIDIA_INTEL_BUS_ID
-        ;;
-    esac
+    if [[ "$NVIDIA_MODE" != "desktop" ]]; then
+      detected_igpu="$(detect_igpu_busid || true)"
+      NVIDIA_NVIDIA_BUS_ID="$(detect_nvidia_busid || true)"
+      NVIDIA_INTEL_BUS_ID=""
+      NVIDIA_AMD_BUS_ID=""
+      if [[ "$detected_igpu" == intel:* ]]; then
+        NVIDIA_INTEL_BUS_ID="${detected_igpu#intel:}"
+      elif [[ "$detected_igpu" == amd:* ]]; then
+        NVIDIA_AMD_BUS_ID="${detected_igpu#amd:}"
+      fi
+
+      if [[ -n "$NVIDIA_NVIDIA_BUS_ID" && ( -n "$NVIDIA_INTEL_BUS_ID" || -n "$NVIDIA_AMD_BUS_ID" ) ]]; then
+        echo "Detected bus IDs:"
+        echo "  NVIDIA: ${NVIDIA_NVIDIA_BUS_ID:-<missing>}"
+        echo "  Intel iGPU: ${NVIDIA_INTEL_BUS_ID:-<none>}"
+        echo "  AMD iGPU: ${NVIDIA_AMD_BUS_ID:-<none>}"
+        read -r -p "Use detected bus IDs? [Y/n]: " USE_DETECTED
+        USE_DETECTED="${USE_DETECTED:-Y}"
+      else
+        USE_DETECTED="n"
+      fi
+
+      if [[ "$USE_DETECTED" =~ ^[Nn]$ ]]; then
+        echo "Hybrid graphics requires bus IDs (format PCI:1:0:0)."
+        ask "dGPU (NVIDIA) bus ID" "PCI:1:0:0" NVIDIA_NVIDIA_BUS_ID
+        echo "Select iGPU type:"
+        echo "  1) Intel"
+        echo "  2) AMD"
+        ask "Choice" "1" NVIDIA_IGPU_CHOICE
+        case "$NVIDIA_IGPU_CHOICE" in
+          2)
+            ask "AMD iGPU bus ID" "PCI:0:0:0" NVIDIA_AMD_BUS_ID
+            NVIDIA_INTEL_BUS_ID=""
+            ;;
+          *)
+            ask "Intel iGPU bus ID" "PCI:0:2:0" NVIDIA_INTEL_BUS_ID
+            NVIDIA_AMD_BUS_ID=""
+            ;;
+        esac
+      fi
+    fi
   fi
 fi
 
@@ -386,6 +583,22 @@ nixos-generate-config --root /mnt
 
 echo ""
 echo "Writing answers file..."
+NVIDIA_BLOCK=""
+if [[ "$NVIDIA_INCLUDE" == "true" ]]; then
+  NVIDIA_BLOCK=$(
+    cat <<EOF_NVIDIA
+  nvidia = {
+    enable = ${NVIDIA_ENABLE};
+    mode = "${NVIDIA_MODE}";
+    open = ${NVIDIA_OPEN};
+    nvidiaBusId = "${NVIDIA_NVIDIA_BUS_ID}";
+    intelBusId = "${NVIDIA_INTEL_BUS_ID}";
+    amdgpuBusId = "${NVIDIA_AMD_BUS_ID}";
+  };
+EOF_NVIDIA
+  )
+fi
+
 cat > /mnt/etc/nixos/nyxos-install.nix <<EOF
 {
   userName = "${USERNAME}";
@@ -431,14 +644,17 @@ cat > /mnt/etc/nixos/nyxos-install.nix <<EOF
 
   profile.system = "${SYSTEM_PROFILE}";
 
-  nvidia = {
-    enable = ${NVIDIA_ENABLE};
-    mode = "${NVIDIA_MODE}";
-    open = ${NVIDIA_OPEN};
-    nvidiaBusId = "${NVIDIA_NVIDIA_BUS_ID}";
-    intelBusId = "${NVIDIA_INTEL_BUS_ID}";
-    amdgpuBusId = "${NVIDIA_AMD_BUS_ID}";
+  hardware = {
+    cpuVendor = "${CPU_VENDOR}";
+    gpu = {
+      hasNvidia = ${GPU_HAS_NVIDIA};
+      hasAmd = ${GPU_HAS_AMD};
+      hasIntel = ${GPU_HAS_INTEL};
+      primary = "${GPU_PRIMARY}";
+    };
   };
+
+${NVIDIA_BLOCK}
 }
 EOF
 

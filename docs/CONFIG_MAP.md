@@ -29,10 +29,12 @@ the latest refactor.
         │   └── install-answers.nix     # Hostname, timezone, user & MAC answers
         ├── hardware/                   # Hardware-specific configurations
         │   └── amd-gpu.nix             # AMD Strix Point kernel params & ROCm stack
+        │   └── nvidia-gpu.nix          # Install-driven NVIDIA/PRIME wiring
         ├── programs/                   # System-level program modules
         │   └── latencyflex-module.nix  # Toggle for the LatencyFleX Vulkan layer
         ├── tuning/                     # Performance & kernel tuning
         │   └── sysctl.nix              # Kernel sysctl, I/O schedulers, Btrfs maintenance
+        ├── security/                   # Hardening modules (NTS time sync, systemd NNP, USBGuard)
         └── home/                       # Home Manager configuration
             ├── home-ashy.nix           # HM entry point
             ├── apps/                   # User applications (Brave, Btop, Cava)
@@ -55,6 +57,13 @@ the latest refactor.
   assertions.
 - `modules/tuning/sysctl.nix` -- the **sole** source for
   `boot.kernel.sysctl` definitions and Btrfs maintenance services.
+- `modules/security/time-sync.nix` -- Chrony with NTS defaults; override
+  via `my.security.timeSync.ntsServers`.
+- `modules/security/systemd-hardening.nix` -- sets
+  `DefaultNoNewPrivileges=yes` globally; override per-unit with
+  `serviceConfig.NoNewPrivileges = lib.mkForce false`.
+- `modules/security/usbguard.nix` -- enables USBGuard with declarative
+  `etc/usbguard/rules.conf`.
 - `profiles/` -- flake-native system + ZRAM profile modules;
   `systemProfile` flake arg selects one of the official profiles
   (`latency`, `balanced`, `throughput`, `battery`, `memory-saver`),

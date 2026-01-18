@@ -30,7 +30,6 @@ in
       extraConfig = ''
         ${ntsLines}
         makestep 0.5 3
-        rtcsync
       '';
     };
   };

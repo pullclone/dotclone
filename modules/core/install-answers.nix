@@ -35,6 +35,20 @@ let
       sizeGiB = 8;
     };
   profile = answers.profile or { system = "balanced"; };
+  hardware =
+    let
+      hw = answers.hardware or { };
+      gpu = hw.gpu or { };
+    in
+    {
+      cpuVendor = hw.cpuVendor or "unknown";
+      gpu = {
+        hasNvidia = gpu.hasNvidia or false;
+        hasAmd = gpu.hasAmd or false;
+        hasIntel = gpu.hasIntel or false;
+        primary = gpu.primary or "unknown";
+      };
+    };
   nvidia =
     answers.nvidia or {
       enable = false;
@@ -173,6 +187,56 @@ in
       default = profile.system;
       description = "System tuning profile.";
     };
+    hardware = lib.mkOption {
+      type = lib.types.submodule {
+        options = {
+          cpuVendor = lib.mkOption {
+            type = lib.types.enum [
+              "amd"
+              "intel"
+              "unknown"
+            ];
+            default = hardware.cpuVendor;
+            description = "Detected CPU vendor.";
+          };
+          gpu = lib.mkOption {
+            type = lib.types.submodule {
+              options = {
+                hasNvidia = lib.mkOption {
+                  type = lib.types.bool;
+                  default = hardware.gpu.hasNvidia;
+                  description = "Whether an NVIDIA GPU is present.";
+                };
+                hasAmd = lib.mkOption {
+                  type = lib.types.bool;
+                  default = hardware.gpu.hasAmd;
+                  description = "Whether an AMD GPU is present.";
+                };
+                hasIntel = lib.mkOption {
+                  type = lib.types.bool;
+                  default = hardware.gpu.hasIntel;
+                  description = "Whether an Intel GPU is present.";
+                };
+                primary = lib.mkOption {
+                  type = lib.types.enum [
+                    "nvidia"
+                    "amd"
+                    "intel"
+                    "unknown"
+                  ];
+                  default = hardware.gpu.primary;
+                  description = "Primary GPU vendor (for UX defaults).";
+                };
+              };
+            };
+            default = hardware.gpu;
+            description = "Detected GPU vendors.";
+          };
+        };
+      };
+      default = hardware;
+      description = "Detected hardware facts used for vendor-gated modules.";
+    };
     nvidia = {
       enable = lib.mkOption {
         type = lib.types.bool;
@@ -241,6 +305,7 @@ in
         encryption
         swap
         profile
+        hardware
         nvidia
         ;
       boot = {
