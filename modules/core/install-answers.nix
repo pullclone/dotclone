@@ -329,6 +329,30 @@ in
           || (nvidia.nvidiaBusId != "" && ((nvidia.intelBusId != "") != (nvidia.amdgpuBusId != "")));
         message = "install answers: NVIDIA hybrid mode requires nvidiaBusId and exactly one of intelBusId or amdgpuBusId.";
       }
+      {
+        assertion = lib.elem hardware.cpuVendor [
+          "amd"
+          "intel"
+          "unknown"
+        ];
+        message = "install answers: hardware.cpuVendor must be amd, intel, or unknown.";
+      }
+      {
+        assertion = lib.elem hardware.gpu.primary [
+          "amd"
+          "intel"
+          "nvidia"
+          "unknown"
+        ];
+        message = "install answers: hardware.gpu.primary must be amd, intel, nvidia, or unknown.";
+      }
+      {
+        assertion =
+          builtins.isBool hardware.gpu.hasNvidia
+          && builtins.isBool hardware.gpu.hasAmd
+          && builtins.isBool hardware.gpu.hasIntel;
+        message = "install answers: hardware.gpu.hasNvidia/hasAmd/hasIntel must be booleans.";
+      }
     ];
   };
 }

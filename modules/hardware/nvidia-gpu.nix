@@ -1,14 +1,17 @@
-{ config, lib, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   cfg = config.my.install.nvidia;
   isHybrid = cfg.mode != "desktop";
-  primeBusIds = lib.filterAttrs (_: v: v != "") {
-    inherit (cfg) intelBusId amdgpuBusId nvidiaBusId;
-  };
+  hasNvidia = config.my.install.hardware.gpu.hasNvidia;
 in
 {
-  config = lib.mkIf cfg.enable {
+  config = lib.mkIf (hasNvidia && cfg.enable) {
     # NVIDIA requires unfree; scope it here for clarity.
     nixpkgs.config.allowUnfree = true;
 
@@ -45,6 +48,10 @@ in
         inherit (cfg) nvidiaBusId intelBusId amdgpuBusId;
       };
     };
+
+    environment.systemPackages = with pkgs; [
+      nvtopPackages.nvidia
+    ];
 
     assertions = [
       {
