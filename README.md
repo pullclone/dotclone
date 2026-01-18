@@ -244,6 +244,16 @@ Each ZRAM profile sets appropriate swappiness and priority values automatically.
 | System profile                        | `profile.system`                    | `balanced` (default), `latency`, `throughput`, `battery` |
 | Containers                            | `my.programs.containers.enable`     | Podman + Distrobox toggle |
 
+### Portable, reproducible hardware facts
+
+- The installer records hardware detection results in `hardware = { ... }`
+  inside `nyxos-install.nix`.
+- Vendor modules are gated by `config.my.install.hardware.*`, so on
+  mismatched hardware they do not activate (no wasted closure, less noise).
+- If detection fails (no `lspci`/sysfs), vendors are recorded as
+  `unknown` and vendor modules stay off; you can later edit
+  `nyxos-install.nix` to set facts explicitly if needed.
+
 ### Default user
 
 * **Username:** `ashy`
