@@ -11,7 +11,7 @@ the latest refactor.
     
     ├── configuration.nix               # Main system policy orchestrator (services, users, packages)
     ├── flake.lock
-    ├── flake.nix                       # Flake entry point & module wiring
+    ├── flake.nix                       # Flake entry point & module wiring (rooted here; no ./NixOS)
     ├── hardware-configuration.nix      # Generated hardware config (mounts/filesystems)
     ├── install-nyxos.sh                # Repository-based installer script
     ├── overlays/                       # Overrride, extend + pkgs ensure visibility to 🏠 manager & system
@@ -64,12 +64,15 @@ the latest refactor.
   `serviceConfig.NoNewPrivileges = lib.mkForce false`.
 - `modules/security/usbguard.nix` -- enables USBGuard with declarative
   `etc/usbguard/rules.conf`.
-- `profiles/` -- flake-native system + ZRAM profile modules;
-  `systemProfile` flake arg selects one of the official profiles
-  (`latency`, `balanced`, `throughput`, `battery`, `memory-saver`),
-  each composing a ZRAM module. Flake outputs export 10 realized configs
-  named `nyx-<profile>-lfx-{on,off}` plus alias `nyx`
-  (`balanced` + `lfx-on`).
+- `profiles/` -- flake-native system + ZRAM profile modules; the flake
+  asserts that `systemProfile` is one of the official profiles:
+  `latency`, `balanced`, `throughput`, `battery`, `memory-saver`.
+  Outputs are finite and pure:
+  - `nyx-<profile>-lfx-on` and `nyx-<profile>-lfx-off` (10 total)
+  - alias `nyx` → `nyx-balanced-lfx-on`
+  Build/switch via `just build` / `just switch` (env overrides:
+  `SYSTEM_PROFILE`, `LATENCYFLEX_ENABLE`), or explicitly:
+  `nix build .#nixosConfigurations.nyx-<profile>-lfx-<on|off>.config.system.build.toplevel`.
 - `pkgs/latencyflex.nix` -- custom derivation that installs the
   LatencyFleX implicit layer and its manifest.
 

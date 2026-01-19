@@ -1,34 +1,41 @@
-# NyxOS Lint & Format Policy
+# Lint & Format Policy
 
-This repository uses a strict formatting gate plus advisory Nix lint
-reports to keep changes reproducible and reviewable.
+NyxOS enforces reproducible formatting and treats static analysis as
+advisory. This page documents what is enforced, what is informational,
+and how to suppress responsibly.
 
-## Gates (fail the build)
+## Enforced
 
-- **Nix formatting**: `nix fmt .` (nixfmt-rfc-style) is enforced via
-  `just check-nixfmt` and `just audit`. CI runs the same gate.
-- **Shell lint**: `just lint-shell` (shellcheck) covers
-  `install-nyxos.sh` and `scripts/**/*.sh`.
+- **Nix formatting:** `nix fmt .` via `just check-nixfmt` (runs inside
+  `just audit`). Any formatter changes must be committed.
+- **Shell hygiene:** `shellcheck` over `install-nyxos.sh` and
+  `scripts/**/*.sh` inside `just audit`.
+- **Flake/build contracts:** `nix flake check .` plus repo contracts in
+  `scripts/audit-repo.sh` (hash requirements, forbidden fetchGit,
+  centralized sysctl, install-answers scope).
 
-## Advisory (reports only)
+## Advisory
 
-- **Statix**: `just lint-nix-report` writes `reports/statix.txt` but
-  does not fail CI.
-- **Deadnix**: `just lint-nix-report` writes `reports/deadnix.txt` but
-  does not fail CI.
+- **Statix + Deadnix:** Run with `just lint-nix-report`. Reports are
+  written to `reports/statix.txt` and `reports/deadnix.txt` but do not
+  fail CI.
+- **Shell formatting:** `just fmt-shell` is available; not a gate.
 
-## Suppression Conventions
+## Suppression guidance
 
-- **Nix (deadnix/statix)**: prefer `_unused` for intentional bindings,
-  or targeted comments like `# deadnix: allow` / `# statix: ignore` on
-  the specific line. Avoid file-wide disables.
-- **Shell (shellcheck)**: use narrow disables on the preceding line:
-  `# shellcheck disable=SCXXXX` with a short rationale if the rule is
-  non-obvious.
+- **Unused module args:** prefix with `_` (e.g., `{ lib, _config, ... }`)
+  to silence `deadnix`.
+- **Shellcheck:** add targeted disables, e.g.,
+  `# shellcheck disable=SC2086` immediately above the relevant line, and
+  only with a short justification in code comments if non-obvious.
 
-## Recommended Workflow
+## How to run locally
 
-1. `just fmt-nix`
-2. `just lint-shell`
-3. `just lint-nix-report` (review reports)
-4. `just audit` before pushing
+```bash
+just audit            # formatting gate + flake check + contracts + shellcheck
+just lint-nix-report  # advisory statix/deadnix reports
+just fmt-nix          # run the formatter
+```
+
+If any enforced gate changes files, commit the formatting before
+submitting. The audit gate must pass prior to CI or review.
