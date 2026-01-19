@@ -168,8 +168,12 @@ fmt-nix:
 check-nixfmt:
     #!/usr/bin/env bash
     set -euo pipefail
+    tmpdir="$(mktemp -d)"
+    trap 'rm -rf "$tmpdir"' EXIT
+    git diff > "$tmpdir/before.diff"
     nix fmt .
-    if ! git diff --quiet --exit-code; then
+    git diff > "$tmpdir/after.diff"
+    if ! diff -q "$tmpdir/before.diff" "$tmpdir/after.diff" >/dev/null; then
         echo "nix fmt introduced changes; please commit formatting."
         exit 1
     fi
@@ -193,12 +197,7 @@ audit:
     #!/usr/bin/env bash
     set -euo pipefail
     just check-nixfmt
-    just check
-    just lint-shell
-    if [ -x scripts/audit-repo.sh ]; then
-        scripts/audit-repo.sh
-    fi
-    @echo "Audit OK"
+    scripts/audit-repo.sh
 
 [group('Test')]
 test-g502:

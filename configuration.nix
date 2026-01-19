@@ -9,6 +9,10 @@
 
 let
   latencyflex = pkgs.callPackage ./pkgs/latencyflex.nix { };
+  tesseractLangEng = pkgs.runCommand "tesseract-lang-eng" { } ''
+    mkdir -p "$out/share/tessdata"
+    cp ${pkgs.tesseract5.languages.eng} "$out/share/tessdata/eng.traineddata"
+  '';
 in
 
 {
@@ -227,8 +231,6 @@ in
   security.pam.services.login.enableGnomeKeyring = true;
 
   # Niri & Portals
-  programs.niri.enable = true;
-
   xdg.portal = {
     enable = true;
     extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
@@ -274,6 +276,7 @@ in
 
   programs.fish.enable = true;
   programs.bash.enable = true;
+  programs.niri.enable = true;
 
   # ==========================================
   # PACKAGES & SCRIPTS
@@ -394,7 +397,7 @@ in
 
       # OCR
       tesseract5
-      tesseract5.languages.eng
+      tesseractLangEng
 
       # Debug / monitoring
       strace
