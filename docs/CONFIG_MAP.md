@@ -75,6 +75,8 @@ the latest refactor.
   `nix build .#nixosConfigurations.nyx-<profile>-lfx-<on|off>.config.system.build.toplevel`.
 - `pkgs/latencyflex.nix` -- custom derivation that installs the
   LatencyFleX implicit layer and its manifest.
+- `docs/OPERATIONS.md` -- daily-use cheat sheet covering `nixos-option`,
+  build/switch commands, and the end-state checklist.
 
 ### Build & Lint Workflow (authoritative)
 
