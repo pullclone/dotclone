@@ -18,7 +18,7 @@ in
 
     softEnforce = lib.mkOption {
       type = lib.types.bool;
-      default = false;
+      default = phase >= 2;
       description = ''
         When true (phase >=1), block unknown devices instead of allowing them.
         Keep disabled while collecting an allowlist. Recovery: switch to a local

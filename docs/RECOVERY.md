@@ -45,3 +45,19 @@ off; keep at least one strong-password admin in the `wheel` group.
 - Treat Trezor One as a userland authenticator (U2F/SSH agent). Do not
   depend on it for initrd/LUKS unlock until a minimal, tested flow is
   proven.
+
+## Rollback drills (recommended before phase 2)
+
+- Stage risky changes with `just sec-test <target>`; reboot escapes the
+  staged generation.
+- Practice booting the previous generation from the bootloader menu.
+- Keep a console path for USBGuard soft-enforce recovery:
+  `doas usbguard generate-policy > /etc/usbguard/rules.conf` then
+  rebuild.
+
+## Boot troubleshooting flags (document, don’t enable by default)
+
+- `boot.debug1` / `boot.debug1devices` — verbose initrd diagnostics.
+- `boot.shell_on_fail` — **unauthenticated**, use only as a last resort
+  during recovery, never enable by default.
+- `systemd.log_level=debug` — kernel cmdline for systemd debug output.

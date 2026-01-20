@@ -5,8 +5,7 @@ let
   cfg = config.my.security.u2f;
 
   defaultMode = if phase >= 2 then "required" else "optional";
-  control =
-    if cfg.mode == "required" then "required" else "sufficient";
+  control = if cfg.mode == "required" then "required" else "sufficient";
 in
 {
   options.my.security.u2f = {
@@ -49,12 +48,12 @@ in
       };
       locker.enable = lib.mkOption {
         type = lib.types.bool;
-        default = false;
+        default = phase >= 2;
         description = "Enable U2F on lockers (swaylock/Noctalia PAM services). Leave false until stable.";
       };
       login.enable = lib.mkOption {
         type = lib.types.bool;
-        default = false;
+        default = phase >= 2;
         description = "Enable U2F on login/display-manager PAM. Leave false until stable.";
       };
     };
