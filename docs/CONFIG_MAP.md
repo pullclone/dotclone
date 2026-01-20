@@ -19,7 +19,7 @@ the latest refactor.
     ├── pkgs/                           # Custom package derivations
     ├── profiles/                       # Flake-native system + ZRAM profile set
     ├── templates/
-    │   └── research/                   # Standalone research flake (pinned devShell + run app)
+    │   └── research/                   # Opt-in, standalone research flake (pinned devShell + run app)
     ├── scripts/                        # Maintenance & test scripts
     │   ├── audit-repo.sh               # Contract + flake/build audit
     │   ├── test-configuration.sh       # Static sanity checks against configuration files
@@ -67,28 +67,39 @@ the latest refactor.
 - `modules/security/usbguard.nix` -- enables USBGuard with declarative
   `etc/usbguard/rules.conf`.
 - `profiles/` -- flake-native system + ZRAM profile modules; the flake
-  asserts that `systemProfile` is one of the official profiles:
-  `latency`, `balanced`, `throughput`, `battery`, `memory-saver`.
-  Outputs are finite and pure:
-  - `nyx-<profile>-lfx-on` and `nyx-<profile>-lfx-off` (10 total)
-  - alias `nyx` → `nyx-balanced-lfx-on`
-  Build/switch via `just build` / `just switch` (env overrides:
-  `SYSTEM_PROFILE`, `LATENCYFLEX_ENABLE`), or explicitly:
-  `nix build .#nixosConfigurations.nyx-<profile>-lfx-<on|off>.config.system.build.toplevel`.
+  asserts that `systemProfile` is one of the official profiles and
+  yields finite outputs (see below).
 - `pkgs/latencyflex.nix` -- custom derivation that installs the
   LatencyFleX implicit layer and its manifest.
 - `docs/OPERATIONS.md` -- daily-use cheat sheet covering `nixos-option`,
   build/switch commands, and the end-state checklist.
 - `templates/research/` -- opt-in, standalone flake for lightweight
-  experiments; pinned Python devShell, helper scripts, and a sample
-  experiment with metadata.
+  experiments; executable documentation/boilerplate with pinned Python
+  devShell, helper scripts, and a sample experiment. Not required for
+  system builds.
+
+### Official Profiles & Finite Outputs
+
+- Official profiles: `latency`, `balanced`, `throughput`, `battery`,
+  `memory-saver`.
+- Realized system outputs (pure, finite): `nyx-<profile>-lfx-<on|off>`
+  (10 total) plus alias `nyx` → `nyx-balanced-lfx-on`.
+- Build/switch examples:
+  - `just build` / `just switch` (env overrides: `SYSTEM_PROFILE`,
+    `LATENCYFLEX_ENABLE`)
+  - `nix build .#nixosConfigurations.nyx-<profile>-lfx-<on|off>.config.system.build.toplevel`
+  - `sudo nixos-rebuild switch --flake .#nyx-<profile>-lfx-<on|off>`
 
 ### Build & Lint Workflow (authoritative)
 
+- `nix develop` — enter pinned devShell (just, git, rg, shellcheck,
+  shfmt, nixfmt, statix, deadnix).
 - `just audit` — runs `nix fmt` gate, `nix flake check .`, contract greps,
-  and shellcheck; CI enforces the same gate.
+  and shellcheck; CI enforces the same gate (templates are excluded).
 - `nix fmt .` / `just fmt-nix` — canonical formatter (nixfmt rfc style).
-- `just lint-nix-report` — produces advisory `reports/{statix,deadnix}.txt`.
+- `just lint-nix-report` — advisory `reports/{statix,deadnix}.txt`
+  (never fails).
+- `just audit-templates` — opt-in checks for `templates/research/` flake.
 - `just lint-shell` / `just fmt-shell` — shellcheck/shfmt for
   `install-nyxos.sh` + `scripts/**/*.sh`.
 - `just build` / `just switch` — pure builds against finite configs
