@@ -245,6 +245,33 @@ lynis-report:
         tail -n 20 "/var/log/nyxos/lynis/$latest/lynis.log"
     fi
 
+[group('VM')]
+vm target="nyx":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    name="{{ target }}"
+    if command -v doas >/dev/null 2>&1; then
+        echo "Building VM via nixos-rebuild (doas)..."
+        doas nixos-rebuild build-vm --flake ".#${name}"
+    else
+        echo "Building VM via nix build (no doas found)..."
+        nix build ".#nixosConfigurations.${name}.config.system.build.vm"
+    fi
+    echo "VM built. To run: ./result/bin/run-${name}-vm"
+
+[group('VM')]
+vm-clean target="nyx":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    name="{{ target }}"
+    qcow="result/${name}.qcow2"
+    if [ -f "$qcow" ]; then
+        echo "Removing stale VM disk: $qcow"
+        rm -f "$qcow"
+    else
+        echo "No qcow2 found at $qcow"
+    fi
+
 [group('Nix')]
 switch-memory-saver-lfx-on:
     #!/usr/bin/env bash
