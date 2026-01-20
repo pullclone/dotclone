@@ -114,28 +114,29 @@ fi
 
 echo "==> contract: Noctalia ownership and compatibility"
 mapfile -t noctalia_service_files < <(rg_nix -l "services\\.noctalia-shell\\.enable" || true)
-mapfile -t noctalia_systemd_files < <(rg_nix -l "programs\\.noctalia-shell\\.systemd\\.enable" || true)
+mapfile -t noctalia_systemd_files < <(rg_nix -l "programs\\.noctalia-shell" || true)
 if [ "${#noctalia_service_files[@]}" -gt 0 ] && [ "${#noctalia_systemd_files[@]}" -gt 0 ]; then
   echo "Noctalia enablement detected via both services.noctalia-shell.enable and programs.noctalia-shell.systemd.enable:"
   printf ' services: %s\n' "${noctalia_service_files[@]}"
   printf ' programs: %s\n' "${noctalia_systemd_files[@]}"
   exit 1
 fi
+if [ "${#noctalia_service_files[@]}" -eq 0 ] && [ "${#noctalia_systemd_files[@]}" -eq 0 ]; then
+  echo "Noctalia enablement missing; expected exactly one service path (prefer programs.noctalia-shell.systemd.enable)"
+  exit 1
+fi
 
 mapfile -t noctalia_imports < <(rg_nix -l "noctalia\\.homeModules\\.default" || true)
-if [ "${#noctalia_imports[@]}" -gt 1 ]; then
-  echo "noctalia.homeModules.default imported multiple times:"
+if [ "${#noctalia_imports[@]}" -ne 1 ]; then
+  echo "Expected exactly one import of noctalia.homeModules.default; found ${#noctalia_imports[@]}:"
   printf ' - %s\n' "${noctalia_imports[@]}"
   exit 1
 fi
 
 mapfile -t noctalia_option_files < <(rg_nix -l "options\\.programs\\.noctalia-shell" || true)
-if [ "${#noctalia_option_files[@]}" -gt 0 ] && [ "${#noctalia_imports[@]}" -gt 0 ]; then
-  echo "Noctalia stub option detected alongside upstream module import:"
-  printf ' option files:\n'
+if [ "${#noctalia_option_files[@]}" -gt 0 ]; then
+  echo "Noctalia stub option detected (options.programs.noctalia-shell should not exist):"
   printf ' - %s\n' "${noctalia_option_files[@]}"
-  printf ' imports:\n'
-  printf ' - %s\n' "${noctalia_imports[@]}"
   exit 1
 fi
 
