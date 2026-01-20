@@ -13,6 +13,8 @@ you can iterate without impure evaluation or host coupling.
 - `data/checksums.sha256` — optional integrity manifest placeholder.
 - `scripts/verify-data.sh` — quick validation that metadata is present
   and parseable.
+- `scripts/gen-checksums.sh` — hash files under `data/raw/` into
+  `data/checksums.sha256`.
 - `scripts/log-run.sh` — structured log header for each run.
 - `scripts/run-exp.sh` — orchestrator that verifies data, logs, and
   dispatches experiments.
@@ -39,3 +41,10 @@ nix run ./templates/research#run -- exp001
 - The template is standalone and will not import NyxOS system modules.
 - Checks are **opt-in**; repository CI does not gate on template
   evaluation. Use `just audit-templates` when you want to validate it.
+
+## Data Policy (Template)
+
+- Raw data lives outside the Nix store; keep it under `data/raw/` and
+  track integrity via `metadata.yaml` + `checksums.sha256`.
+- For large datasets, store artifacts externally (object storage,
+  shared drive, or fetch-on-demand) and record provenance in metadata.

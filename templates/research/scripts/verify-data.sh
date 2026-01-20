@@ -3,6 +3,8 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 METADATA="${ROOT}/data/metadata.yaml"
+CHECKSUMS="${ROOT}/data/checksums.sha256"
+RAW_DIR="${ROOT}/data/raw"
 
 if [ ! -f "${METADATA}" ]; then
   echo "metadata file missing: ${METADATA}" >&2
@@ -25,3 +27,21 @@ if missing:
 
 print(f"metadata OK ({path})")
 PY
+
+if [ ! -f "${CHECKSUMS}" ]; then
+  echo "checksum manifest missing: ${CHECKSUMS}" >&2
+  echo "Run: ${ROOT}/scripts/gen-checksums.sh" >&2
+  exit 1
+fi
+
+if [ ! -d "${RAW_DIR}" ]; then
+  echo "raw data directory missing: ${RAW_DIR}" >&2
+  exit 1
+fi
+
+(
+  cd "${ROOT}"
+  sha256sum --check "${CHECKSUMS}"
+)
+
+echo "checksums OK (${CHECKSUMS})"
