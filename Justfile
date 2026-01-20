@@ -1,6 +1,18 @@
 export system_profile := env("SYSTEM_PROFILE", "balanced")
 export latencyflex_enable := env("LATENCYFLEX_ENABLE", "true")
-export config_name := "nyx-{{ system_profile }}-lfx-{{ if eq latencyflex_enable \"true\" }}on{{ else }}off{{ end }}"
+
+[private]
+assert-config:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    case "{{ system_profile }}" in
+      latency|balanced|throughput|battery|memory-saver) ;;
+      *) echo "Invalid SYSTEM_PROFILE='{{ system_profile }}'. Expected one of: latency balanced throughput battery memory-saver" >&2; exit 1 ;;
+    esac
+    case "{{ latencyflex_enable }}" in
+      true|false) ;;
+      *) echo "Invalid LATENCYFLEX_ENABLE='{{ latencyflex_enable }}'. Expected true or false." >&2; exit 1 ;;
+    esac
 
 [group('Utility')]
 bootstrap:
@@ -34,13 +46,17 @@ check:
 build:
     #!/usr/bin/env bash
     set -euo pipefail
-    nix build ".#nixosConfigurations.{{ config_name }}.config.system.build.toplevel"
+    just assert-config
+    name="nyx-{{ system_profile }}-lfx-$(if [ '{{ latencyflex_enable }}' = 'true' ]; then echo on; else echo off; fi)"
+    nix build ".#nixosConfigurations.${name}.config.system.build.toplevel"
 
 [group('Nix')]
 switch:
     #!/usr/bin/env bash
     set -euo pipefail
-    sudo nixos-rebuild switch --flake ".#{{ config_name }}"
+    just assert-config
+    name="nyx-{{ system_profile }}-lfx-$(if [ '{{ latencyflex_enable }}' = 'true' ]; then echo on; else echo off; fi)"
+    sudo nixos-rebuild switch --flake ".#${name}"
 
 [group('Nix')]
 switch-balanced:
@@ -64,12 +80,14 @@ switch-writeback:
 switch-latencyflex-on:
     #!/usr/bin/env bash
     set -euo pipefail
+    just assert-config
     sudo nixos-rebuild switch --flake ".#nyx-{{ system_profile }}-lfx-on"
 
 [group('Nix')]
 switch-latencyflex-off:
     #!/usr/bin/env bash
     set -euo pipefail
+    just assert-config
     sudo nixos-rebuild switch --flake ".#nyx-{{ system_profile }}-lfx-off"
 
 [group('Nix')]

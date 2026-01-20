@@ -144,11 +144,41 @@
     {
       formatter.${system} = nixpkgs.legacyPackages.${system}.nixfmt-rfc-style;
 
-      packages.${system} = {
-        nixfmt = nixpkgs.legacyPackages.${system}.nixfmt-rfc-style;
-        statix = nixpkgs.legacyPackages.${system}.statix;
-        deadnix = nixpkgs.legacyPackages.${system}.deadnix;
-      };
+      packages.${system} =
+        let
+          mkToplevel =
+            profile: latencyflexEnable:
+            let
+              suffix = if latencyflexEnable then "on" else "off";
+              name = "nyx-${profile}-lfx-${suffix}";
+            in
+            {
+              inherit name;
+              value = self.nixosConfigurations.${name}.config.system.build.toplevel;
+            };
+
+          toplevelAttrs =
+            lib.listToAttrs (
+              lib.flatten (
+                map (profile: [
+                  (mkToplevel profile true)
+                  (mkToplevel profile false)
+                ]) officialProfiles
+              )
+              ++ [
+                {
+                  name = "toplevel-nyx";
+                  value = self.nixosConfigurations.nyx.config.system.build.toplevel;
+                }
+              ]
+            );
+        in
+        {
+          nixfmt = nixpkgs.legacyPackages.${system}.nixfmt-rfc-style;
+          statix = nixpkgs.legacyPackages.${system}.statix;
+          deadnix = nixpkgs.legacyPackages.${system}.deadnix;
+        }
+        // toplevelAttrs;
 
       devShells.${system}.default = nixpkgs.legacyPackages.${system}.mkShell {
         packages = with nixpkgs.legacyPackages.${system}; [
