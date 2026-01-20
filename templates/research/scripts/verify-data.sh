@@ -28,14 +28,21 @@ if missing:
 print(f"metadata OK ({path})")
 PY
 
+if [ ! -d "${RAW_DIR}" ]; then
+  echo "raw data directory missing: ${RAW_DIR}" >&2
+  echo "Add data under data/raw/ if you need checksum verification." >&2
+  exit 0
+fi
+
+file_count="$(find "${RAW_DIR}" -type f | wc -l | tr -d ' ')"
+if [ "${file_count}" -eq 0 ]; then
+  echo "no raw data found under ${RAW_DIR}; skipping checksum verification" >&2
+  exit 0
+fi
+
 if [ ! -f "${CHECKSUMS}" ]; then
   echo "checksum manifest missing: ${CHECKSUMS}" >&2
   echo "Run: ${ROOT}/scripts/gen-checksums.sh" >&2
-  exit 1
-fi
-
-if [ ! -d "${RAW_DIR}" ]; then
-  echo "raw data directory missing: ${RAW_DIR}" >&2
   exit 1
 fi
 

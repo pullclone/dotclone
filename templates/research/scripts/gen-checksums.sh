@@ -11,16 +11,16 @@ if [ ! -d "${RAW_DIR}" ]; then
   exit 1
 fi
 
-mapfile -t files < <(find "${RAW_DIR}" -type f | sort)
+file_count="$(find "${RAW_DIR}" -type f | wc -l | tr -d ' ')"
 
-if [ "${#files[@]}" -eq 0 ]; then
+if [ "${file_count}" -eq 0 ]; then
   echo "no files found under ${RAW_DIR}; nothing to checksum" >&2
   exit 1
 fi
 
 (
   cd "${ROOT}"
-  printf '%s\n' "${files[@]}" | xargs -r sha256sum > "${OUT_FILE}"
+  find "data/raw" -type f -print0 | sort -z | xargs -0 sha256sum > "${OUT_FILE}"
 )
 
 echo "checksums written to ${OUT_FILE}"
