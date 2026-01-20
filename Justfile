@@ -221,7 +221,7 @@ audit:
 audit-templates:
     #!/usr/bin/env bash
     set -euo pipefail
-    nix flake check ./templates/research
+    scripts/audit-templates.sh
 
 [group('Test')]
 test-g502:
