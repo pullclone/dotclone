@@ -194,6 +194,28 @@ app-protonvpn-enable target="nyx":
     echo "  2) Override home-manager.users.ashy.my.home.apps.protonvpn.enable = true"
     echo "Then rebuild: just sec-preview {{ target }} ; just sec-test {{ target }}"
 
+[group('Observability')]
+aide-init:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if ! command -v doas >/dev/null 2>&1; then
+        echo "doas is required to start aide-init service." >&2
+        exit 1
+    fi
+    echo "Initializing AIDE database..."
+    doas systemctl start aide-init.service
+
+[group('Observability')]
+aide-check:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if ! command -v doas >/dev/null 2>&1; then
+        echo "doas is required to run aide-check service." >&2
+        exit 1
+    fi
+    doas systemctl start aide-check.service
+    echo "AIDE check triggered; see /var/log/nyxos/aide for reports."
+
 [group('Nix')]
 switch-memory-saver-lfx-on:
     #!/usr/bin/env bash

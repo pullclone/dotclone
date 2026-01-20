@@ -77,6 +77,11 @@ the latest refactor.
   reproducible rule file at `etc/usbguard/rules.conf`.
 - `modules/security/u2f.nix` -- phased pam_u2f wiring (optional in phase
   1, required in phase 2) starting on doas with break-glass bypass.
+- `modules/security/fingerprint.nix` -- optional fingerprint
+  authentication (pam_fprintd) for selected PAM services (login/locker)
+  with phase-aware enablement; doas is untouched.
+- `modules/security/aide.nix` -- optional AIDE integrity monitoring with
+  weekly check timer and manual init/check services.
 - `modules/home/apps/trezor-agent.nix` -- Home Manager module to run
   trezor-agent as a user service, install udev rules, and wire SSH/Git
   to the hardware-backed agent.
