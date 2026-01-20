@@ -272,6 +272,9 @@ these steps:
   phase 2 for enrolled users; doas is the first PAM surface, with
   break-glass bypass (`nouserok`, bypass group) and a centralized
   authfile for reproducibility.[\[21\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/security/u2f.nix#L1-L75)
+- **UKI Bootspec (Phase ≥1)** -- Bootspec is enabled with a NyxOS UKI
+  extension to keep UKI artifacts deterministic before any key
+  enrollment, built via the dedicated bootspec target.[\[22\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/boot/uki.nix#L1-L26)
 
 ## Runtime Contracts
 

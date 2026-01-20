@@ -173,6 +173,13 @@ sec-switch target:
     doas nixos-rebuild switch --flake ".#{{ target }}"
 
 [group('Nix')]
+build-uki target:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    nix build ".#nixosConfigurations.{{ target }}.config.system.build.bootspec"
+    echo "UKI bootspec built at ./result"
+
+[group('Nix')]
 switch-memory-saver-lfx-on:
     #!/usr/bin/env bash
     set -euo pipefail

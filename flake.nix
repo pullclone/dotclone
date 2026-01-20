@@ -100,6 +100,7 @@
               my.boot.uki.enable = true;
               my.boot.secureBoot.enable = false;
             }
+            ./modules/boot/uki.nix
 
             # 3. Installation Facts
             ./modules/core/install-answers.nix
