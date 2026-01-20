@@ -1,0 +1,16 @@
+dataset_name: "demo-signal"
+version: "0.0.1"
+source_url: "https://example.com/demo-signal.csv"
+description: "Synthetic sample metadata for the research template."
+license: "CC0"
+columns:
+  - name: timestamp
+    type: iso8601
+    description: "Sample timestamp for the observation."
+  - name: value
+    type: float
+    description: "Synthetic measurement value."
+  - name: label
+    type: string
+    description: "Optional class label."
+checksum_file: "./data/checksums.sha256"

@@ -22,6 +22,10 @@ system. They must hold before any runtime logic executes.
   (e.g., `nyx`) and user environments defined in the repository. Any
   referenced module must be imported in the flake to avoid "missing
   output" errors.
+- **Template Isolation (Opt-in)** -- The research template under
+  `templates/research` ships its own flake and must not import NyxOS
+  system modules. Its checks are opt-in (see `just audit-templates`) and
+  should not gate the main build.
 
 ### 2. Boot & Trust Chain
 

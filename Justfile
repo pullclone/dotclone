@@ -217,6 +217,12 @@ audit:
     just check-nixfmt
     scripts/audit-repo.sh
 
+[group('Templates')]
+audit-templates:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    nix flake check ./templates/research
+
 [group('Test')]
 test-g502:
     #!/usr/bin/env bash

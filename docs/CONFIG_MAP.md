@@ -18,6 +18,8 @@ the latest refactor.
     │   └── latencyflex.nix             # Exposes the locally-packaged LatencyFleX as pkgs.latencyflex
     ├── pkgs/                           # Custom package derivations
     ├── profiles/                       # Flake-native system + ZRAM profile set
+    ├── templates/
+    │   └── research/                   # Standalone research flake (pinned devShell + run app)
     ├── scripts/                        # Maintenance & test scripts
     │   ├── audit-repo.sh               # Contract + flake/build audit
     │   ├── test-configuration.sh       # Static sanity checks against configuration files
@@ -77,6 +79,9 @@ the latest refactor.
   LatencyFleX implicit layer and its manifest.
 - `docs/OPERATIONS.md` -- daily-use cheat sheet covering `nixos-option`,
   build/switch commands, and the end-state checklist.
+- `templates/research/` -- opt-in, standalone flake for lightweight
+  experiments; pinned Python devShell, helper scripts, and a sample
+  experiment with metadata.
 
 ### Build & Lint Workflow (authoritative)
 
