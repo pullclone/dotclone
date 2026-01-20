@@ -121,6 +121,7 @@
             ./modules/security/fingerprint.nix
             ./modules/security/aide.nix
             ./modules/security/lynis.nix
+            ./modules/security/assertions.nix
 
             # 5. Main Policy Configuration
             ./configuration.nix

@@ -273,6 +273,16 @@ vm-clean target="nyx":
     fi
 
 [group('Nix')]
+dry-activate target="nyx":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    build=".#nixosConfigurations.{{ target }}.config.system.build.toplevel"
+    nix build "$build"
+    result="$(readlink -f result)"
+    echo "Dry-activating $build via $result/bin/switch-to-configuration..."
+    "$result/bin/switch-to-configuration" dry-activate
+
+[group('Nix')]
 switch-memory-saver-lfx-on:
     #!/usr/bin/env bash
     set -euo pipefail

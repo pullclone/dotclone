@@ -3,14 +3,13 @@
 let
   phase = config.my.security.phase;
   ukiEnabled = config.my.boot.uki.enable;
+  namespace = "io.pullclone.dotclone.uki";
 
   extension = {
-    "nyxos.uki" = {
-      osRelease = "/etc/os-release";
-      hostName = config.networking.hostName;
-      profile = config.my.install.profile.system or "unknown";
-      systemProfile = config.systemProfile or "unknown";
-    };
+    "${namespace}.osRelease" = "/etc/os-release";
+    "${namespace}.hostName" = config.networking.hostName;
+    "${namespace}.profile" = config.my.install.profile.system or "unknown";
+    "${namespace}.systemProfile" = config.systemProfile or "unknown";
   };
 in
 {
