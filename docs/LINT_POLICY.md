@@ -1,41 +1,26 @@
 # Lint & Format Policy
 
-NyxOS enforces reproducible formatting and treats static analysis as
-advisory. This page documents what is enforced, what is informational,
-and how to suppress responsibly.
+This repository enforces **Nix formatting** and treats other static
+analysis as **advisory**.
 
-## Enforced
+## Gates
 
-- **Nix formatting:** `nix fmt .` via `just check-nixfmt` (runs inside
-  `just audit`). Any formatter changes must be committed.
-- **Shell hygiene:** `shellcheck` over `install-nyxos.sh` and
-  `scripts/**/*.sh` inside `just audit`.
-- **Flake/build contracts:** `nix flake check .` plus repo contracts in
-  `scripts/audit-repo.sh` (hash requirements, forbidden fetchGit,
-  centralized sysctl, install-answers scope).
+- **Gating:** `nix fmt .` (invoked via `just check-nixfmt` and `just audit`)
+  must produce no diff. CI enforces this gate.
+- **Advisory:** `statix` and `deadnix` run via `just lint-nix-report`
+  and write reports to `reports/{statix,deadnix}.txt` without failing
+  the build.
 
-## Advisory
+## Suppression Conventions
 
-- **Statix + Deadnix:** Run with `just lint-nix-report`. Reports are
-  written to `reports/statix.txt` and `reports/deadnix.txt` but do not
-  fail CI.
-- **Shell formatting:** `just fmt-shell` is available; not a gate.
+- **Unused Nix args:** prefix with `_` (e.g., `{ _lib, pkgs, ... }:`) to
+  acknowledge intentional unused parameters.
+- **Shellcheck:** disable narrowly and locally, e.g.
+  `# shellcheck disable=SC2086` immediately above the relevant line.
 
-## Suppression guidance
+## Commands
 
-- **Unused module args:** prefix with `_` (e.g., `{ lib, _config, ... }`)
-  to silence `deadnix`.
-- **Shellcheck:** add targeted disables, e.g.,
-  `# shellcheck disable=SC2086` immediately above the relevant line, and
-  only with a short justification in code comments if non-obvious.
-
-## How to run locally
-
-```bash
-just audit            # formatting gate + flake check + contracts + shellcheck
-just lint-nix-report  # advisory statix/deadnix reports
-just fmt-nix          # run the formatter
-```
-
-If any enforced gate changes files, commit the formatting before
-submitting. The audit gate must pass prior to CI or review.
+- `just check-nixfmt` — run `nix fmt .` and fail if it changes files.
+- `just lint-nix-report` — generate statix/deadnix advisory reports in
+  `reports/`.
+- `just audit` — formatting gate + full audit (flake check/build + contract checks).
