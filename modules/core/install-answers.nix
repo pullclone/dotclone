@@ -34,6 +34,10 @@ let
       mode = "partition";
       sizeGiB = 8;
     };
+  protonvpn =
+    answers.protonvpn or {
+      enable = false;
+    };
   profile = answers.profile or { system = "balanced"; };
   hardware =
     let
@@ -176,6 +180,11 @@ in
       default = swap.sizeGiB;
       description = "Swap size in GiB (used when swap.mode = “partition”).";
     };
+    protonvpn.enable = lib.mkOption {
+      type = lib.types.bool;
+      default = protonvpn.enable;
+      description = "Enable ProtonVPN GUI for the primary user (Home Manager).";
+    };
     profile.system = lib.mkOption {
       type = lib.types.enum [
         "balanced"
@@ -315,6 +324,9 @@ in
         phase = trust.phase;
       };
       storage.trim = storage.trim;
+      protonvpn = {
+        enable = protonvpn.enable;
+      };
     };
 
     assertions = [

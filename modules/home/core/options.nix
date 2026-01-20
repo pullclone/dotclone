@@ -24,6 +24,12 @@ in
     };
   };
 
+  options.my.home.apps.protonvpn.enable = mkOption {
+    type = types.bool;
+    default = false;
+    description = "Enable ProtonVPN GUI (Home Manager).";
+  };
+
   options.my.identity.trezorAgent.enable = mkOption {
     type = types.bool;
     default = false;

@@ -80,6 +80,8 @@ the latest refactor.
 - `modules/home/apps/trezor-agent.nix` -- Home Manager module to run
   trezor-agent as a user service, install udev rules, and wire SSH/Git
   to the hardware-backed agent.
+- `modules/home/apps/protonvpn.nix` -- Home Manager module to optionally
+  install ProtonVPN GUI based on install answers.
 - `modules/boot/uki.nix` -- enables Bootspec with a NyxOS UKI metadata
   extension in staged/enforced phases to support deterministic UKI
   artifacts (no key enrollment yet).

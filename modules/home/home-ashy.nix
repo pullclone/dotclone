@@ -17,6 +17,7 @@
     ./niri/niri-shared.nix
 
     # --- 2. GLOBAL APPS & TERMINALS ---
+    ./apps/protonvpn.nix
     ./apps/trezor-agent.nix
     ./apps/brave-webapps.nix
     ./apps/btop.nix
@@ -34,6 +35,9 @@
     panel = "noctalia"; # Change to "waybar" to switch
     terminal = "kitty";
   };
+
+  # Optional apps (install-answers driven)
+  my.home.apps.protonvpn.enable = config.my.install.protonvpn.enable;
 
   programs.home-manager.enable = true;
 
