@@ -264,6 +264,10 @@ these steps:
 - **Locker Exclusivity (Phase ≥1)** -- Exactly one locker may be active;
   Noctalia and swaylock must not both be enabled, the active locker must
   be detectable, and Noctalia must lock on suspend when selected.[\[19\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/security/locker-pam.nix#L1-L72)
+- **USBGuard (Phase ≥1)** -- USBGuard enables in staged/enforced phases,
+  defaults to audit/allow, supports soft enforcement via
+  `my.security.usbguard.softEnforce`, and requires break-glass to be
+  enabled before activation.[\[20\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/security/usbguard.nix#L1-L58)
 
 ## Runtime Contracts
 

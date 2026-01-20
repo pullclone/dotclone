@@ -1,21 +1,40 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "WARNING: Keep a root shell/TTY open while testing USBGuard to avoid lockout."
-echo "Generating policy from currently connected devices..."
-echo
+rule_file="${1:-/etc/usbguard/rules.conf}"
+timestamp="$(date -u +%Y%m%d-%H%M%S)"
+backup="${rule_file}.bak-${timestamp}"
+tmp="$(mktemp)"
 
-if ! command -v usbguard >/dev/null 2>&1; then
-  echo "usbguard binary not found; install usbguard and rerun." >&2
+require_cmd() {
+  command -v "$1" >/dev/null 2>&1 || {
+    echo "Missing required command: $1" >&2
+    exit 1
+  }
+}
+
+require_cmd usbguard
+require_cmd install
+
+if [[ $EUID -ne 0 ]]; then
+  echo "This script must run as root (use doas/sudo): $0 [rule-file]" >&2
   exit 1
 fi
 
-usbguard generate-policy
+echo "Generating USBGuard allowlist from currently attached devices..."
+echo "Target:  ${rule_file}"
+echo "Backup:  ${backup}"
 
-cat <<'EOF'
+mkdir -p "$(dirname "$rule_file")"
+usbguard generate-policy > "$tmp"
 
-Next steps:
-1) Copy the generated rules into: etc/usbguard/rules.conf (in this repo)
-2) Rebuild: sudo nixos-rebuild switch --flake .#nyx
-3) Verify: systemctl status usbguard && usbguard list-devices
-EOF
+if [[ -f "$rule_file" ]]; then
+  install -m 0600 "$rule_file" "$backup"
+fi
+
+install -m 0600 "$tmp" "$rule_file"
+rm -f "$tmp"
+
+echo "Done. Review ${rule_file}, then rebuild:"
+echo "  doas nixos-rebuild test --flake .#<target>"
+echo "For soft enforcement, set my.security.usbguard.softEnforce = true and rebuild once ready."

@@ -72,8 +72,9 @@ the latest refactor.
 - `modules/security/systemd-hardening.nix` -- sets
   `DefaultNoNewPrivileges=yes` globally; override per-unit with
   `serviceConfig.NoNewPrivileges = lib.mkForce false`.
-- `modules/security/usbguard.nix` -- enables USBGuard with declarative
-  `etc/usbguard/rules.conf`.
+- `modules/security/usbguard.nix` -- gates USBGuard by security phase,
+  defaulting to audit/allow mode with optional soft enforcement and a
+  reproducible rule file at `etc/usbguard/rules.conf`.
 - `profiles/` -- flake-native system + ZRAM profile modules; the flake
   asserts that `systemProfile` is one of the official profiles and
   yields finite outputs (see below).
@@ -89,6 +90,8 @@ the latest refactor.
   and reproduce exact builds).
 - `scripts/audit-locker.sh` -- locker/PAM audit helper to print the
   configured locker, PAM snippets, and idle/suspend lock behavior.
+- `scripts/usbguard-generate-policy.sh` -- generate a USBGuard allowlist
+  from currently attached devices with timestamped backups.
 - `templates/research/` -- opt-in, standalone flake for lightweight
   experiments; executable documentation/boilerplate with pinned Python
   devShell, helper scripts, and a sample experiment. Not required for
