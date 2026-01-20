@@ -155,13 +155,5 @@ in
       };
     };
 
-    # 4. Add Noctalia-specific keybinds to Niri
-    # These are merged with the base keybinds from niri-shared.nix
-    programs.niri.settings.binds = {
-      "Mod+A" = noctalia "launcher toggle";
-      "Mod+W" = noctalia "wallpaper toggle";
-      "Mod+P" = noctalia "sessionMenu toggle";
-      "Mod+V" = noctalia "launcher clipboard";
-    };
   };
 }

@@ -475,26 +475,5 @@ in
       };
     };
 
-    # 7. Niri Overrides for Waybar Profile
-    # Map Noctalia keys (A, W, P, V) to Waybar equivalents so muscle memory persists
-    programs.niri.settings.binds = with config.lib.niri.actions; {
-
-      # Mod+A: Launcher
-      "Mod+A".action = spawn "wofi" "--show" "drun";
-      "Mod+D".action = spawn "wofi" "--show" "drun";
-
-      # Mod+W: Wallpaper Cycler
-      "Mod+W".action = spawn "waybar-cycle-wall";
-
-      # Mod+P: Power Menu
-      "Mod+P".action = spawn "waybar-power";
-
-      # Mod+V: Clipboard History
-      "Mod+V".action = spawn "sh" "-c" "cliphist list | wofi --show dmenu | cliphist decode | wl-copy";
-
-      # Screenshot
-      "Print".action = spawn "waybar-screenshot" "full";
-      "Shift+Print".action = spawn "waybar-screenshot" "area";
-    };
   };
 }

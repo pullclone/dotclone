@@ -99,9 +99,17 @@ if [ "${#niri_config_files[@]}" -gt 1 ]; then
   exit 1
 fi
 mapfile -t niri_settings_files < <(rg_nix -l "programs\\.niri\\.settings" || true)
+mapfile -t niri_enabled_files < <(rg_nix -l "programs\\.niri\\.enable\\s*=\\s*true" || true)
 if [ "${#niri_settings_files[@]}" -gt 1 ]; then
-  echo "WARNING: programs.niri.settings appears in multiple files (ensure layering is intentional):"
+  echo "programs.niri.settings should be owned by one place; found in:"
   printf ' - %s\n' "${niri_settings_files[@]}"
+  exit 1
+fi
+if [ "${#niri_enabled_files[@]}" -gt 0 ] && [ "${#niri_settings_files[@]}" -eq 0 ]; then
+  echo "programs.niri.settings missing but Niri is enabled:"
+  printf ' enablement found in:\n'
+  printf ' - %s\n' "${niri_enabled_files[@]}"
+  exit 1
 fi
 
 echo "==> contract: Noctalia ownership and compatibility"
