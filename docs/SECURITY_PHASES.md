@@ -60,3 +60,5 @@ guidance for safe rollouts:
 - Trezor One support is scoped to userland identity (U2F, SSH agent).
   Initrd/LUKS unlock remains a paper design until a minimal, tested
   path exists.
+- Fingerprint auth is convenience-only (login/locker) and remains
+  optional even in phase 2; U2F stays the strong factor for doas.

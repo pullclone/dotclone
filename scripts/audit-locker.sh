@@ -13,6 +13,15 @@ require_cmd() {
 require_cmd nixos-option
 require_cmd jq
 
+nix_opt_json_or_null() {
+  local path="$1"
+  if nixos-option --json "$path" >/dev/null 2>&1; then
+    nixos-option --json "$path" | jq -r .
+  else
+    echo "null"
+  fi
+}
+
 read_opt_json() {
   local path="$1"
   if nixos-option --json "$path" >/dev/null 2>&1; then
@@ -32,6 +41,9 @@ noctalia_enabled="$(read_opt_json "home-manager.users.${user}.programs.noctalia-
 swaylock_enabled="$(read_opt_json "home-manager.users.${user}.programs.swaylock.enable")"
 noctalia_lock_suspend="$(read_opt_json "home-manager.users.${user}.programs.noctalia-shell.settings.general.lockOnSuspend")"
 
+fp_enable="$(nix_opt_json_or_null "my.security.fingerprint.enable")"
+fp_services_json="$(nix_opt_json_or_null "my.security.fingerprint.pamServices")"
+
 locker="unknown"
 if [[ "$panel" == "noctalia" || "$noctalia_enabled" == "true" ]]; then
   locker="noctalia"
@@ -47,6 +59,8 @@ echo "Noctalia enabled:     $noctalia_enabled"
 echo "Noctalia lockSuspend: $noctalia_lock_suspend"
 echo "Swaylock enabled:     $swaylock_enabled"
 echo "Detected locker:      $locker"
+echo "Fingerprint enable:   $fp_enable"
+echo "Fingerprint services: $fp_services_json"
 
 echo
 echo "PAM snippets (/etc/pam.d) relevant to locker/escalation:"
@@ -75,4 +89,19 @@ elif [[ "$locker" == "unknown" ]]; then
   echo "  WARNING: unable to detect a locker; check panel selection and Home Manager config."
 else
   echo "  Single locker detected: $locker"
+fi
+
+if [[ "$fp_enable" == "true" && "$fp_services_json" != "null" ]]; then
+  echo
+  echo "Fingerprint audit:"
+  fp_services=$(echo "$fp_services_json" | jq -r '.[]?' 2>/dev/null || true)
+  if [[ -z "$fp_services" ]]; then
+    echo "  WARNING: fingerprint enabled but no PAM services listed."
+  else
+    for svc in $fp_services; do
+      fpauth=$(nix_opt_json_or_null "security.pam.services.${svc}.fprintAuth")
+      unixauth=$(nix_opt_json_or_null "security.pam.services.${svc}.unixAuth")
+      echo "  ${svc}: fprintAuth=${fpauth}, passwordFallback=${unixauth}"
+    done
+  fi
 fi

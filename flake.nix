@@ -118,6 +118,7 @@
             ./modules/security/systemd-hardening.nix
             ./modules/security/usbguard.nix
             ./modules/security/u2f.nix
+            ./modules/security/fingerprint.nix
 
             # 5. Main Policy Configuration
             ./configuration.nix
