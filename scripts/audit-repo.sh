@@ -6,6 +6,10 @@ cd "$repo_root"
 
 SYSTEM="${SYSTEM:-nyx}"
 
+rg_nix() {
+  rg --glob "*.nix" --glob "!templates/**" "$@"
+}
+
 require_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
     echo "Missing required command: $1"
@@ -24,7 +28,7 @@ echo "==> build toplevel for SYSTEM=${SYSTEM}"
 nix build ".#nixosConfigurations.${SYSTEM}.config.system.build.toplevel"
 
 echo "==> contract: /etc/nixos/nyxos-install.nix only in modules/core/install-answers.nix"
-install_refs="$(rg "/etc/nixos/nyxos-install.nix" --glob "*.nix" --files-with-matches || true)"
+install_refs="$(rg_nix "/etc/nixos/nyxos-install.nix" --files-with-matches || true)"
 if [ -n "$install_refs" ]; then
   mapfile -t install_offenders < <(printf "%s\n" "$install_refs" | grep -v '^modules/core/install-answers.nix$' || true)
   if [ "${#install_offenders[@]}" -gt 0 ]; then
@@ -35,7 +39,7 @@ if [ -n "$install_refs" ]; then
 fi
 
 echo "==> contract: boot.kernel.sysctl centralized"
-sysctl_matches="$(rg "boot\\.kernel\\.sysctl" --glob "*.nix" --files-with-matches || true)"
+sysctl_matches="$(rg_nix "boot\\.kernel\\.sysctl" --files-with-matches || true)"
 if [ -n "$sysctl_matches" ]; then
   sysctl_offenders=()
   while IFS= read -r file; do
@@ -55,7 +59,7 @@ if [ -n "$sysctl_matches" ]; then
 fi
 
 echo "==> contract: forbid builtins.fetchGit"
-if rg "builtins\\.fetchGit" --glob "*.nix" >/dev/null; then
+if rg_nix "builtins\\.fetchGit" >/dev/null; then
   echo "builtins.fetchGit is forbidden"
   exit 1
 fi
@@ -67,7 +71,7 @@ while IFS= read -r f; do
     echo "Missing hash for fetchTarball/fetchzip in $f"
     missing_hash=true
   fi
-done < <(rg -l "fetch(Tarball|zip)" --glob "*.nix" || true)
+done < <(rg_nix -l "fetch(Tarball|zip)" || true)
 
 echo "==> contract: fetchgit must be hashed"
 while IFS= read -r f; do
@@ -75,10 +79,62 @@ while IFS= read -r f; do
     echo "Missing hash for fetchgit in $f"
     missing_hash=true
   fi
-done < <(rg -l "fetchgit" --glob "*.nix" || true)
+done < <(rg_nix -l "fetchgit" || true)
 
 if [ "$missing_hash" = true ]; then
   exit 1
+fi
+
+echo "==> contract: Niri single-owner checks"
+mapfile -t niri_package_files < <(rg_nix -l "programs\\.niri\\.package" || true)
+if [ "${#niri_package_files[@]}" -gt 1 ]; then
+  echo "programs.niri.package should be owned by one place; found in:"
+  printf ' - %s\n' "${niri_package_files[@]}"
+  exit 1
+fi
+mapfile -t niri_config_files < <(rg_nix -l "programs\\.niri\\.(config|finalConfig)" || true)
+if [ "${#niri_config_files[@]}" -gt 1 ]; then
+  echo "programs.niri.config/finalConfig should be owned by one place; found in:"
+  printf ' - %s\n' "${niri_config_files[@]}"
+  exit 1
+fi
+mapfile -t niri_settings_files < <(rg_nix -l "programs\\.niri\\.settings" || true)
+if [ "${#niri_settings_files[@]}" -gt 1 ]; then
+  echo "WARNING: programs.niri.settings appears in multiple files (ensure layering is intentional):"
+  printf ' - %s\n' "${niri_settings_files[@]}"
+fi
+
+echo "==> contract: Noctalia ownership and compatibility"
+mapfile -t noctalia_service_files < <(rg_nix -l "services\\.noctalia-shell\\.enable" || true)
+mapfile -t noctalia_systemd_files < <(rg_nix -l "programs\\.noctalia-shell\\.systemd\\.enable" || true)
+if [ "${#noctalia_service_files[@]}" -gt 0 ] && [ "${#noctalia_systemd_files[@]}" -gt 0 ]; then
+  echo "Noctalia enablement detected via both services.noctalia-shell.enable and programs.noctalia-shell.systemd.enable:"
+  printf ' services: %s\n' "${noctalia_service_files[@]}"
+  printf ' programs: %s\n' "${noctalia_systemd_files[@]}"
+  exit 1
+fi
+
+mapfile -t noctalia_imports < <(rg_nix -l "noctalia\\.homeModules\\.default" || true)
+if [ "${#noctalia_imports[@]}" -gt 1 ]; then
+  echo "noctalia.homeModules.default imported multiple times:"
+  printf ' - %s\n' "${noctalia_imports[@]}"
+  exit 1
+fi
+
+mapfile -t noctalia_option_files < <(rg_nix -l "options\\.programs\\.noctalia-shell" || true)
+if [ "${#noctalia_option_files[@]}" -gt 0 ] && [ "${#noctalia_imports[@]}" -gt 0 ]; then
+  echo "Noctalia stub option detected alongside upstream module import:"
+  printf ' option files:\n'
+  printf ' - %s\n' "${noctalia_option_files[@]}"
+  printf ' imports:\n'
+  printf ' - %s\n' "${noctalia_imports[@]}"
+  exit 1
+fi
+
+mapfile -t noctalia_pkg_refs < <(rg_nix -l "pkgsUnstable\\.noctalia-shell" || true)
+if [ "${#noctalia_pkg_refs[@]}" -gt 0 ]; then
+  echo "WARNING: pkgsUnstable.noctalia-shell referenced (ensure this is documented/justified):"
+  printf ' - %s\n' "${noctalia_pkg_refs[@]}"
 fi
 
 echo "==> shellcheck installer + scripts"

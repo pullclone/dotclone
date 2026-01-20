@@ -157,21 +157,20 @@
               value = self.nixosConfigurations.${name}.config.system.build.toplevel;
             };
 
-          toplevelAttrs =
-            lib.listToAttrs (
-              lib.flatten (
-                map (profile: [
-                  (mkToplevel profile true)
-                  (mkToplevel profile false)
-                ]) officialProfiles
-              )
-              ++ [
-                {
-                  name = "toplevel-nyx";
-                  value = self.nixosConfigurations.nyx.config.system.build.toplevel;
-                }
-              ]
-            );
+          toplevelAttrs = lib.listToAttrs (
+            lib.flatten (
+              map (profile: [
+                (mkToplevel profile true)
+                (mkToplevel profile false)
+              ]) officialProfiles
+            )
+            ++ [
+              {
+                name = "toplevel-nyx";
+                value = self.nixosConfigurations.nyx.config.system.build.toplevel;
+              }
+            ]
+          );
         in
         {
           nixfmt = nixpkgs.legacyPackages.${system}.nixfmt-rfc-style;
