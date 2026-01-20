@@ -73,6 +73,8 @@ the latest refactor.
   LatencyFleX implicit layer and its manifest.
 - `docs/OPERATIONS.md` -- daily-use cheat sheet covering `nixos-option`,
   build/switch commands, and the end-state checklist.
+- `docs/REPRODUCIBILITY.md` -- release provenance snippet (how to cite
+  and reproduce exact builds).
 - `templates/research/` -- opt-in, standalone flake for lightweight
   experiments; executable documentation/boilerplate with pinned Python
   devShell, helper scripts, and a sample experiment. Not required for
