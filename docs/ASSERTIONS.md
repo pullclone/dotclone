@@ -261,6 +261,9 @@ these steps:
   doas is enforced as the sole escalator, with least-privilege rules
   and root SSH login forced off; an admin list must be non-empty or the
   build fails.[\[18\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/security/access.nix#L1-L49)
+- **Locker Exclusivity (Phase ≥1)** -- Exactly one locker may be active;
+  Noctalia and swaylock must not both be enabled, the active locker must
+  be detectable, and Noctalia must lock on suspend when selected.[\[19\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/security/locker-pam.nix#L1-L72)
 
 ## Runtime Contracts
 

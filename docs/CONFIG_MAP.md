@@ -64,6 +64,9 @@ the latest refactor.
   sequenced hardening rollouts.
 - `modules/security/access.nix` -- applies least-privilege doas rules
   and enforces break-glass gating when `my.security.phase >= 1`.
+- `modules/security/locker-pam.nix` -- audits locker selection (Noctalia
+  vs swaylock), enforces single-locker assertions, and records the
+  active locker for phase-gated hardening.
 - `modules/security/time-sync.nix` -- Chrony with NTS defaults; override
   via `my.security.timeSync.ntsServers`.
 - `modules/security/systemd-hardening.nix` -- sets
@@ -84,6 +87,8 @@ the latest refactor.
   failed or staged hardening changes.
 - `docs/REPRODUCIBILITY.md` -- release provenance snippet (how to cite
   and reproduce exact builds).
+- `scripts/audit-locker.sh` -- locker/PAM audit helper to print the
+  configured locker, PAM snippets, and idle/suspend lock behavior.
 - `templates/research/` -- opt-in, standalone flake for lightweight
   experiments; executable documentation/boilerplate with pinned Python
   devShell, helper scripts, and a sample experiment. Not required for
