@@ -116,6 +116,7 @@
             ./modules/security/time-sync.nix
             ./modules/security/systemd-hardening.nix
             ./modules/security/usbguard.nix
+            ./modules/security/u2f.nix
 
             # 5. Main Policy Configuration
             ./configuration.nix

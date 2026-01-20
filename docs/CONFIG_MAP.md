@@ -75,6 +75,8 @@ the latest refactor.
 - `modules/security/usbguard.nix` -- gates USBGuard by security phase,
   defaulting to audit/allow mode with optional soft enforcement and a
   reproducible rule file at `etc/usbguard/rules.conf`.
+- `modules/security/u2f.nix` -- phased pam_u2f wiring (optional in phase
+  1, required in phase 2) starting on doas with break-glass bypass.
 - `profiles/` -- flake-native system + ZRAM profile modules; the flake
   asserts that `systemProfile` is one of the official profiles and
   yields finite outputs (see below).

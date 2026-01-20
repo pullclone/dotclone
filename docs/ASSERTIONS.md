@@ -268,6 +268,10 @@ these steps:
   defaults to audit/allow, supports soft enforcement via
   `my.security.usbguard.softEnforce`, and requires break-glass to be
   enabled before activation.[\[20\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/security/usbguard.nix#L1-L58)
+- **U2F (Phase ≥1/2)** -- pam_u2f is optional in phase 1 and required in
+  phase 2 for enrolled users; doas is the first PAM surface, with
+  break-glass bypass (`nouserok`, bypass group) and a centralized
+  authfile for reproducibility.[\[21\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/security/u2f.nix#L1-L75)
 
 ## Runtime Contracts
 
