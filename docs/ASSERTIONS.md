@@ -245,6 +245,19 @@ these steps:
 - **Determinism** -- The build must be reproducible across environments:
   identical inputs produce identical outputs.
 
+### 10. Security Phases & Break-Glass
+
+- **Phase Enum** -- `my.security.phase` must be one of 0, 1, or 2; other
+  values are rejected at evaluation
+  time.[\[17\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/security/phase.nix#L7-L38)
+- **Break-Glass Gate** -- When `my.security.assertions.enable = true`,
+  any phase above 0 requires `my.security.breakglass.enable = true` to
+  prevent lockouts during staged/enforced hardening.[\[17\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/security/phase.nix#L22-L55)
+- **Rollout Discipline** -- Security rollouts must be previewed with the
+  built closure (`switch-to-configuration dry-activate`) and staged via
+  `nixos-rebuild test` (e.g., `just sec-preview <target>` then
+  `just sec-test <target>`) before any switch/boot.
+
 ## Runtime Contracts
 
 These assertions must hold on a running system after activation.

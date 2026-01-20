@@ -59,6 +59,9 @@ the latest refactor.
   assertions.
 - `modules/tuning/sysctl.nix` -- the **sole** source for
   `boot.kernel.sysctl` definitions and Btrfs maintenance services.
+- `modules/security/phase.nix` -- defines `my.security.phase`,
+  `my.security.breakglass`, and `my.security.assertions` toggles for
+  sequenced hardening rollouts.
 - `modules/security/time-sync.nix` -- Chrony with NTS defaults; override
   via `my.security.timeSync.ntsServers`.
 - `modules/security/systemd-hardening.nix` -- sets
@@ -73,6 +76,10 @@ the latest refactor.
   LatencyFleX implicit layer and its manifest.
 - `docs/OPERATIONS.md` -- daily-use cheat sheet covering `nixos-option`,
   build/switch commands, and the end-state checklist.
+- `docs/SECURITY_PHASES.md` -- phased hardening map, dry-activate/test
+  harness, and break-glass expectations.
+- `docs/RECOVERY.md` -- recovery playbook and break-glass procedures for
+  failed or staged hardening changes.
 - `docs/REPRODUCIBILITY.md` -- release provenance snippet (how to cite
   and reproduce exact builds).
 - `templates/research/` -- opt-in, standalone flake for lightweight

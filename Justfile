@@ -138,6 +138,40 @@ switch-battery-lfx-off:
     set -euo pipefail
     sudo nixos-rebuild switch --flake ".#nyx-battery-lfx-off"
 
+[group('Security')]
+sec-preview target:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if ! command -v doas >/dev/null 2>&1; then
+        echo "doas is required for security previews; enable it first." >&2
+        exit 1
+    fi
+    build=".#nixosConfigurations.{{ target }}.config.system.build.toplevel"
+    nix build "$build"
+    result="$(readlink -f result)"
+    echo "Dry-activating $build via $result/bin/switch-to-configuration..."
+    doas "$result/bin/switch-to-configuration" dry-activate
+
+[group('Security')]
+sec-test target:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if ! command -v doas >/dev/null 2>&1; then
+        echo "doas is required for security tests; enable it first." >&2
+        exit 1
+    fi
+    doas nixos-rebuild test --flake ".#{{ target }}"
+
+[group('Security')]
+sec-switch target:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if ! command -v doas >/dev/null 2>&1; then
+        echo "doas is required for security switches; enable it first." >&2
+        exit 1
+    fi
+    doas nixos-rebuild switch --flake ".#{{ target }}"
+
 [group('Nix')]
 switch-memory-saver-lfx-on:
     #!/usr/bin/env bash
