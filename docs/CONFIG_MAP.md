@@ -77,6 +77,9 @@ the latest refactor.
   reproducible rule file at `etc/usbguard/rules.conf`.
 - `modules/security/u2f.nix` -- phased pam_u2f wiring (optional in phase
   1, required in phase 2) starting on doas with break-glass bypass.
+- `modules/home/apps/trezor-agent.nix` -- Home Manager module to run
+  trezor-agent as a user service, install udev rules, and wire SSH/Git
+  to the hardware-backed agent.
 - `profiles/` -- flake-native system + ZRAM profile modules; the flake
   asserts that `systemProfile` is one of the official profiles and
   yields finite outputs (see below).

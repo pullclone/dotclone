@@ -17,6 +17,7 @@
     ./niri/niri-shared.nix
 
     # --- 2. GLOBAL APPS & TERMINALS ---
+    ./apps/trezor-agent.nix
     ./apps/brave-webapps.nix
     ./apps/btop.nix
     ./apps/cava.nix

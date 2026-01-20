@@ -23,4 +23,10 @@ in
       default = "kitty";
     };
   };
+
+  options.my.identity.trezorAgent.enable = mkOption {
+    type = types.bool;
+    default = false;
+    description = "Enable trezor-agent (SSH agent and optional Git signing).";
+  };
 }
