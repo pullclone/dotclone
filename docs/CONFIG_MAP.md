@@ -62,6 +62,8 @@ the latest refactor.
 - `modules/security/phase.nix` -- defines `my.security.phase`,
   `my.security.breakglass`, and `my.security.assertions` toggles for
   sequenced hardening rollouts.
+- `modules/security/access.nix` -- applies least-privilege doas rules
+  and enforces break-glass gating when `my.security.phase >= 1`.
 - `modules/security/time-sync.nix` -- Chrony with NTS defaults; override
   via `my.security.timeSync.ntsServers`.
 - `modules/security/systemd-hardening.nix` -- sets

@@ -257,6 +257,10 @@ these steps:
   built closure (`switch-to-configuration dry-activate`) and staged via
   `nixos-rebuild test` (e.g., `just sec-preview <target>` then
   `just sec-test <target>`) before any switch/boot.
+- **Access Control (Phase ≥1)** -- When `my.security.phase >= 1`,
+  doas is enforced as the sole escalator, with least-privilege rules
+  and root SSH login forced off; an admin list must be non-empty or the
+  build fails.[\[18\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/security/access.nix#L1-L49)
 
 ## Runtime Contracts
 

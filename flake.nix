@@ -111,6 +111,7 @@
             (inputs.nixpkgs.outPath + "/nixos/modules/services/backup/btrbk.nix")
             ./modules/tuning/btrfs-snapshots.nix
             ./modules/security/phase.nix
+            ./modules/security/access.nix
             ./modules/security/time-sync.nix
             ./modules/security/systemd-hardening.nix
             ./modules/security/usbguard.nix
