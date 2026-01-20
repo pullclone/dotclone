@@ -82,6 +82,8 @@ the latest refactor.
   with phase-aware enablement; doas is untouched.
 - `modules/security/aide.nix` -- optional AIDE integrity monitoring with
   weekly check timer and manual init/check services.
+- `modules/security/lynis.nix` -- optional Lynis audit service/timer and
+  report collection under `/var/log/nyxos/lynis`.
 - `modules/home/apps/trezor-agent.nix` -- Home Manager module to run
   trezor-agent as a user service, install udev rules, and wire SSH/Git
   to the hardware-backed agent.

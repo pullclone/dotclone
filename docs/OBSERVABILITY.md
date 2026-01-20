@@ -23,5 +23,14 @@ Recommended rollout:
 
 ## Lynis
 
-Pending: add Lynis profiling and reporting to complement AIDE. Keep Lynis
-phase-safe (informational) until scoped checks are selected.
+- Toggle: `my.security.lynis.enable` (phase ≥0; defaults off)
+- Reports: `/var/log/nyxos/lynis/<timestamp>/lynis.log` and `report.dat`
+- Units:
+  - `lynis-audit.service` (manual, oneshot)
+  - `lynis-audit.timer` (weekly, optional toggle `my.security.lynis.timer.enable`)
+- Helpers:
+  - `just lynis` — `doas systemctl start lynis-audit.service`
+  - `just lynis-report` — print latest report path and tail the summary
+
+Recommended rollout: enable Lynis, rebuild, run `just lynis`, and review
+the report directory.

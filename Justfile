@@ -216,6 +216,35 @@ aide-check:
     doas systemctl start aide-check.service
     echo "AIDE check triggered; see /var/log/nyxos/aide for reports."
 
+[group('Observability')]
+lynis:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if ! command -v doas >/dev/null 2>&1; then
+        echo "doas is required to run lynis-audit service." >&2
+        exit 1
+    fi
+    doas systemctl start lynis-audit.service
+
+[group('Observability')]
+lynis-report:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ ! -d "/var/log/nyxos/lynis" ]; then
+        echo "No Lynis reports found at /var/log/nyxos/lynis" >&2
+        exit 1
+    fi
+    latest="$(ls -1 /var/log/nyxos/lynis | sort | tail -n1 || true)"
+    if [ -z "$latest" ]; then
+        echo "No Lynis reports found at /var/log/nyxos/lynis" >&2
+        exit 1
+    fi
+    echo "Latest Lynis report directory: /var/log/nyxos/lynis/$latest"
+    if [ -f "/var/log/nyxos/lynis/$latest/lynis.log" ]; then
+        echo "--- Summary (tail -n 20) ---"
+        tail -n 20 "/var/log/nyxos/lynis/$latest/lynis.log"
+    fi
+
 [group('Nix')]
 switch-memory-saver-lfx-on:
     #!/usr/bin/env bash
