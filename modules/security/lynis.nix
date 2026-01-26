@@ -35,7 +35,7 @@ in
           ''
             install -d -m 0750 ${logDir}
             ts=$(date -Iseconds)
-            outdir="${logDir}/${ts}"
+            outdir="${logDir}/''${ts}"
             mkdir -p "$outdir"
             ${pkgs.lynis}/bin/lynis audit system --quiet --logfile "$outdir/lynis.log" --report-file "$outdir/report.dat"
             echo "Lynis report: $outdir"

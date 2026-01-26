@@ -3,11 +3,6 @@
 let
   phase = config.my.security.phase;
   cfg = config.my.security.fingerprint;
-
-  setService =
-    name: {
-      security.pam.services.${name}.fprintAuth = true;
-    };
 in
 {
   options.my.security.fingerprint = {
@@ -32,10 +27,8 @@ in
     };
   };
 
-  config = lib.mkIf (phase >= 1 && cfg.enable) (lib.mkMerge (
-    [
-      { services.fprintd.enable = true; }
-    ]
-    ++ map setService cfg.pamServices
-  ));
+  config = lib.mkIf (phase >= 1 && cfg.enable) {
+    services.fprintd.enable = true;
+    security.pam.services = lib.genAttrs cfg.pamServices (_: { fprintAuth = true; });
+  };
 }

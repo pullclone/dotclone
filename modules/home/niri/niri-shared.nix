@@ -52,7 +52,6 @@ in
 
       # --- 2. Input & Layout ---
       input = {
-        keyboard.xkb.layout = "us"; # Or "br" if that was your pref
         touchpad = {
           tap = true;
           natural-scroll = true;

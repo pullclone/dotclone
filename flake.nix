@@ -20,6 +20,9 @@
     noctalia.url = "github:noctalia-dev/noctalia-shell";
     noctalia.inputs.nixpkgs.follows = "nixpkgs-unstable";
 
+    nix-citizen.url = "github:LovingMelody/nix-citizen";
+    nix-citizen.inputs.nixpkgs.follows = "nixpkgs";
+
     # Profile framework (system + zram)
     profiles.url = "path:./profiles";
   };
@@ -104,6 +107,7 @@
 
             # 3. Installation Facts
             ./modules/core/install-answers.nix
+            ./modules/core/keyboard-preset.nix
 
             # 4. Domain Modules (Hardware & Tuning)
             ./modules/hardware/amd-gpu.nix
@@ -121,6 +125,7 @@
             ./modules/security/fingerprint.nix
             ./modules/security/aide.nix
             ./modules/security/lynis.nix
+            ./modules/security/luks-gpg.nix
             ./modules/security/assertions.nix
 
             # 5. Main Policy Configuration
@@ -129,6 +134,7 @@
             # 6. Desktop & Features
             niri.nixosModules.niri
             ./modules/programs/latencyflex-module.nix
+            ./modules/programs/gaming.nix
             ./modules/programs/containers.nix
             { my.performance.latencyflex.enable = latencyflexEnable; }
 

@@ -42,9 +42,9 @@ off; keep at least one strong-password admin in the `wheel` group.
 
 - Noctalia is the primary locker; if a PAM change bricks unlock, disable
   the locker’s PAM snippet and return to phase 0 before retrying.
-- Treat Trezor One as a userland authenticator (U2F/SSH agent). Do not
-  depend on it for initrd/LUKS unlock until a minimal, tested flow is
-  proven.
+- If using Trezor-backed initrd GPG unlock, keep a separate LUKS
+  passphrase/keyslot as a recovery path and verify unlock in a live
+  environment before raising security phase.
 
 ## Rollback drills (recommended before phase 2)
 

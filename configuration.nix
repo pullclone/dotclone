@@ -23,7 +23,9 @@ in
   # ==========================================
   system.stateVersion = "25.11";
   nixpkgs.config.allowUnfree = true;
-  nixpkgs.config.permittedInsecurePackages = [ "ventoy-gtk3-1.1.07" ];
+  nixpkgs.config.permittedInsecurePackages = [
+    "ventoy-gtk3-1.1.07"
+  ];
 
   nix.settings = {
     experimental-features = [
@@ -103,8 +105,10 @@ in
       "142.242.2.2" # Mullvad
       "94.140.14.14" # AdGuard
       "94.140.15.15" # AdGuard
+      "149.112.112.11"  # Quad9
       "149.112.112.112" # Quad9
-      "9.9.9.9" # Quad9
+      "9.9.9.11" # Quad9
+      "9.9.9.9"  # Quad9
       "1.1.1.2" # Cloudflare
       "1.0.0.2" # Cloudflare
       "1.1.1.1" # Cloudflare
@@ -300,6 +304,7 @@ in
       grim
       slurp
       udiskie
+      udisks2
 
       # File Management
       xfce.thunar
@@ -446,7 +451,10 @@ in
       wl-clipboard
 
       # Networking / analysis
-      wireshark
+      wireshark-cli
+      tcpdump
+      conntrack-tools
+      nftables
 
       # Performance
       ananicy-rules-cachyos
@@ -482,13 +490,11 @@ in
       # Qt theming
       libsForQt5.qt5ct
 
-      # COSMIC apps and storage helpers
+      # COSMIC apps
       cosmic-files
       cosmic-edit
       cosmic-player
       cosmic-term
-      udisks2
-      udiskie
 
       # RNG tools
       rng-tools
@@ -563,8 +569,8 @@ in
                 $RATBAG "$MOUSE_NAME" profile 2 button 4 action set key F21
                 $RATBAG "$MOUSE_NAME" profile 2 button 5 action set key KEY_LEFTALT
                 $RATBAG "$MOUSE_NAME" profile 2 button 6 action set key F22
-                $RATBAG "$MOUSE_NAME" profile 2 button 7 action set key F23
-                $RATBAG "$MOUSE_NAME" profile 2 button 8 action set key F24
+                $RATBAG "$MOUSE_NAME" profile 2 button 7 action set key F24
+                $RATBAG "$MOUSE_NAME" profile 2 button 8 action set key KEY_SCROLLLOCK
                 $RATBAG "$MOUSE_NAME" profile 2 button 9 action set key F23
 
                 # Profile 3: Gaming

@@ -2,6 +2,7 @@
   config,
   pkgs,
   lib,
+  osConfig ? { },
   ...
 }:
 
@@ -18,7 +19,7 @@
 
     # --- 2. GLOBAL APPS & TERMINALS ---
     ./apps/protonvpn.nix
-    ./apps/trezor-agent.nix
+    ./apps/ssh-identity.nix
     ./apps/brave-webapps.nix
     ./apps/btop.nix
     ./apps/cava.nix
@@ -37,7 +38,10 @@
   };
 
   # Optional apps (install-answers driven)
-  my.home.apps.protonvpn.enable = config.my.install.protonvpn.enable;
+  my.home.apps.protonvpn.enable =
+    lib.attrByPath [ "my" "install" "protonvpn" "enable" ] false osConfig;
+  my.identity.ssh.identity =
+    lib.attrByPath [ "my" "install" "ssh" "identity" ] "file" osConfig;
 
   programs.home-manager.enable = true;
 

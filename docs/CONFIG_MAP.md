@@ -13,7 +13,7 @@ the latest refactor.
     ├── flake.lock
     ├── flake.nix                       # Flake entry point & module wiring (rooted here; no ./NixOS)
     ├── hardware-configuration.nix      # Generated hardware config (mounts/filesystems)
-    ├── install-nyxos.sh                # Repository-based installer script
+    ├── install-nyxos.sh                # Repository-based installer (LUKS2 root + optional persist partition, dry-run build mode)
     ├── overlays/                       # Overrride, extend + pkgs ensure visibility to 🏠 manager & system
     │   └── latencyflex.nix             # Exposes the locally-packaged LatencyFleX as pkgs.latencyflex
     ├── pkgs/                           # Custom package derivations
@@ -28,7 +28,9 @@ the latest refactor.
         ├── boot/                       # Bootloader & Secure Boot logic
         │   └── boot-profile.nix        # Switchable profile (UKI vs Lanzaboote/Secure Boot)
         ├── core/                       # Installation facts & data
-        │   └── install-answers.nix     # Hostname, timezone, user & MAC answers
+        │   ├── install-answers.nix     # Hostname, timezone, user & MAC answers
+        │   ├── keyboard-preset.nix     # Console + XKB keyboard preset wiring
+        │   └── xkb/                    # Custom XKB symbols for nonstandard layouts
         ├── hardware/                   # Hardware-specific configurations
         │   └── amd-gpu.nix             # AMD Strix Point kernel params & ROCm stack
         │   └── nvidia-gpu.nix          # Install-driven NVIDIA/PRIME wiring
@@ -52,8 +54,21 @@ the latest refactor.
 - `modules/core/install-answers.nix` -- reads
   `/etc/nixos/nyxos-install.nix` to inject dynamic **facts** (hostName,
   timeZone, userName, MAC) into the system configuration.
-  Installs expanded facts (snapshots, trim, trust, boot, swap, profile)
-  and exports them via `config.my.install`.
+  Installs expanded facts (snapshots, trim, trust, boot, swap, profile,
+  hardware auth, SSH identity, keyboard, LUKS GPG unlock, gaming) and
+  exports them via `config.my.install`.
+- `install-nyxos.sh` -- installer supports LUKS2 root, optional
+  `persist` partition creation for GPG keyfile storage (prompted as
+  on-device vs external), a pause step to create/encrypt the keyfile
+  before `nixos-install`, and a dry-run mode that skips disk operations
+  while building the toplevel. The build target is selectable (defaults
+  to `nyx`) for both dry-run and install. Timezone input accepts IANA
+  names, abbreviations, and UTC offsets (including select half-hour
+  offsets mapped to IANA zones). Invalid inputs are re-prompted so you
+  can correct a single answer without restarting the installer.
+- `modules/core/keyboard-preset.nix` -- applies a single keyboard preset
+  across initrd/TTY and XKB (sessions + SDDM greeter), plus optional
+  custom XKB symbols stored under `modules/core/xkb/symbols`.
 - `modules/boot/boot-profile.nix` -- defines mutually exclusive
   boot profiles (UKI vs Secure Boot via Lanzaboote) and the associated
   assertions.
@@ -84,9 +99,16 @@ the latest refactor.
   weekly check timer and manual init/check services.
 - `modules/security/lynis.nix` -- optional Lynis audit service/timer and
   report collection under `/var/log/nyxos/lynis`.
-- `modules/home/apps/trezor-agent.nix` -- Home Manager module to run
-  trezor-agent as a user service, install udev rules, and wire SSH/Git
-  to the hardware-backed agent.
+- `modules/security/luks-gpg.nix` -- initrd GPG decrypt flow for LUKS
+  keyfiles (Trezor-gated), reading encrypted key material from a
+  persistent mount and wiping tmpfs after unlock.
+- `modules/programs/gaming.nix` -- optional gaming stack (Steam, Lutris,
+  Wine, gamescope, gamemode, EmulationStation) driven by install facts.
+- `modules/home/apps/ssh-identity.nix` -- Home Manager module to pin SSH
+  identity files (file vs FIDO2) from install answers.
+- `modules/home/apps/trezor-agent.nix` -- Optional Home Manager module
+  to run trezor-agent as a user service and wire SSH/Git to the
+  hardware-backed agent (not enabled by default).
 - `modules/home/apps/protonvpn.nix` -- Home Manager module to optionally
   install ProtonVPN GUI based on install answers.
 - `modules/boot/uki.nix` -- enables Bootspec with a NyxOS UKI metadata
@@ -109,6 +131,8 @@ the latest refactor.
   configured locker, PAM snippets, and idle/suspend lock behavior.
 - `scripts/usbguard-generate-policy.sh` -- generate a USBGuard allowlist
   from currently attached devices with timestamped backups.
+- `scripts/rsi-launcher.sh` -- helper wrapper to run nix-citizen’s RSI
+  launcher or trigger the Lutris setup helper.
 - `templates/research/` -- opt-in, standalone flake for lightweight
   experiments; executable documentation/boilerplate with pinned Python
   devShell, helper scripts, and a sample experiment. Not required for
@@ -173,6 +197,11 @@ and are re-exported as a **typed, structured interface** at:
   install-time decisions exclusively via `config.my.install`.
 - This file represents *facts*, not *policy* — interpretation belongs to
   domain modules.
+- LUKS GPG unlock (if used) is described under `my.install.luksGpg` and
+  must reference encrypted key material from a persistent mount (not the
+  Nix store or repo).
+- Gaming selections are captured under `my.install.gaming` and map to
+  `modules/programs/gaming.nix` policy.
 
 - **Domain modules** (`modules/*`): specialized logic for boot,
   hardware, tuning, and home evaluated during evaluation.

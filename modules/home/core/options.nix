@@ -26,13 +26,22 @@ in
 
   options.my.home.apps.protonvpn.enable = mkOption {
     type = types.bool;
-    default = false;
+    default = true;
     description = "Enable ProtonVPN GUI (Home Manager).";
+  };
+
+  options.my.identity.ssh.identity = mkOption {
+    type = types.enum [
+      "file"
+      "fido2"
+    ];
+    default = "file";
+    description = "SSH identity mode for the user (file-based keys or FIDO2-backed keys).";
   };
 
   options.my.identity.trezorAgent.enable = mkOption {
     type = types.bool;
     default = false;
-    description = "Enable trezor-agent (SSH agent and optional Git signing).";
+    description = "Enable trezor-agent (optional SSH agent and Git signing integration).";
   };
 }

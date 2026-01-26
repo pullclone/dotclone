@@ -146,6 +146,24 @@ if [ "${#noctalia_pkg_refs[@]}" -gt 0 ]; then
   printf ' - %s\n' "${noctalia_pkg_refs[@]}"
 fi
 
+echo "==> contract: forbid plaintext key material in repo"
+mapfile -t key_files < <(rg --files -g "*.key" -g "*.pem" -g "*.p12" -g "*.pfx" -g "*.der" -g "*.csr" --glob "!templates/**" || true)
+if [ "${#key_files[@]}" -gt 0 ]; then
+  echo "Plaintext key material detected (remove from repo):"
+  printf ' - %s\n' "${key_files[@]}"
+  exit 1
+fi
+
+echo "==> contract: forbid /nix/store key material references"
+if rg_nix "/nix/store/[^\"']*\\.(key|pem|p12|pfx|der|csr)" >/dev/null; then
+  echo "Key material must not be referenced from /nix/store"
+  exit 1
+fi
+if rg_nix "key(File|file)\\s*=\\s*\\\"/nix/store" >/dev/null; then
+  echo "keyFile must not reference /nix/store"
+  exit 1
+fi
+
 echo "==> shellcheck installer + scripts"
 mapfile -t shell_scripts < <(/usr/bin/find install-nyxos.sh scripts -type f -name "*.sh")
 if [ "${#shell_scripts[@]}" -gt 0 ]; then

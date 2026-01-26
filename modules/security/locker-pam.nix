@@ -67,6 +67,16 @@ let
       "unknown";
 in
 {
+  options.my.security.locker.active = lib.mkOption {
+    type = lib.types.enum [
+      "noctalia"
+      "swaylock"
+      "unknown"
+    ];
+    readOnly = true;
+    description = "Detected active locker (computed).";
+  };
+
   options.my.security.locker.expected = lib.mkOption {
     type = lib.types.enum [
       "noctalia"

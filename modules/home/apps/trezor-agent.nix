@@ -2,30 +2,31 @@
 
 let
   cfg = config.my.identity.trezorAgent;
+  sshSocket = "${config.home.homeDirectory}/.trezor-agent/ssh-agent.sock";
 in
 {
-  options.my.identity.trezorAgent = {
-    enable = lib.mkEnableOption "trezor-agent for SSH/Git signing";
-  };
-
   config = lib.mkIf cfg.enable {
-    home.packages = with pkgs; [
-      trezor-agent
-      trezor-udev-rules
-    ];
+    home.packages = [ pkgs.trezor-agent ];
 
-    services.trezor-agent = {
-      enable = true;
-      package = pkgs.trezor-agent;
-      extraOptions = [ "--with-ssh-agent=auto" ];
+    systemd.user.services.trezor-agent = {
+      Unit = {
+        Description = "Trezor agent";
+      };
+      Service = {
+        ExecStart = "${pkgs.trezor-agent}/bin/trezor-agent --with-ssh-agent=auto";
+        Restart = "on-failure";
+      };
+      Install = {
+        WantedBy = [ "default.target" ];
+      };
     };
 
     programs.ssh = {
       enable = true;
-      extraConfig = ''
-        Host *
-          IdentityAgent ${config.home.homeDirectory}/.trezor-agent/ssh-agent.sock
-      '';
+      enableDefaultConfig = false;
+      matchBlocks."*" = {
+        identityAgent = sshSocket;
+      };
     };
 
     programs.git = {
@@ -33,17 +34,14 @@ in
         signByDefault = false; # flip to true once verified
         key = "ssh-ed25519"; # trezor-agent exports SSH keys; adjust once enrolled
       };
-      extraConfig = {
+      settings = {
         gpg = {
           format = "ssh";
           ssh.program = "${pkgs.trezor-agent}/bin/trezor-agent-git";
         };
         # Avoid agent races; force SSH to use the trezor-agent socket.
-        core.sshCommand = "ssh -o IdentityAgent=${config.home.homeDirectory}/.trezor-agent/ssh-agent.sock";
+        core.sshCommand = "ssh -o IdentityAgent=${sshSocket}";
       };
     };
-
-    # Udev rules for access to the device (system-level; ensure group membership if needed)
-    services.udev.packages = [ pkgs.trezor-udev-rules ];
   };
 }

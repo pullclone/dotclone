@@ -18,6 +18,9 @@ system. They must hold before any runtime logic executes.
 - **Determinism** -- `nix flake check .` must complete without warnings.
   All inputs are pinned and reproducible, and all declared outputs are
   buildable.
+- **Secret Hygiene** -- The repository must not contain plaintext key
+  material and configuration must not reference key material under
+  `/nix/store` (enforced by `scripts/audit-repo.sh`).[\[28\]](https://github.com/pullclone/dotclone/blob/HEAD/scripts/audit-repo.sh#L1-L190)
 - **Complete Outputs** -- The flake must expose all system variants
   (e.g., `nyx`) and user environments defined in the repository. Any
   referenced module must be imported in the flake to avoid "missing
@@ -74,6 +77,7 @@ assertion[\[1\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/boot/bo
   Systemd‑boot must be disabled
   (`lib.mkForce false`)[\[5\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/boot/boot-profile.nix#L70-L72)
   and the `lanzaboote` options configured.
+- **Bootspec Extension Namespace** -- Bootspec extensions must use the `io.pullclone.dotclone.uki.*` namespace or upstream namespaces (`org.nixos.*`, `org.xenproject.*`) to avoid collisions.[\[23\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/security/assertions.nix#L1-L15)
 
 ### 3. Install Facts
 
@@ -95,12 +99,56 @@ normalized by `modules/core/install-answers.nix` and re-exported via
   must be set via install
   facts[\[8\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/core/install-answers.nix#L22-L24).
   Defaults (`nyx`, `UTC`) are allowed only when the corresponding field
-  is not provided.
+  is not provided. Timezone inputs must resolve to a zoneinfo entry;
+  UTC±HH:30 inputs are mapped to canonical IANA zones when supported.
+- **Encryption Mode** -- `my.install.encryption.mode = "luks2"` signals
+  that the installer provisions a LUKS2 container with Btrfs inside; use
+  `none` for an unencrypted root. The initrd unlock path depends on this
+  selection.
 - **MAC Address Mode** -- The `mac.mode` attribute must be one of
   `default`, `random`, `stable`, or `fixed` and drive the NetworkManager
   configuration[\[9\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/core/install-answers.nix#L25-L32).
   If `mac.mode = "fixed"`, `mac.address` and `mac.interface` must be
   provided.
+- **Hardware Auth Facts** -- `my.install.hardwareAuth.trezor.present`
+  and `my.install.hardwareAuth.fido2.present` must be booleans, and
+  `my.install.hardwareAuth.trezor.model` must be one of `one`, `t`, or
+  `unknown`.[\[24\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/core/install-answers.nix#L131-L188)
+- **SSH Identity Mode** -- `my.install.ssh.identity` must be `file` or
+  `fido2` and is used to configure default SSH identity handling in
+  Home Manager.[\[25\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/core/install-answers.nix#L174-L188)
+- **LUKS GPG Unlock Facts** -- `my.install.luksGpg` values must be
+  present when enabling initrd GPG unlock: device and encrypted keyfile
+  paths must be set, the encrypted keyfile must live under the initrd
+  persistent mount, and it must not reside in
+  `/nix/store`.[\[26\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/core/install-answers.nix#L64-L98)
+- **Keyfile Storage** -- When initrd GPG unlock is enabled, the
+  encrypted keyfile device must be mountable in initrd (a dedicated
+  `persist` partition or external device). The root filesystem cannot be
+  used because it is still locked at that stage.
+- **Keyfile Location Facts** -- When initrd GPG unlock is enabled, the
+  installer must record the encrypted keyfile device and filesystem
+  type, and the selected location (on-device `persist` or external) must
+  be consistent with those values to avoid initrd mount failures.
+- **Installer Dry-Run** -- When `install-nyxos.sh` runs in dry-run mode,
+  it must skip disk partitioning/formatting and `nixos-install`, while
+  still writing `/etc/nixos/nyxos-install.nix` and building the
+  toplevel for validation.
+- **Installer Build Target** -- The installer must build/install the
+  selected `nixosConfigurations.<target>` output (default `nyx`) so
+  dry-run validation and installations match the chosen flake output.
+- **Gaming Facts** -- `my.install.gaming` toggles must be booleans, and
+  `gaming.lutrisRsi` requires `gaming.lutris = true`.[\[29\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/core/install-answers.nix#L86-L125)
+- **Keyboard Facts** -- `my.install.keyboard.preset` must be a supported
+  preset, and any preset that relies on custom XKB symbols must have
+  those symbols present under `modules/core/xkb/symbols`
+  (enforced by `modules/core/keyboard-preset.nix`). When enabled, the
+  preset is applied to console/TTY, XKB sessions, and the SDDM greeter
+  (Wayland via Weston keymap or X11 via setup commands).
+- **Initrd GPG Unlock** -- When `my.security.luks.gpg.enable = true`,
+  the system must be in `encryption.mode = "luks2"`, the decrypted
+  keyfile must be written to tmpfs under `/run`, and the LUKS device
+  must be defined for initrd unlock.[\[27\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/security/luks-gpg.nix#L1-L180)
 - **NVIDIA Facts** -- When `my.install.nvidia.enable = true` in hybrid
   modes (`laptop-offload` or `laptop-sync`), `nvidiaBusId` must be set
   and exactly one of `intelBusId` or `amdgpuBusId` must be provided; the
@@ -411,3 +459,8 @@ amd-gpu.nix
 latencyflex.nix
 
 <https://github.com/pullclone/dotclone/blob/HEAD/pkgs/latencyflex.nix>
+
+[\[23\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/security/assertions.nix#L1-L15)
+assertions.nix
+
+<https://github.com/pullclone/dotclone/blob/HEAD/modules/security/assertions.nix>

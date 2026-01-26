@@ -28,7 +28,7 @@ let
 
     # Default rule set
     R = p+i+n+u+g+s+m+c+acl+selinux+xattrs+sha256
-    ${ROOT}        R
+    ''${ROOT}        R
   '';
 in
 {
@@ -78,7 +78,7 @@ in
             install -d -m 0700 ${stateDir}
             install -d -m 0750 ${logDir}
             ts=$(date -Iseconds)
-            out="${logDir}/aide-check-${ts}.log"
+            out="${logDir}/aide-check-''${ts}.log"
             ${pkgs.aide}/bin/aide --config /etc/aide.conf --check | tee "$out"
             echo "Report: $out"
           ''

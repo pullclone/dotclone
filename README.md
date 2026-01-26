@@ -239,10 +239,20 @@ Each ZRAM profile sets appropriate swappiness and priority values automatically.
 | Trust phase                           | `trust.phase`                       | `dev` (no firmware/TPM enforcement) or `enforced` |
 | Snapshot policy                       | `snapshots.retention/schedule/prePost/remote.*` | See Snapshot section below |
 | Trim policy                           | `storage.trim.*`                    | Weekly fstrim by default; no `discard` mounts |
-| Encryption intent                     | `encryption.mode`                   | Intent only; enrollment/manual steps documented |
+| Encryption intent                     | `encryption.mode`                   | `luks2` provisions a LUKS2 container with Btrfs inside; keyfile setup is manual |
 | Swap intent                           | `swap.mode/sizeGiB`                 | Installer creates swap partition when mode=`partition` |
 | System profile                        | `profile.system`                    | `balanced` (default), `latency`, `throughput`, `battery` |
 | Containers                            | `my.programs.containers.enable`     | Podman + Distrobox toggle |
+
+### LUKS2 + GPG keyfile unlock (Trezor One)
+
+- Requires a persist device/partition mounted at `/persist` in initrd
+  (on-device for convenience, or an external device for stronger 2-of-2).
+- The installer can create a small `persist` partition (defaults to
+  ext4, 64 MiB) and pause so you can create/encrypt the keyfile before
+  first boot.
+- Keep a fallback passphrase keyslot for recovery; the keyfile adds an
+  additional unlock method rather than replacing the passphrase.
 
 ### Portable, reproducible hardware facts
 

@@ -7,9 +7,48 @@ let
   hostName = answers.hostName or "nyx";
   timeZone = answers.timeZone or "UTC";
   userName = answers.userName or "ashy";
+  keyboardPresets = [
+    "qwerty"
+    "dvorak"
+    "colemak"
+    "workman"
+    "halmak"
+    "engram-v2"
+    "bepo"
+    "neo"
+    "eurkey"
+    "eurkey-colemak-dh"
+  ];
+  keyboard =
+    answers.keyboard or {
+      enable = true;
+      preset = "qwerty";
+    };
   mac = answers.mac or { mode = "default"; };
   boot = answers.boot or { mode = "uki"; };
   trust = answers.trust or { phase = "dev"; };
+  hardwareAuth =
+    let
+      hw = answers.hardwareAuth or { };
+      trezor = hw.trezor or { };
+      fido2 = hw.fido2 or { };
+    in
+    {
+      trezor = {
+        present = trezor.present or false;
+        model = trezor.model or "unknown";
+      };
+      fido2 = {
+        present = fido2.present or false;
+      };
+    };
+  ssh =
+    let
+      sshAnswers = answers.ssh or { };
+    in
+    {
+      identity = sshAnswers.identity or "file";
+    };
   snapshots =
     answers.snapshots or {
       retention = -1;
@@ -29,6 +68,15 @@ let
       };
     };
   encryption = answers.encryption or { mode = "none"; };
+  luksGpg =
+    answers.luksGpg or {
+      enable = false;
+      device = "";
+      mapperName = "root";
+      encryptedKeyFile = "/persist/keys/root.key.gpg";
+      encryptedKeyDevice = "/dev/disk/by-label/persist";
+      encryptedKeyFsType = "ext4";
+    };
   swap =
     answers.swap or {
       mode = "partition";
@@ -37,6 +85,16 @@ let
   protonvpn =
     answers.protonvpn or {
       enable = false;
+    };
+  gaming =
+    answers.gaming or {
+      steam = false;
+      gamemode = false;
+      gamescope = false;
+      lutris = false;
+      lutrisRsi = false;
+      wine = false;
+      emulationstation = false;
     };
   profile = answers.profile or { system = "balanced"; };
   hardware =
@@ -80,6 +138,24 @@ in
       default = timeZone;
       description = "Default time zone.";
     };
+    keyboard = lib.mkOption {
+      type = lib.types.submodule {
+        options = {
+          enable = lib.mkOption {
+            type = lib.types.bool;
+            default = keyboard.enable;
+            description = "Whether the keyboard preset should be applied.";
+          };
+          preset = lib.mkOption {
+            type = lib.types.enum keyboardPresets;
+            default = keyboard.preset;
+            description = "Keyboard layout preset selected at install time.";
+          };
+        };
+      };
+      default = keyboard;
+      description = "Keyboard layout facts from install answers.";
+    };
     mac = lib.mkOption {
       type = lib.types.attrs;
       default = mac;
@@ -105,6 +181,65 @@ in
       description = ''
         Trust phase: “dev” defers TPM/Secure‑Boot assertions; “enforced” requires firmware SB and TPM sealing.
       '';
+    };
+    hardwareAuth = lib.mkOption {
+      type = lib.types.submodule {
+        options = {
+          trezor = lib.mkOption {
+            type = lib.types.submodule {
+              options = {
+                present = lib.mkOption {
+                  type = lib.types.bool;
+                  default = hardwareAuth.trezor.present;
+                  description = "Whether a Trezor device is available for hardware auth.";
+                };
+                model = lib.mkOption {
+                  type = lib.types.enum [
+                    "one"
+                    "t"
+                    "unknown"
+                  ];
+                  default = hardwareAuth.trezor.model;
+                  description = "Trezor hardware model.";
+                };
+              };
+            };
+            default = hardwareAuth.trezor;
+            description = "Trezor hardware facts.";
+          };
+          fido2 = lib.mkOption {
+            type = lib.types.submodule {
+              options = {
+                present = lib.mkOption {
+                  type = lib.types.bool;
+                  default = hardwareAuth.fido2.present;
+                  description = "Whether a FIDO2/CTAP2 device is available.";
+                };
+              };
+            };
+            default = hardwareAuth.fido2;
+            description = "FIDO2 hardware facts.";
+          };
+        };
+      };
+      default = hardwareAuth;
+      description = "Hardware authentication device facts from install answers.";
+    };
+    ssh = lib.mkOption {
+      type = lib.types.submodule {
+        options = {
+          identity = lib.mkOption {
+            type = lib.types.enum [
+              "file"
+              "fido2"
+            ];
+            default = ssh.identity;
+            description = "SSH identity mode (file-based or FIDO2-backed).";
+          };
+        };
+      };
+      default = ssh;
+      description = "SSH identity preference captured at install time.";
     };
     snapshots.retention = lib.mkOption {
       type = lib.types.int;
@@ -167,6 +302,44 @@ in
         Encryption intent: “none” for unencrypted root, “luks2” to signal LUKS2 should be used by an encrypted installer.
       '';
     };
+    luksGpg = lib.mkOption {
+      type = lib.types.submodule {
+        options = {
+          enable = lib.mkOption {
+            type = lib.types.bool;
+            default = luksGpg.enable;
+            description = "Enable GPG-decrypted LUKS keyfile unlock in initrd.";
+          };
+          device = lib.mkOption {
+            type = lib.types.str;
+            default = luksGpg.device;
+            description = "LUKS device path to unlock (e.g., /dev/disk/by-uuid/...).";
+          };
+          mapperName = lib.mkOption {
+            type = lib.types.str;
+            default = luksGpg.mapperName;
+            description = "Mapper name for the unlocked device.";
+          };
+          encryptedKeyFile = lib.mkOption {
+            type = lib.types.str;
+            default = luksGpg.encryptedKeyFile;
+            description = "Path to the encrypted keyfile on the persistent mount.";
+          };
+          encryptedKeyDevice = lib.mkOption {
+            type = lib.types.str;
+            default = luksGpg.encryptedKeyDevice;
+            description = "Device containing the encrypted keyfile (mounted in initrd).";
+          };
+          encryptedKeyFsType = lib.mkOption {
+            type = lib.types.str;
+            default = luksGpg.encryptedKeyFsType;
+            description = "Filesystem type for the encrypted keyfile device.";
+          };
+        };
+      };
+      default = luksGpg;
+      description = "GPG-decrypted LUKS keyfile facts captured at install time.";
+    };
     swap.mode = lib.mkOption {
       type = lib.types.enum [
         "partition"
@@ -184,6 +357,49 @@ in
       type = lib.types.bool;
       default = protonvpn.enable;
       description = "Enable ProtonVPN GUI for the primary user (Home Manager).";
+    };
+    gaming = lib.mkOption {
+      type = lib.types.submodule {
+        options = {
+          steam = lib.mkOption {
+            type = lib.types.bool;
+            default = gaming.steam;
+            description = "Enable Steam and supporting system prerequisites.";
+          };
+          gamemode = lib.mkOption {
+            type = lib.types.bool;
+            default = gaming.gamemode;
+            description = "Enable Feral GameMode.";
+          };
+          gamescope = lib.mkOption {
+            type = lib.types.bool;
+            default = gaming.gamescope;
+            description = "Enable gamescope and supporting packages.";
+          };
+          lutris = lib.mkOption {
+            type = lib.types.bool;
+            default = gaming.lutris;
+            description = "Enable Lutris.";
+          };
+          lutrisRsi = lib.mkOption {
+            type = lib.types.bool;
+            default = gaming.lutrisRsi;
+            description = "Enable RSI launcher support (nix-citizen) via Lutris.";
+          };
+          wine = lib.mkOption {
+            type = lib.types.bool;
+            default = gaming.wine;
+            description = "Enable Wine (wineWowPackages + winetricks).";
+          };
+          emulationstation = lib.mkOption {
+            type = lib.types.bool;
+            default = gaming.emulationstation;
+            description = "Enable EmulationStation (classic).";
+          };
+        };
+      };
+      default = gaming;
+      description = "Gaming-related install facts.";
     };
     profile.system = lib.mkOption {
       type = lib.types.enum [
@@ -309,13 +525,18 @@ in
         userName
         hostName
         timeZone
+        keyboard
         mac
         snapshots
         encryption
+        luksGpg
         swap
         profile
         hardware
         nvidia
+        hardwareAuth
+        ssh
+        gaming
         ;
       boot = {
         mode = boot.mode;
@@ -364,6 +585,10 @@ in
           && builtins.isBool hardware.gpu.hasAmd
           && builtins.isBool hardware.gpu.hasIntel;
         message = "install answers: hardware.gpu.hasNvidia/hasAmd/hasIntel must be booleans.";
+      }
+      {
+        assertion = !(gaming.lutrisRsi && !gaming.lutris);
+        message = "install answers: gaming.lutrisRsi requires gaming.lutris = true.";
       }
     ];
   };

@@ -1,11 +1,16 @@
 {
   userName = "ashy";
   hostName = "nyx";
-  timeZone = "UTC";
+  timeZone = "America/Denver";
+
+  keyboard = {
+    enable = true;
+    preset = "qwerty"; # qwerty | dvorak | colemak | workman | halmak | engram-v2 | bepo | neo | eurkey | eurkey-colemak-dh
+  };
 
   mac = {
-    mode = "default"; # default | random | stable | fixed
-    interface = "wlan0";
+    mode = "random"; # default | random | stable | fixed
+    interface = "wlp192s0";
     address = ""; # e.g., "00:11:22:33:44:55" when mode = "fixed"
   };
 
@@ -15,8 +20,22 @@
 
   trust.phase = "dev"; # dev | enforced
 
+  hardwareAuth = {
+    trezor = {
+      present = true;
+      model = "one"; # one | t | unknown
+    };
+    fido2 = {
+      present = false;
+    };
+  };
+
+  ssh = {
+    identity = "file"; # file | fido2
+  };
+
   snapshots = {
-    retention = 11; # -1 (not configured), 0 (disabled), >0 (enabled)
+    retention = 15; # -1 (not configured), 0 (disabled), >0 (enabled)
     schedule = "daily";
     prePostRebuild = true;
     remote = {
@@ -35,12 +54,31 @@
     mode = "luks2"; # luks2 intent or "none"
   };
 
-  swap = {
-    mode = "partition"; # partition | none
-    sizeGiB = 8;
+  luksGpg = {
+    enable = false;
+    device = "/dev/disk/by-label/nixos";
+    mapperName = "root";
+    encryptedKeyFile = "/persist/keys/root.key.gpg";
+    encryptedKeyDevice = "/dev/disk/by-label/persist";
+    encryptedKeyFsType = "btrfs";
   };
 
-  profile.system = "balanced"; # balanced | latency | throughput | battery | memory-saver
+  swap = {
+    mode = "partition"; # partition | none
+    sizeGiB = 32;
+  };
+
+  profile.system = "latency"; # balanced | latency | throughput | battery | memory-saver
+
+  gaming = {
+    steam = false;
+    gamemode = false;
+    gamescope = false;
+    lutris = false;
+    lutrisRsi = false;
+    wine = false;
+    emulationstation = false;
+  };
 
   nvidia = {
     enable = false;
