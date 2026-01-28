@@ -39,3 +39,10 @@ This document explains what `just audit` checks and how to interpret failures.
 - If you use sops/agenix, point `identityFile` to the secret path (for example,
   `identityFile = \"${config.sops.secrets.<name>.path}\";`).
 - Never store private key material in the repo or the Nix store.
+
+## Installer SSH inputs
+
+- Installer answers set `my.ssh.client.profile`, `my.ssh.client.features`,
+  and `my.ssh.knownHosts.enable`.
+- System trust roots live in NixOS `programs.ssh.knownHosts`; client UX lives
+  in Home Manager via the SSH templates.
