@@ -34,6 +34,7 @@ let
   };
 
   clientFeatures = {
+    "git-hosts" = emptyModule;
     bastion = t.client.bastion;
     cloud = t.client.cloud;
     unreliable = t.client.unreliable;
@@ -59,14 +60,14 @@ let
       config = lib.mkMerge (
         [
           (t.client.base { inherit lib; })
-          (profileTemplate cfg.profile)
-          (lib.mkIf cfg.onePasswordAgent.enable {
+          (profileTemplate cfg.client.profile)
+          (lib.mkIf cfg.client.onePasswordAgent.enable {
             programs.ssh.extraConfig = lib.mkAfter ''
               IdentityAgent ~/.1password/agent.sock
             '';
           })
         ]
-        ++ featureTemplates cfg.features
+        ++ featureTemplates cfg.client.features
       );
     };
 in
@@ -78,10 +79,45 @@ in
       description = "Enable declarative SSH client/server configuration.";
     };
 
-    client.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = true;
-      description = "Enable SSH client profile management via Home Manager.";
+    client = {
+      enable = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "Enable SSH client profile management via Home Manager.";
+      };
+
+      profile = lib.mkOption {
+        type = lib.types.enum [
+          "base"
+          "hardened"
+          "developer"
+          "home"
+          "ci"
+        ];
+        default = "base";
+        description = "SSH client profile to apply.";
+      };
+
+      features = lib.mkOption {
+        type = lib.types.listOf (
+          lib.types.enum [
+            "git-hosts"
+            "bastion"
+            "cloud"
+            "unreliable"
+            "corporate"
+            "legacy"
+          ]
+        );
+        default = [ ];
+        description = "Optional SSH feature bundles to layer on top of the client profile.";
+      };
+
+      onePasswordAgent.enable = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = "Enable 1Password SSH agent integration.";
+      };
     };
 
     server.enable = lib.mkOption {
@@ -90,42 +126,18 @@ in
       description = "Enable the hardened SSH server profile.";
     };
 
-    profile = lib.mkOption {
-      type = lib.types.enum [
-        "base"
-        "hardened"
-        "developer"
-        "home"
-        "ci"
-      ];
-      default = "base";
-      description = "SSH client profile to apply.";
-    };
+    knownHosts = {
+      enable = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "Enable system-wide SSH known_hosts policy (pins/CA).";
+      };
 
-    features = lib.mkOption {
-      type = lib.types.listOf (
-        lib.types.enum [
-          "bastion"
-          "cloud"
-          "unreliable"
-          "corporate"
-          "legacy"
-        ]
-      );
-      default = [ ];
-      description = "Optional SSH feature bundles to layer on top of the client profile.";
-    };
-
-    onePasswordAgent.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable 1Password SSH agent integration.";
-    };
-
-    knownHosts.pins = lib.mkOption {
-      type = lib.types.attrsOf lib.types.str;
-      default = { };
-      description = "Pinned SSH known host keys (hostname -> public key).";
+      pins = lib.mkOption {
+        type = lib.types.attrsOf lib.types.str;
+        default = { };
+        description = "Pinned SSH known host keys (hostname -> public key).";
+      };
     };
 
     cloud.caPublicKey = lib.mkOption {
@@ -138,21 +150,26 @@ in
   config = lib.mkIf cfg.enable (
     lib.mkMerge [
       (lib.mkIf cfg.client.enable {
+        # HM owns client UX (matchBlocks, extraConfig, multiplexing).
         home-manager.sharedModules = [ clientModule ];
       })
-      (lib.mkIf (cfg.client.enable && cfg.knownHosts.pins != { }) {
+      # NixOS owns trust roots (known_hosts pins / CA) and sshd policy.
+      (lib.mkIf (cfg.knownHosts.enable && cfg.knownHosts.pins != { }) {
         programs.ssh.knownHosts = mapPins cfg.knownHosts.pins;
       })
-      (lib.mkIf (cfg.client.enable && lib.elem "cloud" cfg.features && cfg.cloud.caPublicKey != null) {
-        programs.ssh.knownHosts.awsCA = {
-          hostNames = [ "@cert-authority *.compute.amazonaws.com" ];
-          publicKey = cfg.cloud.caPublicKey;
-        };
-      })
+      (lib.mkIf
+        (cfg.knownHosts.enable && lib.elem "cloud" cfg.client.features && cfg.cloud.caPublicKey != null)
+        {
+          programs.ssh.knownHosts.awsCA = {
+            hostNames = [ "@cert-authority *.compute.amazonaws.com" ];
+            publicKey = cfg.cloud.caPublicKey;
+          };
+        }
+      )
       (lib.mkIf cfg.server.enable (t.server.hardened { inherit lib; }))
       {
-        warnings = lib.optionals (lib.elem "legacy" cfg.features) [
-          "my.ssh.features contains \"legacy\"; use only as a last resort."
+        warnings = lib.optionals (lib.elem "legacy" cfg.client.features) [
+          "my.ssh.client.features contains \"legacy\"; use only as a last resort."
         ];
       }
     ]
