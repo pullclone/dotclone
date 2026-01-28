@@ -22,6 +22,7 @@ backup="${CONFIG}.bak.$(date +%Y%m%d%H%M%S)"
 $SUDO cp -a "$CONFIG" "$backup"
 
 tmp="$(mktemp)"
+# shellcheck disable=SC2016 # awk uses $0/$n fields intentionally.
 $SUDO awk '
   /^[[:space:]]*services\.openssh\.enable[[:space:]]*=/ {next}
   /^[[:space:]]*networking\.enableIPv6[[:space:]]*=/ {next}
