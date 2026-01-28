@@ -9,7 +9,7 @@ appendices.
 - Entry points: `configuration.nix`, `flake.nix`, `install-nyxos.sh`.
 - Facts vs policy: install answers live in `modules/core/install-answers.nix`
   and are exported as `config.my.install` for policy modules to consume.
-- Domain modules: `modules/{boot,core,hardware,programs,tuning,security,home}`.
+- Domain modules: `modules/{boot,core,hardware,programs,tuning,security,ssh,home}`.
 - Profiles: `profiles/` define system and ZRAM tuning (flake arg driven).
 - Scripts: `scripts/` contains audits and runtime checks used by `just`.
 
@@ -57,7 +57,8 @@ appendices.
     ├── pkgs/                           # Custom package derivations
     ├── profiles/                       # Flake-native system + ZRAM profile set
     ├── templates/
-    │   └── research/                   # Opt-in, standalone research flake
+    │   ├── research/                   # Opt-in, standalone research flake
+    │   └── ssh/                        # Declarative SSH client/server templates
     ├── scripts/                        # Maintenance and test scripts
     │   ├── audit-repo.sh               # Contract + flake/build audit
     │   ├── test-configuration.sh       # Static sanity checks against configuration files
@@ -77,6 +78,7 @@ appendices.
         ├── tuning/                     # Performance and kernel tuning
         │   └── sysctl.nix              # Kernel sysctl, IO schedulers, Btrfs maintenance
         ├── security/                   # Hardening modules
+        ├── ssh/                        # Declarative SSH client/server profiles
         └── home/                       # Home Manager configuration
             ├── home-ashy.nix           # HM entry point
             ├── apps/                   # User applications (Brave, Btop, Cava)
@@ -111,6 +113,7 @@ appendices.
 - `modules/security/aide.nix`: optional AIDE service/timer.
 - `modules/security/lynis.nix`: optional Lynis audit service/timer.
 - `modules/security/luks-gpg.nix`: initrd GPG decrypt flow for LUKS keyfiles.
+- `modules/ssh/default.nix`: declarative SSH client/server profile wiring.
 - `modules/programs/gaming.nix`: optional gaming stack based on install facts.
 - `modules/home/apps/ssh-identity.nix`: SSH identity wiring from install facts.
 - `modules/home/apps/trezor-agent.nix`: optional trezor-agent service.
@@ -118,6 +121,7 @@ appendices.
 - `modules/boot/uki.nix`: Bootspec with NyxOS UKI extension.
 - `profiles/`: system + ZRAM profiles (finite outputs).
 - `pkgs/latencyflex.nix`: LatencyFleX derivation and manifest.
+- `templates/ssh/`: SSH client/server templates (profiles + features).
 - `docs/OPERATIONS.md`: daily-use cheat sheet.
 - `docs/SECURITY_AND_RECOVERY.md`: security phases and recovery guidance.
 - `docs/REPRODUCIBILITY.md`: release provenance snippet.
@@ -245,4 +249,3 @@ Installer -> answers -> consumer map:
 - Backup system: `modules/services/backup.nix`.
 - Monitoring: split Prometheus/Grafana under `modules/services/monitoring.nix`.
 - Server profile: separate NixOS configuration for server use.
-

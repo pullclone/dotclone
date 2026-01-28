@@ -33,3 +33,9 @@ This document explains what `just audit` checks and how to interpret failures.
 - Strict (gating): audit/preflight/pre-install scripts.
 - Advisory (non-blocking): all `scripts/*.sh`.
 - Suppressions must be local with a one-line rationale.
+
+## SSH secrets (optional)
+
+- If you use sops/agenix, point `identityFile` to the secret path (for example,
+  `identityFile = \"${config.sops.secrets.<name>.path}\";`).
+- Never store private key material in the repo or the Nix store.

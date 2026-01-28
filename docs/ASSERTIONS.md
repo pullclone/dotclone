@@ -117,6 +117,9 @@ normalized by `modules/core/install-answers.nix` and re-exported via
 - **SSH Identity Mode** -- `my.install.ssh.identity` must be `file` or
   `fido2` and is used to configure default SSH identity handling in
   Home Manager.[\[25\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/core/install-answers.nix#L174-L188)
+- **SSH Client Policy** -- `my.ssh` defines declarative SSH profiles and
+  must disable `programs.ssh.enableDefaultConfig`; any legacy crypto
+  exceptions must be explicitly opted into and warned.
 - **LUKS GPG Unlock Facts** -- `my.install.luksGpg` values must be
   present when enabling initrd GPG unlock: device and encrypted keyfile
   paths must be set, the encrypted keyfile must live under the initrd
