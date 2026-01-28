@@ -376,6 +376,7 @@ audit:
     set -euo pipefail
     just check-nixfmt
     just shellcheck-strict
+    scripts/check-docs.sh
     scripts/audit-repo.sh
     just shellcheck-advisory
 
