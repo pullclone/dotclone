@@ -205,6 +205,7 @@
             nixfmt-rfc-style
             statix
             deadnix
+            findutils
           ];
         };
 

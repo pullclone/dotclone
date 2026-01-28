@@ -165,7 +165,8 @@ if rg_nix "key(File|file)\\s*=\\s*\\\"/nix/store" >/dev/null; then
 fi
 
 echo "==> shellcheck installer + scripts"
-mapfile -t shell_scripts < <(/usr/bin/find install-nyxos.sh scripts -type f -name "*.sh")
+mapfile -t shell_scripts < <(
+find install-nyxos.sh scripts -type f -name "*.sh")
 if [ "${#shell_scripts[@]}" -gt 0 ]; then
   shellcheck "${shell_scripts[@]}"
 fi
