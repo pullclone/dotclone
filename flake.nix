@@ -194,51 +194,53 @@
         }
         // toplevelAttrs;
 
-      devShells.${system}.default = nixpkgs.legacyPackages.${system}.mkShell {
-        packages = with nixpkgs.legacyPackages.${system}; [
-          just
-          git
-          ripgrep
-          shellcheck
-          shfmt
-          nixfmt-rfc-style
-          statix
-          deadnix
-        ];
-      };
+      devShells.${system} = {
+        default = nixpkgs.legacyPackages.${system}.mkShell {
+          packages = with nixpkgs.legacyPackages.${system}; [
+            just
+            git
+            ripgrep
+            shellcheck
+            shfmt
+            nixfmt-rfc-style
+            statix
+            deadnix
+          ];
+        };
 
-      devShells.${system}.agent = nixpkgs.legacyPackages.${system}.mkShell {
-        packages = with nixpkgs.legacyPackages.${system}; [
-          # Core workflow
-          just
-          git
-          ripgrep
-          fd
-          jq
-          yq-go
+        agent = nixpkgs.legacyPackages.${system}.mkShell {
+          packages = with nixpkgs.legacyPackages.${system}; [
+            # Core workflow
+            just
+            git
+            ripgrep
+            fd
+            jq
+            yq-go
 
-          # Nix format & lint
-          nixfmt-rfc-style
-          statix
-          deadnix
+            # Nix format & lint
+            nixfmt-rfc-style
+            statix
+            deadnix
 
-          # Shell lint & format
-          shellcheck
-          shfmt
+            # Shell lint & format
+            shellcheck
+            shfmt
 
-          # Nix language tooling (optional but useful)
-          nil
+            # Nix language tooling
+            nil
 
-          # Secret scanning + docs hygiene
-          gitleaks
-          markdownlint-cli2
-          typos
-        ];
+            # Secret scanning + docs hygiene
+            gitleaks
+            markdownlint-cli2
+            typos
+          ];
 
-        shellHook = ''
-          echo "dotclone agent devShell active."
-          echo "Reminder: run 'just audit' before committing."
-        '';
+          shellHook = ''
+            echo "dotclone agent devShell active."
+            echo "Reminder: run 'just audit' before committing."
+          '';
+        };
       };
 
       nixosConfigurations = lib.listToAttrs (

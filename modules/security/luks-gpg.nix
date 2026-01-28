@@ -13,47 +13,45 @@ let
   cryptsetupUnit = "systemd-cryptsetup@${lib.escapeSystemdPath cfg.mapperName}.service";
 
   decryptScript = pkgs.writeShellScript "nyxos-luks-gpg-decrypt" ''
-        set -euo pipefail
-        umask 077
+    set -euo pipefail
+    umask 077
 
-        key_mount="${cfg.encryptedKeyMount}"
-        key_device="${cfg.encryptedKeyDevice}"
-        key_fstype="${cfg.encryptedKeyFsType}"
-        key_opts="${cfg.encryptedKeyMountOptions}"
-        enc_key="${cfg.encryptedKeyFile}"
-        dec_key="${cfg.decryptedKeyFile}"
-        gnupg_home="${cfg.gnupgHome}"
-        pinentry="${cfg.pinentryPackage}/bin/pinentry-curses"
+    key_mount="${cfg.encryptedKeyMount}"
+    key_device="${cfg.encryptedKeyDevice}"
+    key_fstype="${cfg.encryptedKeyFsType}"
+    key_opts="${cfg.encryptedKeyMountOptions}"
+    enc_key="${cfg.encryptedKeyFile}"
+    dec_key="${cfg.decryptedKeyFile}"
+    gnupg_home="${cfg.gnupgHome}"
+    pinentry="${cfg.pinentryPackage}/bin/pinentry-curses"
 
-        mkdir -p "$gnupg_home"
-        chmod 700 "$gnupg_home"
+    mkdir -p "$gnupg_home"
+    chmod 700 "$gnupg_home"
 
-        cat > "$gnupg_home/gpg-agent.conf" <<EOF_CONF
-    pinentry-program $pinentry
-    EOF_CONF
+    printf '%s\n' "pinentry-program $pinentry" > "$gnupg_home/gpg-agent.conf"
 
-        export GNUPGHOME="$gnupg_home"
-        export GPG_TTY=/dev/console
+    export GNUPGHOME="$gnupg_home"
+    export GPG_TTY=/dev/console
 
-        mkdir -p "$(dirname "$dec_key")"
+    mkdir -p "$(dirname "$dec_key")"
 
-        if [[ -n "$key_device" ]]; then
-          mkdir -p "$key_mount"
-          mount -t "$key_fstype" -o "$key_opts" "$key_device" "$key_mount"
-        fi
+    if [[ -n "$key_device" ]]; then
+      mkdir -p "$key_mount"
+      mount -t "$key_fstype" -o "$key_opts" "$key_device" "$key_mount"
+    fi
 
-        if [[ ! -f "$enc_key" ]]; then
-          echo "Encrypted keyfile not found: $enc_key" >&2
-          exit 1
-        fi
+    if [[ ! -f "$enc_key" ]]; then
+      echo "Encrypted keyfile not found: $enc_key" >&2
+      exit 1
+    fi
 
-        gpgconf --launch gpg-agent
-        gpg --batch --yes --decrypt --output "$dec_key" "$enc_key"
-        chmod 600 "$dec_key"
+    gpgconf --launch gpg-agent
+    gpg --batch --yes --decrypt --output "$dec_key" "$enc_key"
+    chmod 600 "$dec_key"
 
-        if [[ -n "$key_device" ]]; then
-          umount "$key_mount"
-        fi
+    if [[ -n "$key_device" ]]; then
+      umount "$key_mount"
+    fi
   '';
 
   wipeScript = pkgs.writeShellScript "nyxos-luks-gpg-wipe" ''
