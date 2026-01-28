@@ -421,7 +421,7 @@ test-latencyflex:
 
     # The layer should exist in the system profile; common location is ./result/sw/lib
     # (This assumes the package installs into $out/lib and patches the JSON accordingly.)
-    if ! find "./result/sw/lib" -maxdepth 1 -type f -name "*latencyflex*.so*" | grep -q .; then
+    if ! find -L "./result/sw/lib" -maxdepth 1 -type f -name "*latencyflex*.so*" | grep -q .; then
         echo "Missing LatencyFleX shared library in build result under ./result/sw/lib"
         echo "Hint: ensure the package installs to \$out/lib and the manifest is patched."
         exit 1
