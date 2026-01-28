@@ -1,44 +1,82 @@
 # NyxOS Configuration Map
 
-This document provides a structured map of the NyxOS repository, showing
-where major files and modules live, the build‑time vs runtime boundary,
-and quick guides for implementation. It reflects the **domain‑driven**
-architecture and the separation of **facts** vs **policy** adopted in
-the latest refactor.
+This document maps where core files live, how profiles compose, and how to
+safely locate and edit features. Detailed reference material is in the
+appendices.
 
-## Repository Structure
+## Quick map (main)
 
-    
+- Entry points: `configuration.nix`, `flake.nix`, `install-nyxos.sh`.
+- Facts vs policy: install answers live in `modules/core/install-answers.nix`
+  and are exported as `config.my.install` for policy modules to consume.
+- Domain modules: `modules/{boot,core,hardware,programs,tuning,security,home}`.
+- Profiles: `profiles/` define system and ZRAM tuning (flake arg driven).
+- Scripts: `scripts/` contains audits and runtime checks used by `just`.
+
+## Profiles and composition
+
+- Official profiles: `latency`, `balanced`, `throughput`, `battery`,
+  `memory-saver`.
+- Realized outputs: `nyx-<profile>-lfx-<on|off>` (10 total) plus alias
+  `nyx -> nyx-balanced-lfx-on`.
+- Build/switch examples:
+  - `just build` / `just switch` (env overrides: `SYSTEM_PROFILE`,
+    `LATENCYFLEX_ENABLE`)
+  - `nix build .#nixosConfigurations.nyx-<profile>-lfx-<on|off>.config.system.build.toplevel`
+  - `sudo nixos-rebuild switch --flake .#nyx-<profile>-lfx-<on|off>`
+
+## Safe editing guide
+
+1. Identify the domain: `boot`, `hardware`, `tuning`, `programs`,
+   `security`, or `home`.
+2. Locate existing patterns in `modules/` and follow their structure.
+3. Keep sysctl in `modules/tuning/sysctl.nix`; boot params in boot or
+   hardware modules.
+4. Update docs and assertions for non-trivial changes.
+5. Validate with `just audit`, then build and test.
+
+## Build and lint workflow
+
+- `nix develop .#agent`: enter the pinned toolchain.
+- `just audit`: formatting gate, flake check/build, contract checks,
+  shellcheck strict/advisory.
+- `just build` / `just test`: build and smoke tests.
+- See `docs/PREFLIGHT.md` and `docs/LINT_POLICY.md` for details.
+
+## Appendices
+
+### Appendix A: Repository structure
+
     ├── configuration.nix               # Main system policy orchestrator (services, users, packages)
     ├── flake.lock
-    ├── flake.nix                       # Flake entry point & module wiring (rooted here; no ./NixOS)
+    ├── flake.nix                       # Flake entry point and module wiring (rooted here; no ./NixOS)
     ├── hardware-configuration.nix      # Generated hardware config (mounts/filesystems)
-    ├── install-nyxos.sh                # Repository-based installer (LUKS2 root + optional persist partition, dry-run build mode)
-    ├── overlays/                       # Overrride, extend + pkgs ensure visibility to 🏠 manager & system
-    │   └── latencyflex.nix             # Exposes the locally-packaged LatencyFleX as pkgs.latencyflex
+    ├── install-nyxos.sh                # Installer (LUKS2 root + optional persist, dry-run build mode)
+    ├── overlays/                       # Override/extend packages for system and Home Manager
+    │   └── latencyflex.nix             # Exposes LatencyFleX as pkgs.latencyflex
     ├── pkgs/                           # Custom package derivations
     ├── profiles/                       # Flake-native system + ZRAM profile set
     ├── templates/
-    │   └── research/                   # Opt-in, standalone research flake (pinned devShell + run app)
-    ├── scripts/                        # Maintenance & test scripts
+    │   └── research/                   # Opt-in, standalone research flake
+    ├── scripts/                        # Maintenance and test scripts
     │   ├── audit-repo.sh               # Contract + flake/build audit
     │   ├── test-configuration.sh       # Static sanity checks against configuration files
-    │   └── test-optimizations.sh       # Runtime optimisation checks (optional)
-    └── modules/                        # Reusable modules (domain‑driven)
-        ├── boot/                       # Bootloader & Secure Boot logic
+    │   └── test-optimizations.sh       # Runtime optimization checks (optional)
+    └── modules/                        # Reusable modules (domain-driven)
+        ├── boot/                       # Bootloader and Secure Boot logic
         │   └── boot-profile.nix        # Switchable profile (UKI vs Lanzaboote/Secure Boot)
-        ├── core/                       # Installation facts & data
-        │   ├── install-answers.nix     # Hostname, timezone, user & MAC answers
+        ├── core/                       # Installation facts and data
+        │   ├── install-answers.nix     # Hostname, timezone, user, MAC answers
         │   ├── keyboard-preset.nix     # Console + XKB keyboard preset wiring
         │   └── xkb/                    # Custom XKB symbols for nonstandard layouts
         ├── hardware/                   # Hardware-specific configurations
-        │   └── amd-gpu.nix             # AMD Strix Point kernel params & ROCm stack
+        │   ├── amd-gpu.nix             # AMD kernel params and ROCm stack
         │   └── nvidia-gpu.nix          # Install-driven NVIDIA/PRIME wiring
         ├── programs/                   # System-level program modules
         │   └── latencyflex-module.nix  # Toggle for the LatencyFleX Vulkan layer
-        ├── tuning/                     # Performance & kernel tuning
-        │   └── sysctl.nix              # Kernel sysctl, I/O schedulers, Btrfs maintenance
-        ├── security/                   # Hardening modules (NTS time sync, systemd NNP, USBGuard)
+        ├── tuning/                     # Performance and kernel tuning
+        │   └── sysctl.nix              # Kernel sysctl, IO schedulers, Btrfs maintenance
+        ├── security/                   # Hardening modules
         └── home/                       # Home Manager configuration
             ├── home-ashy.nix           # HM entry point
             ├── apps/                   # User applications (Brave, Btop, Cava)
@@ -49,298 +87,119 @@ the latest refactor.
             ├── terminals/              # Terminal emulators (Kitty)
             └── waybar/                 # Waybar panel config
 
-### Noteworthy Files
+### Appendix B: Noteworthy files
 
-- `modules/core/install-answers.nix` -- reads
-  `/etc/nixos/nyxos-install.nix` to inject dynamic **facts** (hostName,
-  timeZone, userName, MAC) into the system configuration.
-  Installs expanded facts (snapshots, trim, trust, boot, swap, profile,
-  hardware auth, SSH identity, keyboard, LUKS GPG unlock, gaming) and
-  exports them via `config.my.install`.
-- `install-nyxos.sh` -- installer supports LUKS2 root, optional
-  `persist` partition creation for GPG keyfile storage (prompted as
-  on-device vs external), a pause step to create/encrypt the keyfile
-  before `nixos-install`, and a dry-run mode that skips disk operations
-  while building the toplevel. The build target is selectable (defaults
-  to `nyx`) for both dry-run and install. Timezone input accepts IANA
-  names, abbreviations, and UTC offsets (including select half-hour
-  offsets mapped to IANA zones). Invalid inputs are re-prompted so you
-  can correct a single answer without restarting the installer.
-- `modules/core/keyboard-preset.nix` -- applies a single keyboard preset
-  across initrd/TTY and XKB (sessions + SDDM greeter), plus optional
-  custom XKB symbols stored under `modules/core/xkb/symbols`.
-- `modules/boot/boot-profile.nix` -- defines mutually exclusive
-  boot profiles (UKI vs Secure Boot via Lanzaboote) and the associated
-  assertions.
-- `modules/tuning/sysctl.nix` -- the **sole** source for
-  `boot.kernel.sysctl` definitions and Btrfs maintenance services.
-- `modules/security/phase.nix` -- defines `my.security.phase`,
-  `my.security.breakglass`, and `my.security.assertions` toggles for
-  sequenced hardening rollouts.
-- `modules/security/access.nix` -- applies least-privilege doas rules
-  and enforces break-glass gating when `my.security.phase >= 1`.
-- `modules/security/locker-pam.nix` -- audits locker selection (Noctalia
-  vs swaylock), enforces single-locker assertions, and records the
-  active locker for phase-gated hardening.
-- `modules/security/time-sync.nix` -- Chrony with NTS defaults; override
-  via `my.security.timeSync.ntsServers`.
-- `modules/security/systemd-hardening.nix` -- sets
-  `DefaultNoNewPrivileges=yes` globally; override per-unit with
-  `serviceConfig.NoNewPrivileges = lib.mkForce false`.
-- `modules/security/usbguard.nix` -- gates USBGuard by security phase,
-  defaulting to audit/allow mode with optional soft enforcement and a
-  reproducible rule file at `etc/usbguard/rules.conf`.
-- `modules/security/u2f.nix` -- phased pam_u2f wiring (optional in phase
-  1, required in phase 2) starting on doas with break-glass bypass.
-- `modules/security/fingerprint.nix` -- optional fingerprint
-  authentication (pam_fprintd) for selected PAM services (login/locker)
-  with phase-aware enablement; doas is untouched.
-- `modules/security/aide.nix` -- optional AIDE integrity monitoring with
-  weekly check timer and manual init/check services.
-- `modules/security/lynis.nix` -- optional Lynis audit service/timer and
-  report collection under `/var/log/nyxos/lynis`.
-- `modules/security/luks-gpg.nix` -- initrd GPG decrypt flow for LUKS
-  keyfiles (Trezor-gated), reading encrypted key material from a
-  persistent mount and wiping tmpfs after unlock.
-- `modules/programs/gaming.nix` -- optional gaming stack (Steam, Lutris,
-  Wine, gamescope, gamemode, EmulationStation) driven by install facts.
-- `modules/home/apps/ssh-identity.nix` -- Home Manager module to pin SSH
-  identity files (file vs FIDO2) from install answers.
-- `modules/home/apps/trezor-agent.nix` -- Optional Home Manager module
-  to run trezor-agent as a user service and wire SSH/Git to the
-  hardware-backed agent (not enabled by default).
-- `modules/home/apps/protonvpn.nix` -- Home Manager module to optionally
-  install ProtonVPN GUI based on install answers.
-- `modules/boot/uki.nix` -- enables Bootspec with a NyxOS UKI metadata
-  extension in staged/enforced phases to support deterministic UKI
-  artifacts (no key enrollment yet).
-- `profiles/` -- flake-native system + ZRAM profile modules; the flake
-  asserts that `systemProfile` is one of the official profiles and
-  yields finite outputs (see below).
-- `pkgs/latencyflex.nix` -- custom derivation that installs the
-  LatencyFleX implicit layer and its manifest.
-- `docs/OPERATIONS.md` -- daily-use cheat sheet covering `nixos-option`,
-  build/switch commands, and the end-state checklist.
-- `docs/SECURITY_PHASES.md` -- phased hardening map, dry-activate/test
-  harness, and break-glass expectations.
-- `docs/RECOVERY.md` -- recovery playbook and break-glass procedures for
-  failed or staged hardening changes.
-- `docs/REPRODUCIBILITY.md` -- release provenance snippet (how to cite
-  and reproduce exact builds).
-- `scripts/audit-locker.sh` -- locker/PAM audit helper to print the
-  configured locker, PAM snippets, and idle/suspend lock behavior.
-- `scripts/usbguard-generate-policy.sh` -- generate a USBGuard allowlist
-  from currently attached devices with timestamped backups.
-- `scripts/rsi-launcher.sh` -- helper wrapper to run nix-citizen’s RSI
-  launcher or trigger the Lutris setup helper.
-- `templates/research/` -- opt-in, standalone flake for lightweight
-  experiments; executable documentation/boilerplate with pinned Python
-  devShell, helper scripts, and a sample experiment. Not required for
-  system builds.
+- `modules/core/install-answers.nix`: reads `/etc/nixos/nyxos-install.nix` and
+  exports `config.my.install` facts.
+- `install-nyxos.sh`: installer with LUKS2 root, optional persist partition,
+  and dry-run build validation.
+- `modules/core/keyboard-preset.nix`: single keyboard preset across initrd/TTY
+  and XKB sessions.
+- `modules/boot/boot-profile.nix`: mutually exclusive boot profiles (UKI vs
+  Secure Boot) with assertions.
+- `modules/tuning/sysctl.nix`: the sole source for `boot.kernel.sysctl`.
+- `modules/security/phase.nix`: `my.security.phase`, `my.security.breakglass`,
+  and assertions gating.
+- `modules/security/access.nix`: least-privilege doas rules and break-glass
+  gating.
+- `modules/security/locker-pam.nix`: locker selection assertions and auditing.
+- `modules/security/time-sync.nix`: Chrony with NTS defaults.
+- `modules/security/systemd-hardening.nix`: global NoNewPrivileges defaults.
+- `modules/security/usbguard.nix`: USBGuard gating by security phase.
+- `modules/security/u2f.nix`: phased pam_u2f wiring.
+- `modules/security/fingerprint.nix`: optional pam_fprintd wiring.
+- `modules/security/aide.nix`: optional AIDE service/timer.
+- `modules/security/lynis.nix`: optional Lynis audit service/timer.
+- `modules/security/luks-gpg.nix`: initrd GPG decrypt flow for LUKS keyfiles.
+- `modules/programs/gaming.nix`: optional gaming stack based on install facts.
+- `modules/home/apps/ssh-identity.nix`: SSH identity wiring from install facts.
+- `modules/home/apps/trezor-agent.nix`: optional trezor-agent service.
+- `modules/home/apps/protonvpn.nix`: optional ProtonVPN GUI.
+- `modules/boot/uki.nix`: Bootspec with NyxOS UKI extension.
+- `profiles/`: system + ZRAM profiles (finite outputs).
+- `pkgs/latencyflex.nix`: LatencyFleX derivation and manifest.
+- `docs/OPERATIONS.md`: daily-use cheat sheet.
+- `docs/SECURITY_AND_RECOVERY.md`: security phases and recovery guidance.
+- `docs/REPRODUCIBILITY.md`: release provenance snippet.
+- `scripts/audit-locker.sh`: locker/PAM audit helper.
+- `scripts/usbguard-generate-policy.sh`: USBGuard allowlist generator.
+- `scripts/rsi-launcher.sh`: helper wrapper for RSI launcher or Lutris setup.
+- `templates/research/`: opt-in research flake with pinned devShell.
 
-### Official Profiles & Finite Outputs
+### Appendix C: Build-time vs runtime boundary
 
-- Official profiles: `latency`, `balanced`, `throughput`, `battery`,
-  `memory-saver`.
-- Realized system outputs (pure, finite): `nyx-<profile>-lfx-<on|off>`
-  (10 total) plus alias `nyx` → `nyx-balanced-lfx-on`.
-- Build/switch examples:
-  - `just build` / `just switch` (env overrides: `SYSTEM_PROFILE`,
-    `LATENCYFLEX_ENABLE`)
-  - `nix build .#nixosConfigurations.nyx-<profile>-lfx-<on|off>.config.system.build.toplevel`
-  - `sudo nixos-rebuild switch --flake .#nyx-<profile>-lfx-<on|off>`
+#### Build-time components
 
-### Build & Lint Workflow (authoritative)
+- Flake definition (`flake.nix`): pins inputs and wires modules.
+- Install facts (`modules/core/install-answers.nix`): dynamic facts collected
+  at install time.
+- Domain modules (`modules/*`): boot, hardware, tuning, home.
+- System policy (`configuration.nix`): services, users, packages, imports.
+- Home Manager config (`modules/home/home-ashy.nix`): user environment.
+- Custom packages (`pkgs/`): local overrides and derivations.
 
-- `nix develop` — enter pinned devShell (just, git, rg, shellcheck,
-  shfmt, nixfmt-tree, statix, deadnix).
-- `just audit` — runs `nixfmt-tree --check`, `nix flake check .`,
-  contract greps, shellcheck strict (gating), and shellcheck advisory
-  (non-blocking); CI enforces the same gate (templates are excluded).
-- `nixfmt-tree .` / `just fmt-nix` — canonical formatter (nixfmt rfc
-  style).
-- `just lint-nix-report` — advisory `reports/{statix,deadnix}.txt`
-  (never fails).
-- `just audit-templates` — opt-in checks for `templates/research/` flake.
-- `just lint-shell` / `just fmt-shell` — shellcheck/shfmt for
-  `install-nyxos.sh` + `scripts/**/*.sh`.
-- `just build` / `just switch` — pure builds against finite configs
-  (`nyx-<profile>-lfx-{on,off}`), default `nyx`.
-
-## Build‑Time vs Runtime Boundary
-  
-### Build-Time Components
-
-- **Flake definition** (`flake.nix`): pins inputs, defines
-  outputs, and wires together modules.
-
-- **Install facts** (`modules/core/install-answers.nix`): dynamic facts
-  generated during installation (hostname, timezone, username, MAC).
-
-### Install Facts Contract (Authoritative)
+#### Install facts contract
 
 Install-time facts are collected once by `install-nyxos.sh` and written to:
 
 - `/etc/nixos/nyxos-install.nix`
 
-These facts are loaded **exactly once** by:
+These facts are loaded exactly once by:
 
 - `modules/core/install-answers.nix`
 
-and are re-exported as a **typed, structured interface** at:
+and re-exported as `config.my.install`.
 
-- `config.my.install`
+Rules:
 
-**Rules:**
+- No other module may import `nyxos-install.nix` directly.
+- All system, boot, tuning, snapshot, and trust logic must consume install
+  decisions via `config.my.install`.
+- This file represents facts, not policy.
+- LUKS GPG unlock must reference encrypted key material from a persistent mount.
+- Gaming selections map to `modules/programs/gaming.nix` policy.
 
-- No other module may import `nyxos-install.nix` directly
-  (including Home Manager modules).
-- All system, boot, tuning, snapshot, and trust logic must consume
-  install-time decisions exclusively via `config.my.install`.
-- This file represents *facts*, not *policy* — interpretation belongs to
-  domain modules.
-- LUKS GPG unlock (if used) is described under `my.install.luksGpg` and
-  must reference encrypted key material from a persistent mount (not the
-  Nix store or repo).
-- Gaming selections are captured under `my.install.gaming` and map to
-  `modules/programs/gaming.nix` policy.
+#### Runtime components
 
-- **Domain modules** (`modules/*`): specialized logic for boot,
-  hardware, tuning, and home evaluated during evaluation.
-- **System policy** (`configuration.nix`): orchestrates services,
-  users, packages and imports domain modules.
-- **Home Manager config** (`modules/home/home-ashy.nix`): declares the
-  user environment; imported via the flake.
-- **Custom packages** (`pkgs/`): local overrides and derivations.
+- Bootloader: systemd-boot or Lanzaboote (via `boot-profile.nix`).
+- Services: systemd services declared in `configuration.nix` and modules.
+- Wayland compositor: Niri (`modules/home/niri/`).
+- Panels: Waybar and/or Noctalia (`modules/home/waybar`, `modules/home/noctalia`).
+- System/ZRAM profile: flake-selected profiles under `profiles/`.
+- Filesystem maintenance: periodic defrag/balance/scrub/trim in `sysctl.nix`.
 
-### Runtime Components
+### Appendix D: Kernel tuning reference
 
-- **Bootloader**: systemd‑boot or Lanzaboote, as selected in
-  `boot-profile.nix`.
-- **Services**: systemd services such as SDDM, NetworkManager, Netdata,
-  Prometheus, and Btrfs maintenance declared in `configuration.nix` and
-  modules.
-- **Wayland compositor**: Niri, configured in `modules/home/niri/`.
-- **Panels**: Waybar and/or Noctalia, configured in
-  `modules/home/waybar` or `modules/home/noctalia`.
-- **System/ZRAM profile**: created by flake-selected profiles under
-  `profiles/`.
-- **Filesystem maintenance**: periodic defragmentation, balance, scrub
-  and TRIM configured in `sysctl.nix`.
+- Sysctl tuning: `modules/tuning/sysctl.nix` (only location for
+  `boot.kernel.sysctl`).
+- Boot parameters: boot profile or hardware modules.
+- IO scheduler: set via `boot.extraModprobeConfig` in `sysctl.nix`.
+- Filesystem maintenance: `sysctl.nix` defines Btrfs maintenance services.
 
-## Quick Implementation Guide
+### Appendix E: Runtime component map
 
-### Adding a New Module
-
-1.  **Identify the domain**: decide if the feature belongs to
-    `programs`, `hardware`, `tuning`, `home`, or (future)
-    `services`/`virtualization`.
-2.  **Location**: create the file under `modules/<domain>/` with a
-    descriptive name.
-3.  **Structure**: follow the existing module pattern
-    (`{ config, lib, pkgs, ... }: {...}`), defining your own options via
-    `lib.mkOption` or `lib.mkEnableOption` and using `lib.mkIf` to
-    conditionally apply config.
-4.  **Integration**: import the new module in `flake.nix` (global) or
-    `configuration.nix` (policy‑specific). Do not forget to add an
-    appropriate assertion in `docs/ASSERTIONS.md` if the module
-    introduces new invariants.
-
-### Adding a New Service
-
-1.  **Configuration**: add the service to the `services = { ... }` block
-    in `configuration.nix` or encapsulate it in a new module under
-    `modules/services/` (recommended for reusability).
-2.  **Kernel tuning**: if the service requires kernel parameters or
-    sysctl tuning, add them to `modules/tuning/sysctl.nix` rather than
-    directly in `configuration.nix`.
-3.  **Assertions**: document runtime invariants (e.g., the service must
-    reach `active` state) in `docs/ASSERTIONS.md`.
-
-### Adding Home Manager Configuration
-
-1.  **Location**: create a module under `modules/home/<category>/`
-    (e.g., `terminals/kitty.nix`).
-2.  **Structure**: follow Home Manager conventions, defining options and
-    using `lib.mkIf` to handle toggles.
-3.  **Integration**: import the module in `modules/home/home-ashy.nix`,
-    adding the option or enabling block.
-4.  **Testing**: run `nixos-rebuild switch` or
-    `nix build .#nixosConfigurations.<host>.config.system.build.toplevel`
-    and verify that the configuration applies without errors.
-
-## Kernel Tuning Reference
-
-- **Sysctl tuning**: all kernel parameters live in
-  `modules/tuning/sysctl.nix`. Do **not** define `boot.kernel.sysctl`
-  elsewhere to avoid
-  conflicts[\[1\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/tuning/sysctl.nix#L7-L40).
-- **Boot parameters**: general boot parameters (e.g., `quiet`, `splash`)
-  are defined in the boot profile. Hardware‑specific parameters (e.g.,
-  `amd_pstate=active`) live in hardware modules such as
-  `modules/hardware/amd-gpu.nix`[\[2\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/hardware/amd-gpu.nix#L7-L10).
-- **I/O scheduler**: set via `boot.extraModprobeConfig` in
-  `sysctl.nix`[\[3\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/tuning/sysctl.nix#L46-L51).
-- **Filesystem maintenance**: `sysctl.nix` defines a one‑shot Btrfs
-  optimisation service and periodic maintenance via
-  `/etc/btrfs-maintenance.xml`[\[4\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/tuning/sysctl.nix#L56-L83).
-
-## Evolving Runtime Component Map
-
-  -------------------------------------------------------------------------------------
-  Component       Type            Location                             Responsibility
+  -----------------------------------------------------------------------------
+  Component       Type            Location                             Purpose
   --------------- --------------- ------------------------------------ ----------------
-  Bootloader      System          `modules/boot/boot-profile.nix`      Switchable UKI
-                                                                       or Secure Boot
-                                                                       via Lanzaboote
+  Bootloader      System          `modules/boot/boot-profile.nix`      UKI or Secure Boot
+  Install Facts   Config          `modules/core/install-answers.nix`   Hostname/timezone/user facts
+  Hardware        Config          `modules/hardware/amd-gpu.nix`       ROCm packages, kernel params
+  Sysctl          Config          `modules/tuning/sysctl.nix`          Kernel sysctl, IO scheduler
+  Snapshots       Service         `modules/tuning/btrfs-snapshots.nix` Btrfs snapshot policy
+  System Profile  Module          `profiles/system/`                   System + ZRAM tuning
+  Waybar          Service         `modules/home/waybar/`               Status bar
+  Noctalia        Service         `modules/home/noctalia/`             Alternative panel
+  Niri            Service         `modules/home/niri/`                 Wayland compositor
+  LatencyFleX     Package         `pkgs/latencyflex.nix`               Vulkan implicit layer
+  Btrfs Maint.    Service         `modules/tuning/sysctl.nix`          Defrag, balance, scrub, trim
+  -----------------------------------------------------------------------------
 
-  Install Facts   Config          `modules/core/install-answers.nix`   Hostname,
-                                                                       timezone,
-                                                                       username, MAC
-                                                                       injection
-
-  Hardware        Config          `modules/hardware/amd-gpu.nix`       ROCm packages,
-                                                                       AMD kernel
-                                                                       params
-
-  Sysctl          Config          `modules/tuning/sysctl.nix`          Kernel sysctl
-                                                                       knobs, I/O
-                                                                       scheduler, Btrfs
-                                                                       tuning
-  Snapshots       Service         `modules/tuning/btrfs-snapshots.nix` Btrfs snapshot
-                                                                       policy (btrbk)
-
-  System Profile  Module          `profiles/system/`                  System + ZRAM
-                                                                       tuning (flake
-                                                                       arg driven)
-
-  Waybar          Service         `modules/home/waybar/`               Status bar with
-                                                                       dynamic island
-
-  Noctalia        Service         `modules/home/noctalia/`             Alternative
-                                                                       panel via
-                                                                       upstream HM
-                                                                       module
-
-  Niri            Service         `modules/home/niri/`                 Wayland
-                                                                       compositor
-
-  LatencyFleX     Package         `pkgs/latencyflex.nix`               Vulkan implicit
-                                                                       layer for
-                                                                       latency
-                                                                       reduction
-
-  Btrfs Maint.    Service         `modules/tuning/sysctl.nix`          Defrag, balance,
-                                                                       scrub, trim
-                                                                       tasks
-  -------------------------------------------------------------------------------------
-
-### Component Relationships
+#### Component relationships
 
     graph TD
         A[Flake Entry] --> B[Boot Profile]
         A --> C[Install Answers]
-        A --> D[Hardware & Tuning Modules]
+        A --> D[Hardware and Tuning Modules]
         A --> E[System Policy (configuration.nix)]
         A --> F[Home Manager]
 
@@ -354,67 +213,36 @@ and are re-exported as a **typed, structured interface** at:
         F --> J[Desktop (Niri/Waybar/Noctalia)]
         F --> K[Apps]
 
-## Planned Updates (install/trust/snapshot wiring)
+### Appendix F: Planned updates and installer map
 
-- Align boot profile selection with install answers (`boot.mode`) and trust phase (`trust.phase`).
-- Derive snapshot services and retention from `my.install.snapshots.*` instead of static defaults.
-- Normalize storage trim and encryption intent from the expanded `nyxos-install.nix` schema.
+Planned updates (install/trust/snapshot wiring):
 
-### Installer → Answers → Consumer Map
+- Align boot profile selection with install answers (`boot.mode`).
+- Derive snapshot services/retention from `my.install.snapshots.*`.
+- Normalize storage trim and encryption intent from install schema.
+
+Installer -> answers -> consumer map:
 
 | Installer prompt                        | Answers file field                        | Consumed by                               |
 | --------------------------------------- | ----------------------------------------- | ----------------------------------------- |
-| Username                                | `userName`                                | `modules/core/install-answers.nix` → `config.my.install.userName` (users) |
-| Hostname                                | `hostName`                                | `modules/core/install-answers.nix` → `networking.hostName`                |
-| Timezone                                | `timeZone`                                | `modules/core/install-answers.nix` → `time.timeZone`                     |
-| MAC mode/interface/address              | `mac.mode/interface/address`              | `modules/core/install-answers.nix` → NetworkManager policy                |
-| Boot mode                               | `boot.mode`                               | `modules/boot/boot-profile.nix` (selects UKI vs Secure Boot; trust.phase gates enforcement) |
-| Trust phase                             | `trust.phase`                             | Boot/Secure Boot gating (dev vs enforced; TPM/firmware enforcement deferred until enforced) |
-| Snapshot policy (retention/schedule/remote/prePost) | `snapshots.*`                   | Snapshot services (planned: derive enablement/retention)                 |
-| Trim policy                             | `storage.trim.*`                          | Storage maintenance (planned: trim scheduling/allowDiscards)             |
-| Encryption intent                       | `encryption.mode`                         | Future LUKS wiring (intent signalling)                                   |
-| Swap mode/size                          | `swap.mode/sizeGiB`                       | Swap provisioning (partition vs none)                                    |
-| System profile                          | `profile.system`                          | Flake arg → system profile selection (already wired)                     |
-| Container stack                         | `my.programs.containers.enable`           | `modules/programs/containers.nix` (Podman + Distrobox)                   |
+| Username                                | `userName`                                | `modules/core/install-answers.nix` -> `config.my.install.userName` (users) |
+| Hostname                                | `hostName`                                | `modules/core/install-answers.nix` -> `networking.hostName`                |
+| Timezone                                | `timeZone`                                | `modules/core/install-answers.nix` -> `time.timeZone`                     |
+| MAC mode/interface/address              | `mac.mode/interface/address`              | `modules/core/install-answers.nix` -> NetworkManager policy                |
+| Boot mode                               | `boot.mode`                               | `modules/boot/boot-profile.nix` (selects UKI vs Secure Boot)              |
+| Trust phase                             | `trust.phase`                             | Boot/Secure Boot gating                                                     |
+| Snapshot policy                         | `snapshots.*`                             | Snapshot services (planned)                                                 |
+| Trim policy                             | `storage.trim.*`                          | Storage maintenance (planned)                                               |
+| Encryption intent                       | `encryption.mode`                         | Future LUKS wiring                                                          |
+| Swap mode/size                          | `swap.mode/sizeGiB`                       | Swap provisioning                                                           |
+| System profile                          | `profile.system`                          | Flake arg -> system profile selection                                       |
+| Container stack                         | `my.programs.containers.enable`           | `modules/programs/containers.nix`                                           |
 
-## Change Implementation Flow
+### Appendix G: Future component planning
 
-1.  **Identify the domain**: does your change belong in system policy
-    (`configuration.nix`) or in a specialized domain module
-    (`modules/*`)?
-2.  **Locate the directory**: use the structure above to place new files
-    consistently.
-3.  **Follow existing patterns**: copy the structure of similar modules,
-    declaring options, using `lib.mkIf`, and merging via `lib.mkMerge`
-    as needed.
-4.  **Update documentation**: modify this map and `docs/ASSERTIONS.md`
-    if the directory structure or invariants change.
-5.  **Test**: run `nix flake check .` and build the system to validate
-    that paths and syntax are correct.
+- Container runtime: `modules/virtualization/` (LXC/Incus or Podman).
+- Gaming layer: `modules/programs/gaming.nix`.
+- Backup system: `modules/services/backup.nix`.
+- Monitoring: split Prometheus/Grafana under `modules/services/monitoring.nix`.
+- Server profile: separate NixOS configuration for server use.
 
-## Future Component Planning
-
-- **Container runtime** -- Add LXC/Incus or Podman virtualization
-  support under `modules/virtualization/`.
-- **Gaming layer** -- Steam, Wine, and related tools under
-  `modules/programs/gaming.nix`.
-- **Backup system** -- Borg, Restic or similar under
-  `modules/services/backup.nix` with scheduled tasks.
-- **Monitoring** -- Break out Prometheus/Grafana into
-  `modules/services/monitoring.nix` for easier reuse.
-- **Server profile** -- A separate NixOS configuration for server use
-  with a different service mix.
-
-------------------------------------------------------------------------
-
-[\[1\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/tuning/sysctl.nix#L7-L40)
-[\[3\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/tuning/sysctl.nix#L46-L51)
-[\[4\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/tuning/sysctl.nix#L56-L83)
-sysctl.nix
-
-<https://github.com/pullclone/dotclone/blob/HEAD/modules/tuning/sysctl.nix>
-
-[\[2\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/hardware/amd-gpu.nix#L7-L10)
-amd-gpu.nix
-
-<https://github.com/pullclone/dotclone/blob/HEAD/modules/hardware/amd-gpu.nix>
