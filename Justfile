@@ -342,7 +342,7 @@ fmt-shell:
         echo "shfmt could not be found. Please install it."
         exit 1
     fi
-    /usr/bin/find install-nyxos.sh scripts -iname "*.sh" -type f -exec shfmt --write "{}" ';'
+    find install-nyxos.sh scripts -iname "*.sh" -type f -exec shfmt --write "{}" ';'
 
 [group('Format')]
 fmt-nix:
@@ -420,7 +420,7 @@ test-latencyflex:
 
     # The layer should exist in the system profile; common location is ./result/sw/lib
     # (This assumes the package installs into $out/lib and patches the JSON accordingly.)
-    if ! /usr/bin/find "./result/sw/lib" -maxdepth 1 -type f -name "*latencyflex*.so*" | grep -q .; then
+    if ! find "./result/sw/lib" -maxdepth 1 -type f -name "*latencyflex*.so*" | grep -q .; then
         echo "Missing LatencyFleX shared library in build result under ./result/sw/lib"
         echo "Hint: ensure the package installs to \$out/lib and the manifest is patched."
         exit 1
