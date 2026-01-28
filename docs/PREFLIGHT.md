@@ -46,3 +46,20 @@ This document explains what `just audit` checks and how to interpret failures.
   and `my.ssh.knownHosts.enable`.
 - System trust roots live in NixOS `programs.ssh.knownHosts`; client UX lives
   in Home Manager via the SSH templates.
+
+## Git host pins (opt-in)
+
+- Enable by adding `"git-hosts"` to `my.ssh.client.features` and leaving
+  `my.ssh.knownHosts.enable = true`.
+- Bundle lives at `templates/ssh/known-hosts/git-hosts.nix` (ed25519 pins).
+- Host keys can rotate; refresh the bundle when upstream changes.
+- Verify keys against provider docs:
+  - https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/githubs-ssh-key-fingerprints
+  - https://docs.gitlab.com/ee/user/gitlab_com/#ssh-host-keys-fingerprints
+  - https://bitbucket.org/site/ssh
+  - https://docs.codeberg.org/security/ssh-fingerprint/
+- Codeberg publishes fingerprints only; ensure the pinned key matches the
+  official fingerprint list when updating.
+- Providers without published public keys must be added via
+  `my.ssh.knownHosts.pins` once official keys are available.
+  - Currently missing: Azure DevOps, AWS CodeCommit, SourceHut, Apache Allura.
