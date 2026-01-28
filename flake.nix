@@ -194,55 +194,72 @@
         }
         // toplevelAttrs;
 
-      devShells.${system} = {
-        default = nixpkgs.legacyPackages.${system}.mkShell {
-          packages = with nixpkgs.legacyPackages.${system}; [
-            just
-            git
-            ripgrep
-            shellcheck
-            shfmt
-            nixfmt-rfc-style
-            statix
-            deadnix
-            findutils
-          ];
-        };
-
-        agent = nixpkgs.legacyPackages.${system}.mkShell {
-          packages = with nixpkgs.legacyPackages.${system}; [
-            # Core workflow
-            just
-            git
-            ripgrep
-            fd
-            jq
-            yq-go
-
-            # Nix format & lint
-            nixfmt-rfc-style
-            statix
-            deadnix
-
-            # Shell lint & format
-            shellcheck
-            shfmt
-
-            # Nix language tooling
-            nil
-
-            # Secret scanning + docs hygiene
-            gitleaks
-            markdownlint-cli2
-            typos
-          ];
-
-          shellHook = ''
-            echo "dotclone agent devShell active."
-            echo "Reminder: run 'just audit' before committing."
+      devShells.${system} =
+        let
+          pkgs = nixpkgs.legacyPackages.${system};
+          nixfmtTree = pkgs.writeShellScriptBin "nixfmt-tree" ''
+            set -euo pipefail
+            if [ "$#" -gt 0 ] && [ "$1" = "--check" ]; then
+              shift
+              set -- --fail-on-change "$@"
+            fi
+            exec ${pkgs.nixfmt-tree}/bin/treefmt --config-file ${pkgs.nixfmt-tree.configFile} "$@"
           '';
+        in
+        {
+          default = pkgs.mkShell {
+            packages = with pkgs; [
+              just
+              git
+              ripgrep
+              shellcheck
+              shfmt
+              nixfmt-rfc-style
+              nixfmt-tree
+              nixfmtTree
+              statix
+              deadnix
+              findutils
+            ];
+          };
+
+          agent = pkgs.mkShell {
+            packages = with pkgs; [
+              # Core workflow
+              just
+              git
+              ripgrep
+              fd
+              findutils
+              jq
+              yq-go
+
+              # Nix format & lint
+              nixfmt-rfc-style
+              nixfmt-tree
+              nixfmtTree
+              statix
+              deadnix
+
+              # Shell lint & format
+              shellcheck
+              shfmt
+
+              # Nix language tooling
+              nil
+
+              # Secret scanning + docs hygiene
+              gitleaks
+              markdownlint-cli2
+              typos
+            ];
+
+            shellHook = ''
+              echo "dotclone agent devShell active."
+              echo "Reminder: run 'just audit' before committing."
+            '';
+          };
         };
-      };
 
       nixosConfigurations = lib.listToAttrs (
         [
