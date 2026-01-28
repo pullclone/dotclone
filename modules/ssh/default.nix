@@ -23,6 +23,8 @@ let
     };
   };
 
+  gitHostPins = import ../../templates/ssh/known-hosts/git-hosts.nix;
+
   emptyModule = { ... }: { };
 
   clientProfiles = {
@@ -154,6 +156,9 @@ in
         home-manager.sharedModules = [ clientModule ];
       })
       # NixOS owns trust roots (known_hosts pins / CA) and sshd policy.
+      (lib.mkIf (cfg.knownHosts.enable && lib.elem "git-hosts" cfg.client.features) {
+        programs.ssh.knownHosts = gitHostPins;
+      })
       (lib.mkIf (cfg.knownHosts.enable && cfg.knownHosts.pins != { }) {
         programs.ssh.knownHosts = mapPins cfg.knownHosts.pins;
       })
