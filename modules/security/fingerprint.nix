@@ -29,6 +29,8 @@ in
 
   config = lib.mkIf (phase >= 1 && cfg.enable) {
     services.fprintd.enable = true;
-    security.pam.services = lib.genAttrs cfg.pamServices (_: { fprintAuth = true; });
+    security.pam.services = lib.genAttrs cfg.pamServices (_: {
+      fprintAuth = true;
+    });
   };
 }

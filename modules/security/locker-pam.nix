@@ -4,59 +4,43 @@ let
   phase = config.my.security.phase;
   user = config.my.install.userName;
 
-  panel =
-    lib.attrByPath
-      [
-        "home-manager"
-        "users"
-        user
-        "my"
-        "desktop"
-        "panel"
-      ]
-      "unknown"
-      config;
+  panel = lib.attrByPath [
+    "home-manager"
+    "users"
+    user
+    "my"
+    "desktop"
+    "panel"
+  ] "unknown" config;
 
-  noctaliaEnabled =
-    lib.attrByPath
-      [
-        "home-manager"
-        "users"
-        user
-        "programs"
-        "noctalia-shell"
-        "enable"
-      ]
-      false
-      config;
+  noctaliaEnabled = lib.attrByPath [
+    "home-manager"
+    "users"
+    user
+    "programs"
+    "noctalia-shell"
+    "enable"
+  ] false config;
 
-  noctaliaLockOnSuspend =
-    lib.attrByPath
-      [
-        "home-manager"
-        "users"
-        user
-        "programs"
-        "noctalia-shell"
-        "settings"
-        "general"
-        "lockOnSuspend"
-      ]
-      false
-      config;
+  noctaliaLockOnSuspend = lib.attrByPath [
+    "home-manager"
+    "users"
+    user
+    "programs"
+    "noctalia-shell"
+    "settings"
+    "general"
+    "lockOnSuspend"
+  ] false config;
 
-  swaylockEnabled =
-    lib.attrByPath
-      [
-        "home-manager"
-        "users"
-        user
-        "programs"
-        "swaylock"
-        "enable"
-      ]
-      false
-      config;
+  swaylockEnabled = lib.attrByPath [
+    "home-manager"
+    "users"
+    user
+    "programs"
+    "swaylock"
+    "enable"
+  ] false config;
 
   activeLocker =
     if panel == "noctalia" || noctaliaEnabled then

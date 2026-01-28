@@ -1,0 +1,710 @@
+diff --git a/configuration.nix b/configuration.nix
+index 5113b64..c6c58be 100644
+--- a/configuration.nix
++++ b/configuration.nix
+@@ -105,10 +105,10 @@ in
+       "142.242.2.2" # Mullvad
+       "94.140.14.14" # AdGuard
+       "94.140.15.15" # AdGuard
+-      "149.112.112.11"  # Quad9
++      "149.112.112.11" # Quad9
+       "149.112.112.112" # Quad9
+       "9.9.9.11" # Quad9
+-      "9.9.9.9"  # Quad9
++      "9.9.9.9" # Quad9
+       "1.1.1.2" # Cloudflare
+       "1.0.0.2" # Cloudflare
+       "1.1.1.1" # Cloudflare
+diff --git a/flake.nix b/flake.nix
+index 5e02de0..26659c4 100644
+--- a/flake.nix
++++ b/flake.nix
+@@ -207,6 +207,40 @@
+         ];
+       };
+ 
++      devShells.${system}.agent = nixpkgs.legacyPackages.${system}.mkShell {
++        packages = with nixpkgs.legacyPackages.${system}; [
++          # Core workflow
++          just
++          git
++          ripgrep
++          fd
++          jq
++          yq-go
++
++          # Nix format & lint
++          nixfmt-rfc-style
++          statix
++          deadnix
++
++          # Shell lint & format
++          shellcheck
++          shfmt
++
++          # Nix language tooling (optional but useful)
++          nil
++
++          # Secret scanning + docs hygiene
++          gitleaks
++          markdownlint-cli2
++          typos
++        ];
++
++        shellHook = ''
++          echo "dotclone agent devShell active."
++          echo "Reminder: run 'just audit' before committing."
++        '';
++      };
++
+       nixosConfigurations = lib.listToAttrs (
+         [
+           {
+diff --git a/modules/core/keyboard-preset.nix b/modules/core/keyboard-preset.nix
+index e8decc1..b05f282 100644
+--- a/modules/core/keyboard-preset.nix
++++ b/modules/core/keyboard-preset.nix
+@@ -163,45 +163,51 @@ let
+ 
+   consoleKeyMap = if sel.needsCustomXkb then "custom/${sel.console}" else sel.console;
+ 
+-  sessionVars =
+-    {
+-      XKB_DEFAULT_LAYOUT = sel.xkb.layout;
+-    }
+-    // lib.optionalAttrs (sel.xkb.variant != "") {
+-      XKB_DEFAULT_VARIANT = sel.xkb.variant;
+-    }
+-    // lib.optionalAttrs (sel.xkb.options != "") {
+-      XKB_DEFAULT_OPTIONS = sel.xkb.options;
+-    };
++  sessionVars = {
++    XKB_DEFAULT_LAYOUT = sel.xkb.layout;
++  }
++  // lib.optionalAttrs (sel.xkb.variant != "") {
++    XKB_DEFAULT_VARIANT = sel.xkb.variant;
++  }
++  // lib.optionalAttrs (sel.xkb.options != "") {
++    XKB_DEFAULT_OPTIONS = sel.xkb.options;
++  };
+   layoutArg = lib.escapeShellArg sel.xkb.layout;
+-  variantArg = lib.optionalString (sel.xkb.variant != "") " -variant ${lib.escapeShellArg sel.xkb.variant}";
+-  optionsArg = lib.optionalString (sel.xkb.options != "") " -option ${lib.escapeShellArg sel.xkb.options}";
++  variantArg = lib.optionalString (
++    sel.xkb.variant != ""
++  ) " -variant ${lib.escapeShellArg sel.xkb.variant}";
++  optionsArg = lib.optionalString (
++    sel.xkb.options != ""
++  ) " -option ${lib.escapeShellArg sel.xkb.options}";
+   setxkbmapCmd = "${pkgs.xorg.setxkbmap}/bin/setxkbmap -layout ${layoutArg}${variantArg}${optionsArg}";
+ 
+-  mkConsoleKeymapsPkg = pkgs.runCommand "custom-console-keymaps" {
+-    nativeBuildInputs = [
+-      pkgs.ckbcomp
+-      pkgs.gzip
+-    ];
+-  } ''
+-    set -euo pipefail
+-    mkdir -p "$out/share/kbd/keymaps/custom"
++  mkConsoleKeymapsPkg =
++    pkgs.runCommand "custom-console-keymaps"
++      {
++        nativeBuildInputs = [
++          pkgs.ckbcomp
++          pkgs.gzip
++        ];
++      }
++      ''
++        set -euo pipefail
++        mkdir -p "$out/share/kbd/keymaps/custom"
+ 
+-    XKB_DIR="${xkbDir}"
++        XKB_DIR="${xkbDir}"
+ 
+-    layout=${lib.escapeShellArg sel.xkb.layout}
+-    variant=${lib.escapeShellArg sel.xkb.variant}
+-    name=${lib.escapeShellArg sel.console}
++        layout=${lib.escapeShellArg sel.xkb.layout}
++        variant=${lib.escapeShellArg sel.xkb.variant}
++        name=${lib.escapeShellArg sel.console}
+ 
+-    if [ -n "$variant" ]; then
+-      ckbcomp -I "$XKB_DIR" -layout "$layout" -variant "$variant" > "$name.map"
+-    else
+-      ckbcomp -I "$XKB_DIR" -layout "$layout" > "$name.map"
+-    fi
++        if [ -n "$variant" ]; then
++          ckbcomp -I "$XKB_DIR" -layout "$layout" -variant "$variant" > "$name.map"
++        else
++          ckbcomp -I "$XKB_DIR" -layout "$layout" > "$name.map"
++        fi
+ 
+-    gzip -9c "$name.map" > "$out/share/kbd/keymaps/custom/$name.map.gz"
+-    rm -f "$name.map"
+-  '';
++        gzip -9c "$name.map" > "$out/share/kbd/keymaps/custom/$name.map.gz"
++        rm -f "$name.map"
++      '';
+ in
+ {
+   options.my.keyboard = {
+@@ -222,13 +228,13 @@ in
+         lib.attrByPath [ "my" "install" "keyboard" "preset" ] "qwerty" config
+       );
+     }
+-    (lib.mkIf cfg.enable (lib.mkMerge [
+-      {
+-        console.earlySetup = true;
+-        console.keyMap = consoleKeyMap;
++    (lib.mkIf cfg.enable (
++      lib.mkMerge [
++        {
++          console.earlySetup = true;
++          console.keyMap = consoleKeyMap;
+ 
+-        services.xserver.xkb =
+-          {
++          services.xserver.xkb = {
+             layout = sel.xkb.layout;
+             variant = sel.xkb.variant;
+           }
+@@ -236,37 +242,35 @@ in
+             options = sel.xkb.options;
+           };
+ 
+-        environment.sessionVariables = sessionVars;
+-      }
+-      (lib.mkIf config.services.displayManager.sddm.enable {
+-        services.xserver.displayManager.setupCommands = lib.mkAfter ''
+-          ${setxkbmapCmd}
+-        '';
+-      })
+-      (lib.mkIf sel.needsCustomXkb {
+-        console.packages = [
+-          pkgs.kbd
+-          mkConsoleKeymapsPkg
+-        ];
+-      })
+-      (lib.mkIf (sel.needsCustomXkb && symbolExists) {
+-        services.xserver.extraLayouts = {
+-          "${sel.xkb.layout}" = customLayouts.${sel.xkb.layout};
+-        };
+-      })
+-      {
+-        assertions = [
+-          {
+-            assertion = !(sel.needsCustomXkb && !symbolExists);
+-            message = "keyboard: preset \"${cfg.preset}\" requires XKB symbols under ${
+-              if symbolPath == null then
+-                "modules/core/xkb/symbols"
+-              else
+-                symbolPath
+-            }.";
+-          }
+-        ];
+-      }
+-    ]))
++          environment.sessionVariables = sessionVars;
++        }
++        (lib.mkIf config.services.displayManager.sddm.enable {
++          services.xserver.displayManager.setupCommands = lib.mkAfter ''
++            ${setxkbmapCmd}
++          '';
++        })
++        (lib.mkIf sel.needsCustomXkb {
++          console.packages = [
++            pkgs.kbd
++            mkConsoleKeymapsPkg
++          ];
++        })
++        (lib.mkIf (sel.needsCustomXkb && symbolExists) {
++          services.xserver.extraLayouts = {
++            "${sel.xkb.layout}" = customLayouts.${sel.xkb.layout};
++          };
++        })
++        {
++          assertions = [
++            {
++              assertion = !(sel.needsCustomXkb && !symbolExists);
++              message = "keyboard: preset \"${cfg.preset}\" requires XKB symbols under ${
++                if symbolPath == null then "modules/core/xkb/symbols" else symbolPath
++              }.";
++            }
++          ];
++        }
++      ]
++    ))
+   ];
+ }
+diff --git a/modules/home/apps/protonvpn.nix b/modules/home/apps/protonvpn.nix
+index dd8e9a3..4510c41 100644
+--- a/modules/home/apps/protonvpn.nix
++++ b/modules/home/apps/protonvpn.nix
+@@ -1,4 +1,9 @@
+-{ config, pkgs, lib, ... }:
++{
++  config,
++  pkgs,
++  lib,
++  ...
++}:
+ 
+ let
+   cfg = config.my.home.apps.protonvpn;
+diff --git a/modules/home/apps/trezor-agent.nix b/modules/home/apps/trezor-agent.nix
+index bf72cb8..d368315 100644
+--- a/modules/home/apps/trezor-agent.nix
++++ b/modules/home/apps/trezor-agent.nix
+@@ -1,4 +1,9 @@
+-{ config, pkgs, lib, ... }:
++{
++  config,
++  pkgs,
++  lib,
++  ...
++}:
+ 
+ let
+   cfg = config.my.identity.trezorAgent;
+diff --git a/modules/home/home-ashy.nix b/modules/home/home-ashy.nix
+index a10a30b..20d6b91 100644
+--- a/modules/home/home-ashy.nix
++++ b/modules/home/home-ashy.nix
+@@ -38,10 +38,13 @@
+   };
+ 
+   # Optional apps (install-answers driven)
+-  my.home.apps.protonvpn.enable =
+-    lib.attrByPath [ "my" "install" "protonvpn" "enable" ] false osConfig;
+-  my.identity.ssh.identity =
+-    lib.attrByPath [ "my" "install" "ssh" "identity" ] "file" osConfig;
++  my.home.apps.protonvpn.enable = lib.attrByPath [
++    "my"
++    "install"
++    "protonvpn"
++    "enable"
++  ] false osConfig;
++  my.identity.ssh.identity = lib.attrByPath [ "my" "install" "ssh" "identity" ] "file" osConfig;
+ 
+   programs.home-manager.enable = true;
+ 
+diff --git a/modules/programs/gaming.nix b/modules/programs/gaming.nix
+index 77b5c51..451f66a 100644
+--- a/modules/programs/gaming.nix
++++ b/modules/programs/gaming.nix
+@@ -10,11 +10,7 @@
+ let
+   cfg = config.my.install.gaming;
+   needs32Bit = cfg.steam || cfg.wine || cfg.lutris || cfg.lutrisRsi;
+-  anyGaming =
+-    needs32Bit
+-    || cfg.gamemode
+-    || cfg.gamescope
+-    || cfg.emulationstation;
++  anyGaming = needs32Bit || cfg.gamemode || cfg.gamescope || cfg.emulationstation;
+ 
+   nixCitizenPackages = inputs.nix-citizen.packages or { };
+   nixCitizenSystemPackages = nixCitizenPackages.${pkgs.system} or { };
+@@ -28,10 +24,7 @@ let
+     else
+       null;
+   lugHelper =
+-    if nixCitizenSystemPackages ? lug-helper then
+-      nixCitizenSystemPackages.lug-helper
+-    else
+-      null;
++    if nixCitizenSystemPackages ? lug-helper then nixCitizenSystemPackages.lug-helper else null;
+   rsiPackages =
+     (with pkgs; [
+       bash
+@@ -44,52 +37,52 @@ let
+     ])
+     ++ lib.optional (rsiPackage != null) rsiPackage
+     ++ lib.optional (lugHelper != null) lugHelper;
+-  wineWayland =
+-    if pkgs.wineWowPackages ? waylandFull then
+-      pkgs.wineWowPackages.waylandFull
+-    else
+-      null;
++  wineWayland = if pkgs.wineWowPackages ? waylandFull then pkgs.wineWowPackages.waylandFull else null;
+   hasGamescopeOption = lib.hasAttrByPath [ "programs" "gamescope" "enable" ] options;
+ in
+ {
+   config = lib.mkMerge [
+-    (lib.mkIf anyGaming (lib.mkMerge [
+-      {
+-        hardware.graphics.enable = lib.mkDefault true;
++    (lib.mkIf anyGaming (
++      lib.mkMerge [
++        {
++          hardware.graphics.enable = lib.mkDefault true;
+ 
+-        hardware.graphics.enable32Bit = lib.mkDefault needs32Bit;
++          hardware.graphics.enable32Bit = lib.mkDefault needs32Bit;
+ 
+-        programs.steam.enable = cfg.steam;
+-        hardware.steam-hardware.enable = lib.mkDefault cfg.steam;
++          programs.steam.enable = cfg.steam;
++          hardware.steam-hardware.enable = lib.mkDefault cfg.steam;
+ 
+-        programs.gamemode.enable = cfg.gamemode;
++          programs.gamemode.enable = cfg.gamemode;
+ 
+-        security.polkit.enable = lib.mkDefault cfg.lutrisRsi;
++          security.polkit.enable = lib.mkDefault cfg.lutrisRsi;
+ 
+-        environment.systemPackages = with pkgs; lib.flatten [
+-          (lib.optionals cfg.lutris [
+-            lutris
+-          ])
+-          (lib.optionals cfg.wine [
+-            wineWowPackages.stable
+-            (lib.optional (wineWayland != null) wineWayland)
+-            winetricks
+-            cabextract
+-            unzip
+-          ])
+-          (lib.optionals cfg.emulationstation [
+-            emulationstation
+-          ])
+-          (lib.optionals cfg.gamescope [
+-            gamescope
+-          ])
+-          (lib.optionals cfg.lutrisRsi rsiPackages)
+-        ];
+-      }
+-      (lib.mkIf hasGamescopeOption {
+-        programs.gamescope.enable = cfg.gamescope;
+-      })
+-    ]))
++          environment.systemPackages =
++            with pkgs;
++            lib.flatten [
++              (lib.optionals cfg.lutris [
++                lutris
++              ])
++              (lib.optionals cfg.wine [
++                wineWowPackages.stable
++                (lib.optional (wineWayland != null) wineWayland)
++                winetricks
++                cabextract
++                unzip
++              ])
++              (lib.optionals cfg.emulationstation [
++                emulationstation
++              ])
++              (lib.optionals cfg.gamescope [
++                gamescope
++              ])
++              (lib.optionals cfg.lutrisRsi rsiPackages)
++            ];
++        }
++        (lib.mkIf hasGamescopeOption {
++          programs.gamescope.enable = cfg.gamescope;
++        })
++      ]
++    ))
+     {
+       assertions = [
+         {
+diff --git a/modules/security/access.nix b/modules/security/access.nix
+index 1f5837e..e7b8ceb 100644
+--- a/modules/security/access.nix
++++ b/modules/security/access.nix
+@@ -10,7 +10,10 @@ in
+     adminUsers = lib.mkOption {
+       type = with lib.types; listOf str;
+       default = [ config.my.install.userName ];
+-      example = [ "ashy" "breakglass" ];
++      example = [
++        "ashy"
++        "breakglass"
++      ];
+       description = ''
+         Accounts allowed to escalate with doas when security phase is staged/enforced (>=1).
+         Keep this list minimal; at least one admin must remain to avoid lockout.
+diff --git a/modules/security/aide.nix b/modules/security/aide.nix
+index cc39b71..e99cd39 100644
+--- a/modules/security/aide.nix
++++ b/modules/security/aide.nix
+@@ -1,4 +1,9 @@
+-{ config, lib, pkgs, ... }:
++{
++  config,
++  lib,
++  pkgs,
++  ...
++}:
+ 
+ let
+   phase = config.my.security.phase;
+diff --git a/modules/security/fingerprint.nix b/modules/security/fingerprint.nix
+index b64a328..bd93311 100644
+--- a/modules/security/fingerprint.nix
++++ b/modules/security/fingerprint.nix
+@@ -29,6 +29,8 @@ in
+ 
+   config = lib.mkIf (phase >= 1 && cfg.enable) {
+     services.fprintd.enable = true;
+-    security.pam.services = lib.genAttrs cfg.pamServices (_: { fprintAuth = true; });
++    security.pam.services = lib.genAttrs cfg.pamServices (_: {
++      fprintAuth = true;
++    });
+   };
+ }
+diff --git a/modules/security/locker-pam.nix b/modules/security/locker-pam.nix
+index 3f02e3d..e8ddf6f 100644
+--- a/modules/security/locker-pam.nix
++++ b/modules/security/locker-pam.nix
+@@ -4,59 +4,43 @@ let
+   phase = config.my.security.phase;
+   user = config.my.install.userName;
+ 
+-  panel =
+-    lib.attrByPath
+-      [
+-        "home-manager"
+-        "users"
+-        user
+-        "my"
+-        "desktop"
+-        "panel"
+-      ]
+-      "unknown"
+-      config;
++  panel = lib.attrByPath [
++    "home-manager"
++    "users"
++    user
++    "my"
++    "desktop"
++    "panel"
++  ] "unknown" config;
+ 
+-  noctaliaEnabled =
+-    lib.attrByPath
+-      [
+-        "home-manager"
+-        "users"
+-        user
+-        "programs"
+-        "noctalia-shell"
+-        "enable"
+-      ]
+-      false
+-      config;
++  noctaliaEnabled = lib.attrByPath [
++    "home-manager"
++    "users"
++    user
++    "programs"
++    "noctalia-shell"
++    "enable"
++  ] false config;
+ 
+-  noctaliaLockOnSuspend =
+-    lib.attrByPath
+-      [
+-        "home-manager"
+-        "users"
+-        user
+-        "programs"
+-        "noctalia-shell"
+-        "settings"
+-        "general"
+-        "lockOnSuspend"
+-      ]
+-      false
+-      config;
++  noctaliaLockOnSuspend = lib.attrByPath [
++    "home-manager"
++    "users"
++    user
++    "programs"
++    "noctalia-shell"
++    "settings"
++    "general"
++    "lockOnSuspend"
++  ] false config;
+ 
+-  swaylockEnabled =
+-    lib.attrByPath
+-      [
+-        "home-manager"
+-        "users"
+-        user
+-        "programs"
+-        "swaylock"
+-        "enable"
+-      ]
+-      false
+-      config;
++  swaylockEnabled = lib.attrByPath [
++    "home-manager"
++    "users"
++    user
++    "programs"
++    "swaylock"
++    "enable"
++  ] false config;
+ 
+   activeLocker =
+     if panel == "noctalia" || noctaliaEnabled then
+diff --git a/modules/security/luks-gpg.nix b/modules/security/luks-gpg.nix
+index e79fcdf..be67d73 100644
+--- a/modules/security/luks-gpg.nix
++++ b/modules/security/luks-gpg.nix
+@@ -1,4 +1,9 @@
+-{ config, lib, pkgs, ... }:
++{
++  config,
++  lib,
++  pkgs,
++  ...
++}:
+ 
+ let
+   cfg = config.my.security.luks.gpg;
+@@ -8,47 +13,47 @@ let
+   cryptsetupUnit = "systemd-cryptsetup@${lib.escapeSystemdPath cfg.mapperName}.service";
+ 
+   decryptScript = pkgs.writeShellScript "nyxos-luks-gpg-decrypt" ''
+-    set -euo pipefail
+-    umask 077
+-
+-    key_mount="${cfg.encryptedKeyMount}"
+-    key_device="${cfg.encryptedKeyDevice}"
+-    key_fstype="${cfg.encryptedKeyFsType}"
+-    key_opts="${cfg.encryptedKeyMountOptions}"
+-    enc_key="${cfg.encryptedKeyFile}"
+-    dec_key="${cfg.decryptedKeyFile}"
+-    gnupg_home="${cfg.gnupgHome}"
+-    pinentry="${cfg.pinentryPackage}/bin/pinentry-curses"
+-
+-    mkdir -p "$gnupg_home"
+-    chmod 700 "$gnupg_home"
+-
+-    cat > "$gnupg_home/gpg-agent.conf" <<EOF_CONF
+-pinentry-program $pinentry
+-EOF_CONF
+-
+-    export GNUPGHOME="$gnupg_home"
+-    export GPG_TTY=/dev/console
+-
+-    mkdir -p "$(dirname "$dec_key")"
+-
+-    if [[ -n "$key_device" ]]; then
+-      mkdir -p "$key_mount"
+-      mount -t "$key_fstype" -o "$key_opts" "$key_device" "$key_mount"
+-    fi
+-
+-    if [[ ! -f "$enc_key" ]]; then
+-      echo "Encrypted keyfile not found: $enc_key" >&2
+-      exit 1
+-    fi
+-
+-    gpgconf --launch gpg-agent
+-    gpg --batch --yes --decrypt --output "$dec_key" "$enc_key"
+-    chmod 600 "$dec_key"
+-
+-    if [[ -n "$key_device" ]]; then
+-      umount "$key_mount"
+-    fi
++        set -euo pipefail
++        umask 077
++
++        key_mount="${cfg.encryptedKeyMount}"
++        key_device="${cfg.encryptedKeyDevice}"
++        key_fstype="${cfg.encryptedKeyFsType}"
++        key_opts="${cfg.encryptedKeyMountOptions}"
++        enc_key="${cfg.encryptedKeyFile}"
++        dec_key="${cfg.decryptedKeyFile}"
++        gnupg_home="${cfg.gnupgHome}"
++        pinentry="${cfg.pinentryPackage}/bin/pinentry-curses"
++
++        mkdir -p "$gnupg_home"
++        chmod 700 "$gnupg_home"
++
++        cat > "$gnupg_home/gpg-agent.conf" <<EOF_CONF
++    pinentry-program $pinentry
++    EOF_CONF
++
++        export GNUPGHOME="$gnupg_home"
++        export GPG_TTY=/dev/console
++
++        mkdir -p "$(dirname "$dec_key")"
++
++        if [[ -n "$key_device" ]]; then
++          mkdir -p "$key_mount"
++          mount -t "$key_fstype" -o "$key_opts" "$key_device" "$key_mount"
++        fi
++
++        if [[ ! -f "$enc_key" ]]; then
++          echo "Encrypted keyfile not found: $enc_key" >&2
++          exit 1
++        fi
++
++        gpgconf --launch gpg-agent
++        gpg --batch --yes --decrypt --output "$dec_key" "$enc_key"
++        chmod 600 "$dec_key"
++
++        if [[ -n "$key_device" ]]; then
++          umount "$key_mount"
++        fi
+   '';
+ 
+   wipeScript = pkgs.writeShellScript "nyxos-luks-gpg-wipe" ''
+@@ -135,14 +140,13 @@ in
+ 
+   config = lib.mkMerge [
+     (lib.mkIf gateEnabled {
+-      boot.initrd.systemd.packages =
+-        [
+-          pkgs.coreutils
+-          pkgs.gnupg
+-          pkgs.util-linux
+-          cfg.pinentryPackage
+-        ]
+-        ++ lib.optional (cfg.encryptedKeyFsType == "btrfs") pkgs.btrfs-progs;
++      boot.initrd.systemd.packages = [
++        pkgs.coreutils
++        pkgs.gnupg
++        pkgs.util-linux
++        cfg.pinentryPackage
++      ]
++      ++ lib.optional (cfg.encryptedKeyFsType == "btrfs") pkgs.btrfs-progs;
+ 
+       boot.initrd.luks.devices.${cfg.mapperName} = {
+         device = cfg.device;
+@@ -153,8 +157,14 @@ in
+       boot.initrd.systemd.services.nyxos-luks-gpg = {
+         description = "Decrypt LUKS keyfile with GPG";
+         wantedBy = [ "cryptsetup.target" ];
+-        before = [ "cryptsetup.target" cryptsetupUnit ];
+-        after = [ "systemd-udevd.service" "systemd-udev-settle.service" ];
++        before = [
++          "cryptsetup.target"
++          cryptsetupUnit
++        ];
++        after = [
++          "systemd-udevd.service"
++          "systemd-udev-settle.service"
++        ];
+         unitConfig = {
+           DefaultDependencies = "no";
+         };
+diff --git a/modules/security/lynis.nix b/modules/security/lynis.nix
+index 517b22b..c89aff7 100644
+--- a/modules/security/lynis.nix
++++ b/modules/security/lynis.nix
+@@ -1,4 +1,9 @@
+-{ config, lib, pkgs, ... }:
++{
++  config,
++  lib,
++  pkgs,
++  ...
++}:
+ 
+ let
+   phase = config.my.security.phase;

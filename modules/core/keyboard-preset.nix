@@ -163,45 +163,51 @@ let
 
   consoleKeyMap = if sel.needsCustomXkb then "custom/${sel.console}" else sel.console;
 
-  sessionVars =
-    {
-      XKB_DEFAULT_LAYOUT = sel.xkb.layout;
-    }
-    // lib.optionalAttrs (sel.xkb.variant != "") {
-      XKB_DEFAULT_VARIANT = sel.xkb.variant;
-    }
-    // lib.optionalAttrs (sel.xkb.options != "") {
-      XKB_DEFAULT_OPTIONS = sel.xkb.options;
-    };
+  sessionVars = {
+    XKB_DEFAULT_LAYOUT = sel.xkb.layout;
+  }
+  // lib.optionalAttrs (sel.xkb.variant != "") {
+    XKB_DEFAULT_VARIANT = sel.xkb.variant;
+  }
+  // lib.optionalAttrs (sel.xkb.options != "") {
+    XKB_DEFAULT_OPTIONS = sel.xkb.options;
+  };
   layoutArg = lib.escapeShellArg sel.xkb.layout;
-  variantArg = lib.optionalString (sel.xkb.variant != "") " -variant ${lib.escapeShellArg sel.xkb.variant}";
-  optionsArg = lib.optionalString (sel.xkb.options != "") " -option ${lib.escapeShellArg sel.xkb.options}";
+  variantArg = lib.optionalString (
+    sel.xkb.variant != ""
+  ) " -variant ${lib.escapeShellArg sel.xkb.variant}";
+  optionsArg = lib.optionalString (
+    sel.xkb.options != ""
+  ) " -option ${lib.escapeShellArg sel.xkb.options}";
   setxkbmapCmd = "${pkgs.xorg.setxkbmap}/bin/setxkbmap -layout ${layoutArg}${variantArg}${optionsArg}";
 
-  mkConsoleKeymapsPkg = pkgs.runCommand "custom-console-keymaps" {
-    nativeBuildInputs = [
-      pkgs.ckbcomp
-      pkgs.gzip
-    ];
-  } ''
-    set -euo pipefail
-    mkdir -p "$out/share/kbd/keymaps/custom"
+  mkConsoleKeymapsPkg =
+    pkgs.runCommand "custom-console-keymaps"
+      {
+        nativeBuildInputs = [
+          pkgs.ckbcomp
+          pkgs.gzip
+        ];
+      }
+      ''
+        set -euo pipefail
+        mkdir -p "$out/share/kbd/keymaps/custom"
 
-    XKB_DIR="${xkbDir}"
+        XKB_DIR="${xkbDir}"
 
-    layout=${lib.escapeShellArg sel.xkb.layout}
-    variant=${lib.escapeShellArg sel.xkb.variant}
-    name=${lib.escapeShellArg sel.console}
+        layout=${lib.escapeShellArg sel.xkb.layout}
+        variant=${lib.escapeShellArg sel.xkb.variant}
+        name=${lib.escapeShellArg sel.console}
 
-    if [ -n "$variant" ]; then
-      ckbcomp -I "$XKB_DIR" -layout "$layout" -variant "$variant" > "$name.map"
-    else
-      ckbcomp -I "$XKB_DIR" -layout "$layout" > "$name.map"
-    fi
+        if [ -n "$variant" ]; then
+          ckbcomp -I "$XKB_DIR" -layout "$layout" -variant "$variant" > "$name.map"
+        else
+          ckbcomp -I "$XKB_DIR" -layout "$layout" > "$name.map"
+        fi
 
-    gzip -9c "$name.map" > "$out/share/kbd/keymaps/custom/$name.map.gz"
-    rm -f "$name.map"
-  '';
+        gzip -9c "$name.map" > "$out/share/kbd/keymaps/custom/$name.map.gz"
+        rm -f "$name.map"
+      '';
 in
 {
   options.my.keyboard = {
@@ -222,13 +228,13 @@ in
         lib.attrByPath [ "my" "install" "keyboard" "preset" ] "qwerty" config
       );
     }
-    (lib.mkIf cfg.enable (lib.mkMerge [
-      {
-        console.earlySetup = true;
-        console.keyMap = consoleKeyMap;
+    (lib.mkIf cfg.enable (
+      lib.mkMerge [
+        {
+          console.earlySetup = true;
+          console.keyMap = consoleKeyMap;
 
-        services.xserver.xkb =
-          {
+          services.xserver.xkb = {
             layout = sel.xkb.layout;
             variant = sel.xkb.variant;
           }
@@ -236,37 +242,35 @@ in
             options = sel.xkb.options;
           };
 
-        environment.sessionVariables = sessionVars;
-      }
-      (lib.mkIf config.services.displayManager.sddm.enable {
-        services.xserver.displayManager.setupCommands = lib.mkAfter ''
-          ${setxkbmapCmd}
-        '';
-      })
-      (lib.mkIf sel.needsCustomXkb {
-        console.packages = [
-          pkgs.kbd
-          mkConsoleKeymapsPkg
-        ];
-      })
-      (lib.mkIf (sel.needsCustomXkb && symbolExists) {
-        services.xserver.extraLayouts = {
-          "${sel.xkb.layout}" = customLayouts.${sel.xkb.layout};
-        };
-      })
-      {
-        assertions = [
-          {
-            assertion = !(sel.needsCustomXkb && !symbolExists);
-            message = "keyboard: preset \"${cfg.preset}\" requires XKB symbols under ${
-              if symbolPath == null then
-                "modules/core/xkb/symbols"
-              else
-                symbolPath
-            }.";
-          }
-        ];
-      }
-    ]))
+          environment.sessionVariables = sessionVars;
+        }
+        (lib.mkIf config.services.displayManager.sddm.enable {
+          services.xserver.displayManager.setupCommands = lib.mkAfter ''
+            ${setxkbmapCmd}
+          '';
+        })
+        (lib.mkIf sel.needsCustomXkb {
+          console.packages = [
+            pkgs.kbd
+            mkConsoleKeymapsPkg
+          ];
+        })
+        (lib.mkIf (sel.needsCustomXkb && symbolExists) {
+          services.xserver.extraLayouts = {
+            "${sel.xkb.layout}" = customLayouts.${sel.xkb.layout};
+          };
+        })
+        {
+          assertions = [
+            {
+              assertion = !(sel.needsCustomXkb && !symbolExists);
+              message = "keyboard: preset \"${cfg.preset}\" requires XKB symbols under ${
+                if symbolPath == null then "modules/core/xkb/symbols" else symbolPath
+              }.";
+            }
+          ];
+        }
+      ]
+    ))
   ];
 }

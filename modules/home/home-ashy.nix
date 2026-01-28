@@ -38,10 +38,13 @@
   };
 
   # Optional apps (install-answers driven)
-  my.home.apps.protonvpn.enable =
-    lib.attrByPath [ "my" "install" "protonvpn" "enable" ] false osConfig;
-  my.identity.ssh.identity =
-    lib.attrByPath [ "my" "install" "ssh" "identity" ] "file" osConfig;
+  my.home.apps.protonvpn.enable = lib.attrByPath [
+    "my"
+    "install"
+    "protonvpn"
+    "enable"
+  ] false osConfig;
+  my.identity.ssh.identity = lib.attrByPath [ "my" "install" "ssh" "identity" ] "file" osConfig;
 
   programs.home-manager.enable = true;
 

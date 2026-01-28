@@ -10,7 +10,10 @@ in
     adminUsers = lib.mkOption {
       type = with lib.types; listOf str;
       default = [ config.my.install.userName ];
-      example = [ "ashy" "breakglass" ];
+      example = [
+        "ashy"
+        "breakglass"
+      ];
       description = ''
         Accounts allowed to escalate with doas when security phase is staged/enforced (>=1).
         Keep this list minimal; at least one admin must remain to avoid lockout.
