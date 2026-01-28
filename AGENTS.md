@@ -79,9 +79,9 @@ roles.
 - **Flake‑Based** -- Always build via flakes: `nix flake check .` to
   test, `nix build .#nixosConfigurations.<host>.config.system.build.toplevel`
   to build.
-- **Audit Gate** -- `just audit` (runs nix fmt check, flake check,
-  shellcheck, contract greps) is the preferred pre-push workflow; CI
-  enforces the same formatting gate.
+- **Audit Gate** -- `just audit` (runs `nixfmt-tree --check`, flake
+  check, contract greps, and shellcheck strict/advisory) is the
+  preferred pre-push workflow; CI enforces the same formatting gate.
 - **Default System** -- The canonical host is `nyx`. This can be
   overridden by setting the `SYSTEM` environment variable, but changes
   must still pass CI for `nyx`.
@@ -97,8 +97,8 @@ roles.
 1.  **Bootstrap** -- Run `just bootstrap` to install and verify required
     tools (Nix, direnv, etc.).
 2.  **Lint/Format** -- Run `just audit` (or `just check-nixfmt` +
-    `just lint-shell`) to enforce nixfmt and shellcheck gates. For
-    advisory Nix lint, use `just lint-nix-report`.
+    `just shellcheck-strict`) to enforce nixfmt-tree and critical
+    shellcheck gates. For advisory Nix lint, use `just lint-nix-report`.
 3.  **Build** -- Run `just build` or `nix build .#nixosConfigurations.nyx.config.system.build.toplevel`
     to ensure that the configuration evaluates and builds successfully.
 4.  **Test** -- Run `just test` and, where appropriate, the scripts

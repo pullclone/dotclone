@@ -64,13 +64,13 @@ echo "Fingerprint services: $fp_services_json"
 
 echo
 echo "PAM snippets (/etc/pam.d) relevant to locker/escalation:"
-pam_files=$(ls /etc/pam.d 2>/dev/null | grep -Ei 'login|lock|swaylock|noctalia|doas|sudo|system-auth' || true)
+pam_files=$(grep -ElEi 'login|lock|swaylock|noctalia|doas|sudo|system-auth' /etc/pam.d/* 2>/dev/null || true)
 if [[ -z "$pam_files" ]]; then
   echo "  (no matching PAM files found)"
 else
   for f in $pam_files; do
-    echo "--- /etc/pam.d/$f ---"
-    sed -n '1,160p' "/etc/pam.d/$f" || true
+    echo "--- $f ---"
+    sed -n '1,160p' "$f" || true
     echo
   done
 fi

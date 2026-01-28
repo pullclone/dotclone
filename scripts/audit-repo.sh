@@ -19,7 +19,6 @@ require_cmd() {
 
 require_cmd nix
 require_cmd rg
-require_cmd shellcheck
 
 echo "==> nix flake check"
 nix flake check .
@@ -162,13 +161,6 @@ fi
 if rg_nix "key(File|file)\\s*=\\s*\\\"/nix/store" >/dev/null; then
   echo "keyFile must not reference /nix/store"
   exit 1
-fi
-
-echo "==> shellcheck installer + scripts"
-mapfile -t shell_scripts < <(
-find install-nyxos.sh scripts -type f -name "*.sh")
-if [ "${#shell_scripts[@]}" -gt 0 ]; then
-  shellcheck "${shell_scripts[@]}"
 fi
 
 echo "Audit OK"

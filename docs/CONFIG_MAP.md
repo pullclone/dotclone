@@ -153,10 +153,12 @@ the latest refactor.
 ### Build & Lint Workflow (authoritative)
 
 - `nix develop` — enter pinned devShell (just, git, rg, shellcheck,
-  shfmt, nixfmt, statix, deadnix).
-- `just audit` — runs `nix fmt` gate, `nix flake check .`, contract greps,
-  and shellcheck; CI enforces the same gate (templates are excluded).
-- `nix fmt .` / `just fmt-nix` — canonical formatter (nixfmt rfc style).
+  shfmt, nixfmt-tree, statix, deadnix).
+- `just audit` — runs `nixfmt-tree --check`, `nix flake check .`,
+  contract greps, shellcheck strict (gating), and shellcheck advisory
+  (non-blocking); CI enforces the same gate (templates are excluded).
+- `nixfmt-tree .` / `just fmt-nix` — canonical formatter (nixfmt rfc
+  style).
 - `just lint-nix-report` — advisory `reports/{statix,deadnix}.txt`
   (never fails).
 - `just audit-templates` — opt-in checks for `templates/research/` flake.

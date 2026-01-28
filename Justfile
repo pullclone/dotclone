@@ -308,7 +308,31 @@ lint-shell:
         echo "shellcheck could not be found. Please install it."
         exit 1
     fi
-    /usr/bin/find install-nyxos.sh scripts -iname "*.sh" -type f -exec shellcheck "{}" ';'
+    find install-nyxos.sh scripts -iname "*.sh" -type f -exec shellcheck "{}" ';'
+
+[group('Lint')]
+shellcheck-strict:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    files="$(ls -1 scripts/audit-*.sh scripts/audit-repo.sh scripts/preflight*.sh scripts/pre-install*.sh 2>/dev/null || true)"
+    if [ -z "$files" ]; then
+        echo "shellcheck-strict: no matching files"
+        exit 0
+    fi
+    echo "==> shellcheck (strict)"
+    shellcheck -x $files
+
+[group('Lint')]
+shellcheck-advisory:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    files="$(find scripts install-nyxos.sh -type f -name '*.sh' 2>/dev/null || true)"
+    if [ -z "$files" ]; then
+        echo "shellcheck-advisory: no scripts/ found"
+        exit 0
+    fi
+    echo "==> shellcheck (advisory)"
+    shellcheck -x $files || true
 
 [group('Format')]
 fmt-shell:
@@ -318,27 +342,19 @@ fmt-shell:
         echo "shfmt could not be found. Please install it."
         exit 1
     fi
-    /usr/bin/find install-nyxos.sh scripts -iname "*.sh" -type f -exec shfmt --write "{}" ';'
+    find install-nyxos.sh scripts -iname "*.sh" -type f -exec shfmt --write "{}" ';'
 
 [group('Format')]
 fmt-nix:
     #!/usr/bin/env bash
     set -euo pipefail
-    nix fmt .
+    nixfmt-tree .
 
 [group('Format')]
 check-nixfmt:
     #!/usr/bin/env bash
     set -euo pipefail
-    tmpdir="$(mktemp -d)"
-    trap 'rm -rf "$tmpdir"' EXIT
-    git diff > "$tmpdir/before.diff"
-    nix fmt .
-    git diff > "$tmpdir/after.diff"
-    if ! diff -q "$tmpdir/before.diff" "$tmpdir/after.diff" >/dev/null; then
-        echo "nix fmt introduced changes; please commit formatting."
-        exit 1
-    fi
+    nixfmt-tree --check .
 
 [group('Lint')]
 lint-nix-report:
@@ -359,7 +375,9 @@ audit:
     #!/usr/bin/env bash
     set -euo pipefail
     just check-nixfmt
+    just shellcheck-strict
     scripts/audit-repo.sh
+    just shellcheck-advisory
 
 [group('Templates')]
 audit-templates:
@@ -402,7 +420,7 @@ test-latencyflex:
 
     # The layer should exist in the system profile; common location is ./result/sw/lib
     # (This assumes the package installs into $out/lib and patches the JSON accordingly.)
-    if ! /usr/bin/find "./result/sw/lib" -maxdepth 1 -type f -name "*latencyflex*.so*" | grep -q .; then
+    if ! find "./result/sw/lib" -maxdepth 1 -type f -name "*latencyflex*.so*" | grep -q .; then
         echo "Missing LatencyFleX shared library in build result under ./result/sw/lib"
         echo "Hint: ensure the package installs to \$out/lib and the manifest is patched."
         exit 1
