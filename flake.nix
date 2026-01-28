@@ -207,6 +207,40 @@
         ];
       };
 
+      devShells.${system}.agent = nixpkgs.legacyPackages.${system}.mkShell {
+        packages = with nixpkgs.legacyPackages.${system}; [
+          # Core workflow
+          just
+          git
+          ripgrep
+          fd
+          jq
+          yq-go
+
+          # Nix format & lint
+          nixfmt-rfc-style
+          statix
+          deadnix
+
+          # Shell lint & format
+          shellcheck
+          shfmt
+
+          # Nix language tooling (optional but useful)
+          nil
+
+          # Secret scanning + docs hygiene
+          gitleaks
+          markdownlint-cli2
+          typos
+        ];
+
+        shellHook = ''
+          echo "dotclone agent devShell active."
+          echo "Reminder: run 'just audit' before committing."
+        '';
+      };
+
       nixosConfigurations = lib.listToAttrs (
         [
           {
