@@ -49,6 +49,16 @@ let
     {
       identity = sshAnswers.identity or "file";
     };
+  sshPolicy =
+    if
+      (answers ? my)
+      && builtins.isAttrs answers.my
+      && (answers.my ? ssh)
+      && builtins.isAttrs answers.my.ssh
+    then
+      answers.my.ssh
+    else
+      { };
   snapshots =
     answers.snapshots or {
       retention = -1;
@@ -549,6 +559,8 @@ in
         enable = protonvpn.enable;
       };
     };
+
+    my.ssh = lib.mkDefault sshPolicy;
 
     assertions = [
       {
