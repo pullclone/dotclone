@@ -56,6 +56,13 @@ let
       inherit publicKey;
     }) pins;
 
+  mapHostKeys =
+    hostKeys:
+    lib.mapAttrs (host: cfg': {
+      hostNames = if cfg'.hostNames != [ ] then cfg'.hostNames else [ host ];
+      publicKey = cfg'.publicKey;
+    }) hostKeys;
+
   clientModule =
     { lib, ... }:
     {
@@ -142,6 +149,31 @@ in
       };
     };
 
+    hostKeys = lib.mkOption {
+      type = lib.types.attrsOf (
+        lib.types.submodule {
+          options = {
+            publicKey = lib.mkOption {
+              type = lib.types.str;
+              description = "SSH host public key (verified out-of-band).";
+            };
+            hostNames = lib.mkOption {
+              type = lib.types.listOf lib.types.str;
+              default = [ ];
+              description = "Optional additional hostnames (defaults to attr name).";
+            };
+          };
+        }
+      );
+      default = { };
+      description = ''
+        Manually pinned SSH host keys.
+
+        Intended for providers without a stable global host key
+        (e.g. Azure DevOps, AWS CodeCommit, SourceHut, self-hosted Git).
+      '';
+    };
+
     cloud.caPublicKey = lib.mkOption {
       type = lib.types.nullOr lib.types.str;
       default = null;
@@ -161,6 +193,9 @@ in
       })
       (lib.mkIf (cfg.knownHosts.enable && cfg.knownHosts.pins != { }) {
         programs.ssh.knownHosts = mapPins cfg.knownHosts.pins;
+      })
+      (lib.mkIf (cfg.knownHosts.enable && cfg.hostKeys != { }) {
+        programs.ssh.knownHosts = mapHostKeys cfg.hostKeys;
       })
       (lib.mkIf
         (cfg.knownHosts.enable && lib.elem "cloud" cfg.client.features && cfg.cloud.caPublicKey != null)

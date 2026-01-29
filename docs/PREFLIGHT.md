@@ -47,19 +47,81 @@ This document explains what `just audit` checks and how to interpret failures.
 - System trust roots live in NixOS `programs.ssh.knownHosts`; client UX lives
   in Home Manager via the SSH templates.
 
-## Git host pins (opt-in)
+### SSH host key pinning (git providers & custom hosts)
 
-- Enable by adding `"git-hosts"` to `my.ssh.client.features` and leaving
-  `my.ssh.knownHosts.enable = true`.
-- Bundle lives at `templates/ssh/known-hosts/git-hosts.nix` (ed25519 pins).
-- Host keys can rotate; refresh the bundle when upstream changes.
-- Verify keys against provider docs:
-  - https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/githubs-ssh-key-fingerprints
-  - https://docs.gitlab.com/ee/user/gitlab_com/#ssh-host-keys-fingerprints
-  - https://bitbucket.org/site/ssh
-  - https://docs.codeberg.org/security/ssh-fingerprint/
-- Codeberg publishes fingerprints only; ensure the pinned key matches the
-  official fingerprint list when updating.
-- Providers without published public keys must be added via
-  `my.ssh.knownHosts.pins` once official keys are available.
-  - Currently missing: Azure DevOps, AWS CodeCommit, SourceHut, Apache Allura.
+NyxOS supports **declarative SSH host key pinning** via `programs.ssh.knownHosts` to prevent MITM attacks.
+Pins are **opt-in** and split into two categories:
+
+#### Built-in opt-in bundles
+
+If enabled (`my.ssh.knownHosts.enable = true`) and selected via features, NyxOS provides a maintained bundle for common public Git hosts:
+
+- GitHub
+- GitLab
+- Bitbucket
+- Codeberg
+
+These are enabled by adding `"git-hosts"` to `my.ssh.client.features`.
+
+```nix
+my.ssh = {
+  knownHosts.enable = true;
+  client.features = [ "git-hosts" ];
+};
+```
+
+These entries are managed centrally and updated deliberately.
+
+#### Manual pinning (Azure DevOps, AWS CodeCommit, SourceHut, self-hosted)
+
+Some providers do **not** publish a single global SSH host key, or publish **fingerprints only**.
+For these, NyxOS intentionally does **not** ship pre-pinned keys.
+
+Use `my.ssh.hostKeys` to add your own verified pins.
+
+##### Azure DevOps
+
+- Host: `ssh.dev.azure.com`
+- Verify the ed25519 host key fingerprint **before pinning**:
+
+```
+SHA256:ohD8VZEXGWo6Ez8GSEJQ9WpafgLFsOfLOtGGQCQo6Og
+```
+
+Verification workflow:
+
+```bash
+ssh-keyscan -t ed25519 ssh.dev.azure.com > /tmp/azure.key
+ssh-keygen -lf /tmp/azure.key
+```
+
+Compare the SHA-256 fingerprint, then pin the key.
+
+##### AWS CodeCommit
+
+AWS CodeCommit uses **regional SSH endpoints** with **region-specific fingerprints**.
+
+- Consult AWS documentation for your region
+- Verify the fingerprint of the key returned by `ssh-keyscan`
+- Pin only after verification
+
+##### SourceHut, Apache Allura, self-hosted Git
+
+These are **self-hosted or federated** services.
+
+- Obtain host keys directly from the service
+- Verify fingerprints out-of-band
+- Pin explicitly using `my.ssh.hostKeys`
+
+##### Example manual pin
+
+```nix
+my.ssh.hostKeys = {
+  "ssh.dev.azure.com" = {
+    publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI...";
+  };
+};
+```
+
+**Important:** Host key pins are part of the system trust model.
+Only add keys after independent verification.
