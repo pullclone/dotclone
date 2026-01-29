@@ -52,6 +52,10 @@ This document explains what `just audit` checks and how to interpret failures.
 NyxOS supports **declarative SSH host key pinning** via `programs.ssh.knownHosts` to prevent MITM attacks.
 Pins are **opt-in** and split into two categories:
 
+Enabling `my.ssh.knownHosts.enable` only permits trust roots to be declared.
+No host keys or certificate authorities are installed unless a bundle or manual
+pin is explicitly enabled.
+
 #### Built-in opt-in bundles
 
 If enabled (`my.ssh.knownHosts.enable = true`) and selected via features, NyxOS provides a maintained bundle for common public Git hosts:
@@ -125,3 +129,9 @@ my.ssh.hostKeys = {
 
 **Important:** Host key pins are part of the system trust model.
 Only add keys after independent verification.
+
+##### Helper: generate a Nix snippet
+
+To add new SSH trust pins, use `scripts/ssh-keyscan-to-nix.sh`,
+verify the fingerprint out-of-band, and paste the result into
+a known-hosts bundle or `my.ssh.hostKeys`.

@@ -63,6 +63,20 @@ let
       publicKey = cfg'.publicKey;
     }) hostKeys;
 
+  enabledKnownHostBundles = lib.flatten [
+    (lib.optional (lib.elem "git-hosts" cfg.client.features) gitHostPins)
+    (lib.optional (cfg.knownHosts.pins != { }) (mapPins cfg.knownHosts.pins))
+    (lib.optional (cfg.hostKeys != { }) (mapHostKeys cfg.hostKeys))
+    (lib.optional (lib.elem "cloud" cfg.client.features && cfg.cloud.caPublicKey != null) {
+      awsCA = {
+        hostNames = [ "@cert-authority *.compute.amazonaws.com" ];
+        publicKey = cfg.cloud.caPublicKey;
+      };
+    })
+  ];
+
+  mergedKnownHosts = lib.mkMerge enabledKnownHostBundles;
+
   clientModule =
     { lib, ... }:
     {
@@ -188,29 +202,22 @@ in
         home-manager.sharedModules = [ clientModule ];
       })
       # NixOS owns trust roots (known_hosts pins / CA) and sshd policy.
-      (lib.mkIf (cfg.knownHosts.enable && lib.elem "git-hosts" cfg.client.features) {
-        programs.ssh.knownHosts = gitHostPins;
+      (lib.mkIf cfg.knownHosts.enable {
+        programs.ssh.knownHosts = mergedKnownHosts;
       })
-      (lib.mkIf (cfg.knownHosts.enable && cfg.knownHosts.pins != { }) {
-        programs.ssh.knownHosts = mapPins cfg.knownHosts.pins;
-      })
-      (lib.mkIf (cfg.knownHosts.enable && cfg.hostKeys != { }) {
-        programs.ssh.knownHosts = mapHostKeys cfg.hostKeys;
-      })
-      (lib.mkIf
-        (cfg.knownHosts.enable && lib.elem "cloud" cfg.client.features && cfg.cloud.caPublicKey != null)
-        {
-          programs.ssh.knownHosts.awsCA = {
-            hostNames = [ "@cert-authority *.compute.amazonaws.com" ];
-            publicKey = cfg.cloud.caPublicKey;
-          };
-        }
-      )
       (lib.mkIf cfg.server.enable (t.server.hardened { inherit lib; }))
       {
-        warnings = lib.optionals (lib.elem "legacy" cfg.client.features) [
-          "my.ssh.client.features contains \"legacy\"; use only as a last resort."
-        ];
+        warnings =
+          lib.optionals (lib.elem "legacy" cfg.client.features) [
+            "my.ssh.client.features contains \"legacy\"; use only as a last resort."
+          ]
+          ++
+            lib.optional (cfg.knownHosts.enable && builtins.length (builtins.attrNames mergedKnownHosts) == 0)
+              ''
+                SSH knownHosts enabled, but no host pins or CA bundles are configured.
+                This is safe, but provides no trust roots.
+                Consider enabling a bundle (e.g. "git-hosts") or adding explicit pins.
+              '';
       }
     ]
   );
