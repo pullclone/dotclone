@@ -122,7 +122,9 @@ appendices.
 - `profiles/`: system + ZRAM profiles (finite outputs).
 - `pkgs/latencyflex.nix`: LatencyFleX derivation and manifest.
 - `templates/ssh/`: SSH client/server templates (profiles + features).
+- `templates/ssh/known-hosts/host-ca-skeleton.nix`: CA bundle scaffolding (off by default).
 - `docs/OPERATIONS.md`: daily-use cheat sheet.
+- `docs/SSH_CA_WORKFLOW.md`: host CA scaffolding and guardrails.
 - `docs/SECURITY_AND_RECOVERY.md`: security phases and recovery guidance.
 - `docs/REPRODUCIBILITY.md`: release provenance snippet.
 - `scripts/audit-locker.sh`: locker/PAM audit helper.

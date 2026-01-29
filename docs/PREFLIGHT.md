@@ -56,6 +56,8 @@ Enabling `my.ssh.knownHosts.enable` only permits trust roots to be declared.
 No host keys or certificate authorities are installed unless a bundle or manual
 pin is explicitly enabled.
 
+For host CA scaffolding (off by default), see `docs/SSH_CA_WORKFLOW.md`.
+
 #### Built-in opt-in bundles
 
 If enabled (`my.ssh.knownHosts.enable = true`) and selected via features, NyxOS provides a maintained bundle for common public Git hosts:

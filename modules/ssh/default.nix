@@ -13,6 +13,7 @@ let
 
       bastion = import ../../templates/ssh/client/bastion.nix;
       cloud = import ../../templates/ssh/client/cloud.nix;
+      cloudCaReady = import ../../templates/ssh/client/cloud-ca-ready.nix;
       unreliable = import ../../templates/ssh/client/unreliable.nix;
       corporate = import ../../templates/ssh/client/corporate.nix;
       legacy = import ../../templates/ssh/client/legacy.nix;
@@ -24,6 +25,7 @@ let
   };
 
   gitHostPins = import ../../templates/ssh/known-hosts/git-hosts.nix;
+  hostCaSkeleton = import ../../templates/ssh/known-hosts/host-ca-skeleton.nix;
 
   emptyModule = { ... }: { };
 
@@ -39,6 +41,7 @@ let
     "git-hosts" = emptyModule;
     bastion = t.client.bastion;
     cloud = t.client.cloud;
+    "cloud-ca-ready" = t.client.cloudCaReady;
     unreliable = t.client.unreliable;
     corporate = t.client.corporate;
     legacy = t.client.legacy;
@@ -63,10 +66,34 @@ let
       publicKey = cfg'.publicKey;
     }) hostKeys;
 
+  providerPatternSuffixes = [
+    "amazonaws.com"
+    "amazonaws.com.cn"
+    "azure.com"
+    "visualstudio.com"
+    "dev.azure.com"
+  ];
+
+  isProviderPattern = pattern: lib.any (suffix: lib.hasSuffix suffix pattern) providerPatternSuffixes;
+
+  caActive = cfg.knownHosts.enable && cfg.knownHosts.ca.enable;
+
+  caBundleProviderViolations = lib.flatten (
+    lib.mapAttrsToList (
+      name: bundle: map (pattern: "${name}:${pattern}") (lib.filter isProviderPattern bundle.patterns)
+    ) cfg.knownHosts.ca.bundles
+  );
+
+  caKnownHosts = hostCaSkeleton {
+    inherit lib;
+    ca = cfg.knownHosts.ca;
+  };
+
   enabledKnownHostBundles = lib.flatten [
     (lib.optional (lib.elem "git-hosts" cfg.client.features) gitHostPins)
     (lib.optional (cfg.knownHosts.pins != { }) (mapPins cfg.knownHosts.pins))
     (lib.optional (cfg.hostKeys != { }) (mapHostKeys cfg.hostKeys))
+    (lib.optional caActive caKnownHosts)
     (lib.optional (lib.elem "cloud" cfg.client.features && cfg.cloud.caPublicKey != null) {
       awsCA = {
         hostNames = [ "@cert-authority *.compute.amazonaws.com" ];
@@ -127,6 +154,7 @@ in
             "git-hosts"
             "bastion"
             "cloud"
+            "cloud-ca-ready"
             "unreliable"
             "corporate"
             "legacy"
@@ -160,6 +188,46 @@ in
         type = lib.types.attrsOf lib.types.str;
         default = { };
         description = "Pinned SSH known host keys (hostname -> public key).";
+      };
+
+      ca = {
+        enable = lib.mkOption {
+          type = lib.types.bool;
+          default = false;
+          description = "Enable SSH host CA trust bundles (explicit opt-in).";
+        };
+
+        bundles = lib.mkOption {
+          type = lib.types.attrsOf (
+            lib.types.submodule {
+              options = {
+                patterns = lib.mkOption {
+                  type = lib.types.listOf lib.types.str;
+                  default = [ ];
+                  description = "Domain patterns for @cert-authority entries.";
+                };
+                publicKey = lib.mkOption {
+                  type = lib.types.str;
+                  default = "";
+                  description = "SSH host CA public key (verified out-of-band).";
+                };
+                comment = lib.mkOption {
+                  type = lib.types.nullOr lib.types.str;
+                  default = null;
+                  description = "Optional comment for the CA bundle.";
+                };
+              };
+            }
+          );
+          default = { };
+          description = "Host CA bundles keyed by name.";
+        };
+
+        allowProviderPatterns = lib.mkOption {
+          type = lib.types.bool;
+          default = false;
+          description = "Allow provider domain patterns (unsafe unless you control issuance).";
+        };
       };
     };
 
@@ -207,6 +275,28 @@ in
       })
       (lib.mkIf cfg.server.enable (t.server.hardened { inherit lib; }))
       {
+        assertions = lib.optionals caActive [
+          {
+            assertion = cfg.knownHosts.ca.bundles != { };
+            message = "my.ssh.knownHosts.ca.enable is true, but no CA bundles are defined.";
+          }
+          {
+            assertion = lib.all (bundle: bundle.patterns != [ ]) (lib.attrValues cfg.knownHosts.ca.bundles);
+            message = "Each my.ssh.knownHosts.ca.bundles entry must define non-empty patterns.";
+          }
+          {
+            assertion = lib.all (bundle: bundle.publicKey != "") (lib.attrValues cfg.knownHosts.ca.bundles);
+            message = "Each my.ssh.knownHosts.ca.bundles entry must define a non-empty publicKey.";
+          }
+          {
+            assertion = cfg.knownHosts.ca.allowProviderPatterns || caBundleProviderViolations == [ ];
+            message = ''
+              SSH host CA patterns include provider domains (${lib.concatStringsSep ", " caBundleProviderViolations}).
+              Use domains you control or set my.ssh.knownHosts.ca.allowProviderPatterns = true.
+            '';
+          }
+        ];
+
         warnings =
           lib.optionals (lib.elem "legacy" cfg.client.features) [
             "my.ssh.client.features contains \"legacy\"; use only as a last resort."
