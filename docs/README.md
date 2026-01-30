@@ -13,3 +13,4 @@ Quick links to key docs. Each entry is 1-2 lines of intent and scope.
 - `OBSERVABILITY.md`: logging, metrics, and audit tooling.
 - `AGENTS.md`: contributor workflow, commit rules, and response format.
 - `PREFLIGHT.md`: what `just audit` checks and how to interpret failures.
+- `SSH_CA_WORKFLOW.md`: host CA scaffolding and guardrails (off by default).

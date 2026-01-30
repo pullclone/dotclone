@@ -651,6 +651,67 @@ if [[ "$SSH_IDENTITY" == "fido2" && "$HWAUTH_FIDO2_PRESENT" != "true" ]]; then
 fi
 
 ###############################################################################
+# 1c) SSH policy (declarative profiles)
+###############################################################################
+
+echo ""
+echo "Declarative SSH profile policy:"
+ask_yes_no "Enable declarative SSH profiles?" "y" SSH_POLICY_ENABLE
+
+SSH_PROFILE="base"
+SSH_FEATURES=()
+SSH_FEATURES_NIX="[ ]"
+SSH_KNOWNHOSTS_ENABLE="true"
+SSH_ONEPASSWORD_ENABLE="false"
+
+if [[ "$SSH_POLICY_ENABLE" == "true" ]]; then
+  echo ""
+  echo "Choose SSH client profile:"
+  echo "  1) base      (strict baseline)"
+  echo "  2) developer (multiplexing + convenience)"
+  echo "  3) hardened  (strictest client posture)"
+  echo "  4) home      (personal convenience)"
+  echo "  5) ci        (automation / non-interactive)"
+  while true; do
+    ask "Choice" "1" SSH_PROFILE_CHOICE
+    case "$SSH_PROFILE_CHOICE" in
+      1) SSH_PROFILE="base"; break ;;
+      2) SSH_PROFILE="developer"; break ;;
+      3) SSH_PROFILE="hardened"; break ;;
+      4) SSH_PROFILE="home"; break ;;
+      5) SSH_PROFILE="ci"; break ;;
+      *) echo "That entry isn't valid. Choose 1 to 5." >&2 ;;
+    esac
+  done
+
+  echo ""
+  echo "Optional SSH feature bundles (all default to no):"
+  ask_yes_no "Enable git host presets?" "n" SSH_FEATURE_GIT
+  ask_yes_no "Enable bastion/jump host patterns?" "n" SSH_FEATURE_BASTION
+  ask_yes_no "Enable cloud host patterns?" "n" SSH_FEATURE_CLOUD
+  ask_yes_no "Enable corporate/Kerberos patterns?" "n" SSH_FEATURE_CORP
+  ask_yes_no "Enable legacy crypto exceptions?" "n" SSH_FEATURE_LEGACY
+  ask_yes_no "Enable unreliable network tuning?" "n" SSH_FEATURE_UNRELIABLE
+
+  if [[ "$SSH_FEATURE_GIT" == "true" ]]; then SSH_FEATURES+=( "git-hosts" ); fi
+  if [[ "$SSH_FEATURE_BASTION" == "true" ]]; then SSH_FEATURES+=( "bastion" ); fi
+  if [[ "$SSH_FEATURE_CLOUD" == "true" ]]; then SSH_FEATURES+=( "cloud" ); fi
+  if [[ "$SSH_FEATURE_CORP" == "true" ]]; then SSH_FEATURES+=( "corporate" ); fi
+  if [[ "$SSH_FEATURE_LEGACY" == "true" ]]; then SSH_FEATURES+=( "legacy" ); fi
+  if [[ "$SSH_FEATURE_UNRELIABLE" == "true" ]]; then SSH_FEATURES+=( "unreliable" ); fi
+
+  if ((${#SSH_FEATURES[@]})); then
+    SSH_FEATURES_NIX="[ $(printf '\"%s\" ' "${SSH_FEATURES[@]}") ]"
+  fi
+
+  echo ""
+  ask_yes_no "Enable system SSH known_hosts policy (pins/CA)?" "y" SSH_KNOWNHOSTS_ENABLE
+  ask_yes_no "Use 1Password SSH agent (IdentityAgent ~/.1password/agent.sock)?" "n" SSH_ONEPASSWORD_ENABLE
+else
+  SSH_KNOWNHOSTS_ENABLE="false"
+fi
+
+###############################################################################
 # 2) MAC policy
 ###############################################################################
 
@@ -1355,6 +1416,18 @@ cat > "${ANSWERS_ROOT}/nyxos-install.nix" <<EOF
 
   ssh = {
     identity = "${SSH_IDENTITY}";
+  };
+
+  my.ssh = {
+    enable = ${SSH_POLICY_ENABLE};
+
+    client = {
+      profile = "${SSH_PROFILE}";
+      features = ${SSH_FEATURES_NIX};
+      onePasswordAgent.enable = ${SSH_ONEPASSWORD_ENABLE};
+    };
+
+    knownHosts.enable = ${SSH_KNOWNHOSTS_ENABLE};
   };
 
   snapshots = {
