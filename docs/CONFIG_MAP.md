@@ -9,7 +9,7 @@ appendices.
 - Entry points: `configuration.nix`, `flake.nix`, `install-nyxos.sh`.
 - Facts vs policy: install answers live in `modules/core/install-answers.nix`
   and are exported as `config.my.install` for policy modules to consume.
-- Domain modules: `modules/{boot,core,hardware,networking,programs,tuning,security,ssh,home}`.
+- Domain modules: `modules/{boot,core,hardware,networking,ops,programs,tuning,security,ssh,home}`.
 - Profiles: `profiles/` define system and ZRAM tuning (flake arg driven).
 - Scripts: `scripts/` contains audits and runtime checks used by `just`.
 
@@ -72,10 +72,14 @@ appendices.
         │   └── xkb/                    # Custom XKB symbols for nonstandard layouts
         ├── hardware/                   # Hardware-specific configurations
         │   ├── amd-gpu.nix             # AMD kernel params and ROCm stack
+        │   ├── intel-cpu.nix           # Intel CPU placeholder tuning
+        │   ├── intel-gpu.nix           # Intel GPU placeholder tuning
         │   └── nvidia-gpu.nix          # Install-driven NVIDIA/PRIME wiring
         ├── networking/                 # Network policy modules
         │   ├── ipv6.nix                # IPv6 enablement + temp addresses
         │   └── tcp.nix                 # TCP congestion control kernel module
+        ├── ops/                        # Operational automation
+        │   └── auto-upgrade.nix        # Flake-based auto-upgrade timer
         ├── programs/                   # System-level program modules
         │   └── latencyflex-module.nix  # Toggle for the LatencyFleX Vulkan layer
         ├── tuning/                     # Performance and kernel tuning
@@ -104,6 +108,7 @@ appendices.
   Secure Boot) with assertions.
 - `modules/networking/ipv6.nix`: install-driven IPv6 enablement and temp-address defaults.
 - `modules/networking/tcp.nix`: install-driven TCP congestion control kernel module.
+- `modules/ops/auto-upgrade.nix`: install-driven auto-upgrade timer (flake-based).
 - `modules/tuning/sysctl.nix`: the sole source for `boot.kernel.sysctl`.
 - `modules/security/phase.nix`: `my.security.phase`, `my.security.breakglass`,
   and assertions gating.
@@ -242,15 +247,15 @@ Installer -> answers -> consumer map:
 | MAC mode/interface/address              | `mac.mode/interface/address`              | `modules/core/install-answers.nix` -> NetworkManager policy                |
 | Boot mode                               | `boot.mode`                               | `modules/boot/boot-profile.nix` (selects UKI vs Secure Boot)              |
 | Trust phase                             | `trust.phase`                             | Boot/Secure Boot gating                                                     |
-| Desktop panel                           | `desktop.panel`                           | Home Manager panel selection (planned)                                      |
+| Desktop panel                           | `desktop.panel`                           | Home Manager panel selection                                                |
 | Snapshot policy                         | `snapshots.*`                             | Snapshot services (planned)                                                 |
 | Trim policy                             | `storage.trim.*`                          | Storage maintenance (planned)                                               |
 | Encryption intent                       | `encryption.mode`                         | Future LUKS wiring                                                          |
 | Swap mode/size                          | `swap.mode/sizeGiB`                       | Swap provisioning                                                           |
-| IPv6 policy                             | `networking.ipv6.enable/tempAddresses`    | Network stack policy (planned)                                              |
-| TCP congestion control                  | `networking.tcp.congestionControl`        | Kernel tuning (planned)                                                     |
+| IPv6 policy                             | `networking.ipv6.enable/tempAddresses`    | `modules/networking/ipv6.nix` + sysctl                                      |
+| TCP congestion control                  | `networking.tcp.congestionControl`        | `modules/networking/tcp.nix` + sysctl                                       |
 | System profile                          | `profile.system`                          | Flake arg -> system profile selection                                       |
-| Auto-upgrade                            | `autoUpgrade.*`                           | Systemd auto-upgrade timer (planned)                                        |
+| Auto-upgrade                            | `autoUpgrade.*`                           | `modules/ops/auto-upgrade.nix`                                              |
 | Container stack                         | `my.programs.containers.enable`           | `modules/programs/containers.nix`                                           |
 
 ### Appendix G: Future component planning
