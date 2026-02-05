@@ -30,7 +30,8 @@ The options live in `modules/security/phase.nix`.
 - Trust phase (`my.trust.phase`) gates Secure Boot/TPM enforcement.
 - Secure Boot readiness is required in dev; enforcement is required in
   enforced phase.
-- TPM+PIN unlock is expected in enforced phase, but enrollment is manual.
+- TPM+PIN unlock is expected in enforced phase; installer can enroll when
+  `encryption.tpm2.enable = true`, otherwise use manual enrollment.
 - UKI and Secure Boot profiles must set the expected bootloader options.
 - Bootspec extension namespace must be `io.pullclone.dotclone.uki.*` or
   upstream namespaces.
@@ -99,6 +100,14 @@ Recommended workflow for security changes:
 - If PAM changes brick unlock, disable locker PAM snippets and return to
   phase 0 before retrying.
 - Keep a LUKS passphrase/keyslot even when experimenting with GPG/TPM flows.
+
+## TPM2 unlock notes
+
+- Installer prompt: enable TPM2 + PIN when using LUKS2 to enroll a TPM token.
+- Enrollment is performed via `systemd-cryptenroll` during install and the
+  LUKS passphrase remains as a fallback.
+- TPM2 PIN is stored in `/etc/nixos/nyxos-install.nix` as an install fact;
+  treat it as sensitive and rotate if compromised.
 
 ## Rollback drills (recommended before phase 2)
 

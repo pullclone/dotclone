@@ -127,6 +127,7 @@
             ./modules/security/usbguard.nix
             ./modules/security/u2f.nix
             ./modules/security/fingerprint.nix
+            ./modules/security/tpm2.nix
             ./modules/security/aide.nix
             ./modules/security/lynis.nix
             ./modules/security/luks-gpg.nix

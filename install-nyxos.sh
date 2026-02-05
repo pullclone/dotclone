@@ -44,6 +44,25 @@ require_int() {
   return 0
 }
 
+require_numeric_pin() {
+  local name="$1"
+  local value="$2"
+  local min_len="${3:-6}"
+  if [[ -z "$value" ]]; then
+    echo "That entry isn't valid. $name cannot be empty." >&2
+    return 1
+  fi
+  if ! [[ "$value" =~ ^[0-9]+$ ]]; then
+    echo "That entry isn't valid. $name must be numeric (got: $value)." >&2
+    return 1
+  fi
+  if (( ${#value} < min_len )); then
+    echo "That entry isn't valid. $name must be at least $min_len digits." >&2
+    return 1
+  fi
+  return 0
+}
+
 normalize_timezone() {
   local tz="$1"
   local sign hour minute flipped offset_key
@@ -956,6 +975,32 @@ if [[ "$LUKS_GPG_ENABLE" == "true" ]]; then
   done
 fi
 
+###############################################################################
+# 6c) TPM2 unlock (optional)
+###############################################################################
+
+TPM2_ENABLE="false"
+TPM2_PIN=""
+TPM2_ENROLLED="false"
+if [[ "$ENC_MODE" == "luks2" ]]; then
+  echo ""
+  echo "TPM2 unlock (optional):"
+  ask_yes_no "Use TPM2 + PIN to unlock the encrypted disk?" "n" TPM2_ENABLE
+  if [[ "$TPM2_ENABLE" == "true" ]]; then
+    echo "Note: The PIN is stored in /etc/nixos/nyxos-install.nix."
+    while true; do
+      read -r -s -p "Enter numeric TPM2 PIN (min 6 digits): " TPM2_PIN
+      echo ""
+      if require_numeric_pin "TPM2 PIN" "$TPM2_PIN" 6; then
+        break
+      fi
+    done
+  fi
+else
+  echo ""
+  echo "Note: TPM2 unlock requires LUKS2; skipping TPM2 enrollment."
+fi
+
 LUKS_MAPPER_NAME="${LUKS_GPG_MAPPER}"
 if [[ -z "$LUKS_MAPPER_NAME" ]]; then
   LUKS_MAPPER_NAME="root"
@@ -1347,6 +1392,24 @@ if [[ "$ENC_MODE" == "luks2" ]]; then
   if [[ -z "$LUKS_GPG_DEVICE" || "$LUKS_GPG_DEVICE" == "/dev/disk/by-label/nixos" ]]; then
     LUKS_GPG_DEVICE="/dev/disk/by-uuid/${LUKS_UUID}"
   fi
+  if [[ "$TPM2_ENABLE" == "true" ]]; then
+    if ! has_command systemd-cryptenroll; then
+      echo "❌ systemd-cryptenroll is required for TPM2 enrollment but is not available." >&2
+      exit 1
+    fi
+    if [[ -z "$LUKS_UUID" ]]; then
+      echo "❌ Unable to resolve LUKS UUID for TPM2 enrollment." >&2
+      exit 1
+    fi
+    echo ""
+    echo "Enrolling TPM2 token (PCRs 7+14)..."
+    systemd-cryptenroll \
+      --tpm2-device=auto \
+      --tpm2-pcrs=7+14 \
+      --tpm2-pin="$TPM2_PIN" \
+      "/dev/disk/by-uuid/${LUKS_UUID}"
+    TPM2_ENROLLED="true"
+  fi
 fi
 
 mkfs.btrfs -f -L nixos "$ROOT_DEVICE"
@@ -1533,6 +1596,11 @@ cat > "${ANSWERS_ROOT}/nyxos-install.nix" <<EOF
 
   encryption = {
     mode = "${ENC_MODE}";
+    tpm2 = {
+      enable = ${TPM2_ENABLE};
+      pin = "${TPM2_PIN}";
+      enrolled = ${TPM2_ENROLLED};
+    };
   };
 
   luksGpg = {

@@ -123,6 +123,7 @@ appendices.
 - `modules/security/aide.nix`: optional AIDE service/timer.
 - `modules/security/lynis.nix`: optional Lynis audit service/timer.
 - `modules/security/luks-gpg.nix`: initrd GPG decrypt flow for LUKS keyfiles.
+- `modules/security/tpm2.nix`: install-driven TPM2 services and initrd LUKS2 unlock wiring.
 - `modules/ssh/default.nix`: declarative SSH client/server profile wiring.
 - `modules/programs/gaming.nix`: optional gaming stack based on install facts.
 - `modules/home/apps/ssh-identity.nix`: SSH identity wiring from install facts.
@@ -251,6 +252,7 @@ Installer -> answers -> consumer map:
 | Snapshot policy                         | `snapshots.*`                             | Snapshot services (planned)                                                 |
 | Trim policy                             | `storage.trim.*`                          | Storage maintenance (planned)                                               |
 | Encryption intent                       | `encryption.mode`                         | Future LUKS wiring                                                          |
+| TPM2 unlock (optional)                  | `encryption.tpm2.enable/pin/enrolled`     | `modules/security/tpm2.nix` + installer enrollment                          |
 | Swap mode/size                          | `swap.mode/sizeGiB`                       | Swap provisioning                                                           |
 | IPv6 policy                             | `networking.ipv6.enable/tempAddresses`    | `modules/networking/ipv6.nix` + sysctl                                      |
 | TCP congestion control                  | `networking.tcp.congestionControl`        | `modules/networking/tcp.nix` + sysctl                                       |

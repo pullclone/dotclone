@@ -99,7 +99,19 @@ let
         allowDiscardsInLuks = true;
       };
     };
-  encryption = answers.encryption or { mode = "none"; };
+  encryption =
+    let
+      enc = answers.encryption or { };
+      tpm2 = enc.tpm2 or { };
+    in
+    {
+      mode = enc.mode or "none";
+      tpm2 = {
+        enable = tpm2.enable or false;
+        pin = tpm2.pin or "";
+        enrolled = tpm2.enrolled or false;
+      };
+    };
   luksGpg =
     answers.luksGpg or {
       enable = false;
@@ -401,6 +413,29 @@ in
         Encryption intent: “none” for unencrypted root, “luks2” to signal LUKS2 should be used by an encrypted installer.
       '';
     };
+    encryption.tpm2 = lib.mkOption {
+      type = lib.types.submodule {
+        options = {
+          enable = lib.mkOption {
+            type = lib.types.bool;
+            default = encryption.tpm2.enable;
+            description = "Whether to enroll the LUKS key into the TPM and enable TPM unlocking.";
+          };
+          pin = lib.mkOption {
+            type = lib.types.str;
+            default = encryption.tpm2.pin;
+            description = "Numeric TPM2 PIN used for TPM unlock (min 6 digits).";
+          };
+          enrolled = lib.mkOption {
+            type = lib.types.bool;
+            default = encryption.tpm2.enrolled;
+            description = "Whether TPM2 enrollment was completed during install.";
+          };
+        };
+      };
+      default = encryption.tpm2;
+      description = "TPM2 unlock settings captured at install time.";
+    };
     luksGpg = lib.mkOption {
       type = lib.types.submodule {
         options = {
@@ -700,6 +735,16 @@ in
             "weekly"
           ]);
         message = "install answers: autoUpgrade.cadence must be daily or weekly when autoUpgrade is enabled.";
+      }
+      {
+        assertion = (!encryption.tpm2.enable) || (encryption.mode == "luks2");
+        message = "install answers: encryption.tpm2.enable requires encryption.mode = luks2.";
+      }
+      {
+        assertion =
+          (!encryption.tpm2.enable)
+          || (builtins.match "^[0-9]{6,}$" encryption.tpm2.pin != null);
+        message = "install answers: encryption.tpm2.pin must be at least 6 digits when TPM2 unlock is enabled.";
       }
       {
         assertion = lib.elem networking.tcp.congestionControl [

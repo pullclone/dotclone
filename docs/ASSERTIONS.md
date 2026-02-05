@@ -59,10 +59,10 @@ assertion[\[1\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/boot/bo
   and Secure Boot is selected, the build may require firmware Secure
   Boot to be enabled and the signing path to be present; TPM checks are
   deferred until this phase.
-- **TPM Unlock (Enforced, Manual Enrollment)** -- In enforced trust
-  phase, TPM+PIN unlock is expected to be available for encrypted
-  installs, but enrollment is manual. The passphrase must remain as a
-  fallback. Manual command (adjust UUID):  
+- **TPM Unlock (Enforced)** -- In enforced trust phase, TPM+PIN unlock is
+  expected to be available for encrypted installs. Enrollment can be
+  performed by the installer when `encryption.tpm2.enable = true`; the
+  passphrase must remain as a fallback. Manual command (adjust UUID):  
   `systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=7+14 --tpm2-with-pin=yes /dev/disk/by-uuid/XXXX`
 - **UKI Profile** -- When `my.boot.uki.enable = true`, the following
   must hold:
@@ -105,6 +105,10 @@ normalized by `modules/core/install-answers.nix` and re-exported via
   that the installer provisions a LUKS2 container with Btrfs inside; use
   `none` for an unencrypted root. The initrd unlock path depends on this
   selection.
+- **TPM2 Facts** -- When `my.install.encryption.tpm2.enable = true`, a
+  numeric `tpm2.pin` (min 6 digits) must be provided and the encryption
+  mode must be `luks2`. The installer may record whether enrollment
+  completed via `tpm2.enrolled`.
 - **MAC Address Mode** -- The `mac.mode` attribute must be one of
   `default`, `random`, `stable`, or `fixed` and drive the NetworkManager
   configuration[\[9\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/core/install-answers.nix#L25-L32).
