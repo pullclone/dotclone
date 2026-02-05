@@ -59,7 +59,8 @@
   # ==========================================
   # FILESYSTEM MAINTENANCE
   # ==========================================
-  # TODO(batch1): Wire retention/enablement to install facts (snapshots.retention, trim policy).
+  # Snapshot retention and TRIM enablement are wired to install facts via modules/tuning/btrfs-snapshots.nix
+  # and configuration.nix (services.fstrim).
   # One-shot service for manual or startup optimization
   systemd.services."btrfs-optimize" = {
     description = "Btrfs Optimization Service";
