@@ -19,7 +19,7 @@ jobs:
             experimental-features = nix-command flakes
 
       - name: Enable Magic Nix Cache
-        uses: DeterminateSystems/magic-nix-cache@v8
+        uses: DeterminateSystems/magic-nix-cache-action@v12
 
       - name: Run audit gate
         run: nix develop --command just audit
