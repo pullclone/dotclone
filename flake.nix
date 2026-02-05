@@ -108,6 +108,8 @@
             # 3. Installation Facts
             ./modules/core/install-answers.nix
             ./modules/core/keyboard-preset.nix
+            ./modules/networking/ipv6.nix
+            ./modules/networking/tcp.nix
 
             # 4. Domain Modules (Hardware & Tuning)
             ./modules/hardware/amd-gpu.nix

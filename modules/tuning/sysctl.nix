@@ -36,13 +36,14 @@
     "kernel.sched_wakeup_granularity_ns" = 15000000;
     "kernel.sched_latency_ns" = 60000000;
     "net.core.default_qdisc" = "fq";
-    "net.ipv4.tcp_congestion_control" = "bbr";
+    "net.ipv4.tcp_congestion_control" = config.my.install.networking.tcp.congestionControl;
     "net.ipv4.tcp_notsent_lowat" = 1;
     "net.ipv4.tcp_no_metrics_save" = 1;
     "net.ipv4.tcp_keepalive_time" = 300;
     "net.ipv4.tcp_keepalive_probes" = 5;
     "net.ipv4.tcp_keepalive_intvl" = 30;
-    "net.ipv6.conf.all.disable_ipv6" = 1;
+    "net.ipv6.conf.all.disable_ipv6" =
+      lib.mkDefault (if config.my.install.networking.ipv6.enable then 0 else 1);
   };
 
   # ==========================================

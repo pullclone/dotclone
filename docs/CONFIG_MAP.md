@@ -9,7 +9,7 @@ appendices.
 - Entry points: `configuration.nix`, `flake.nix`, `install-nyxos.sh`.
 - Facts vs policy: install answers live in `modules/core/install-answers.nix`
   and are exported as `config.my.install` for policy modules to consume.
-- Domain modules: `modules/{boot,core,hardware,programs,tuning,security,ssh,home}`.
+- Domain modules: `modules/{boot,core,hardware,networking,programs,tuning,security,ssh,home}`.
 - Profiles: `profiles/` define system and ZRAM tuning (flake arg driven).
 - Scripts: `scripts/` contains audits and runtime checks used by `just`.
 
@@ -73,6 +73,9 @@ appendices.
         ├── hardware/                   # Hardware-specific configurations
         │   ├── amd-gpu.nix             # AMD kernel params and ROCm stack
         │   └── nvidia-gpu.nix          # Install-driven NVIDIA/PRIME wiring
+        ├── networking/                 # Network policy modules
+        │   ├── ipv6.nix                # IPv6 enablement + temp addresses
+        │   └── tcp.nix                 # TCP congestion control kernel module
         ├── programs/                   # System-level program modules
         │   └── latencyflex-module.nix  # Toggle for the LatencyFleX Vulkan layer
         ├── tuning/                     # Performance and kernel tuning
@@ -99,6 +102,8 @@ appendices.
   and XKB sessions.
 - `modules/boot/boot-profile.nix`: mutually exclusive boot profiles (UKI vs
   Secure Boot) with assertions.
+- `modules/networking/ipv6.nix`: install-driven IPv6 enablement and temp-address defaults.
+- `modules/networking/tcp.nix`: install-driven TCP congestion control kernel module.
 - `modules/tuning/sysctl.nix`: the sole source for `boot.kernel.sysctl`.
 - `modules/security/phase.nix`: `my.security.phase`, `my.security.breakglass`,
   and assertions gating.
