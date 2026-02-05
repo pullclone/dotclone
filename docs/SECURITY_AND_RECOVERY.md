@@ -78,6 +78,11 @@ To reduce lockout risk, you can enable a temporary sudo fallback:
 - Set `my.security.access.sudoFallback.enable = true`.
 - Sudo remains installed even when disabled, which helps in emergency shells.
 
+On the `feature/with-sudo` branch, sudo fallback is enabled by default to
+support tooling that assumes `sudo` is present. This increases the attack
+surface compared to main; do not merge that branch into main unless you
+accept the trade-off.
+
 ## Quick recovery (system still boots)
 
 1. Roll back the phase: set `my.security.phase = 0` (or temporarily set

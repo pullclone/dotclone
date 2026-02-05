@@ -36,6 +36,8 @@ in
     auto-optimise-store = true;
   };
 
+  my.security.access.sudoFallback.enable = true;
+
   # Kernel modules
   boot.kernelModules = [
     "i2c-dev"
