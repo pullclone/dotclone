@@ -24,7 +24,7 @@ jobs:
       LATENCYFLEX_ENABLE: ${{ matrix.latencyflex_enable }}
     steps:
       - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4 (2026-02-05)
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v4 (2026-02-05)
 
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@c5a866b6ab867e88becbed4467b93592bce69f8a # v11 (2026-02-05)
@@ -72,7 +72,7 @@ jobs:
       LATENCYFLEX_ENABLE: ${{ matrix.latencyflex_enable }}
     steps:
       - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4 (2026-02-05)
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v4 (2026-02-05)
 
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@c5a866b6ab867e88becbed4467b93592bce69f8a # v11 (2026-02-05)
