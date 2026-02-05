@@ -4,6 +4,13 @@ let
   phase = config.my.security.phase;
   user = config.my.install.userName;
 
+  installPanel = lib.attrByPath [
+    "my"
+    "install"
+    "desktop"
+    "panel"
+  ] "noctalia" config;
+
   panel = lib.attrByPath [
     "home-manager"
     "users"
@@ -11,7 +18,7 @@ let
     "my"
     "desktop"
     "panel"
-  ] "unknown" config;
+  ] installPanel config;
 
   noctaliaEnabled = lib.attrByPath [
     "home-manager"
@@ -20,17 +27,6 @@ let
     "programs"
     "noctalia-shell"
     "enable"
-  ] false config;
-
-  noctaliaLockOnSuspend = lib.attrByPath [
-    "home-manager"
-    "users"
-    user
-    "programs"
-    "noctalia-shell"
-    "settings"
-    "general"
-    "lockOnSuspend"
   ] false config;
 
   swaylockEnabled = lib.attrByPath [
@@ -42,8 +38,43 @@ let
     "enable"
   ] false config;
 
+  noctaliaPamService = "noctalia-shell";
+  swaylockPamService = "swaylock";
+
+  expectedLocker = if panel == "waybar" then "swaylock" else "noctalia";
+
+  expectedPamService =
+    if expectedLocker == "swaylock" then
+      swaylockPamService
+    else
+      noctaliaPamService;
+
+  expectedUserService =
+    if expectedLocker == "swaylock" then
+      "swaylock"
+    else
+      "noctalia-lock";
+
+  lockTargetWantedBy = lib.attrByPath [
+    "home-manager"
+    "users"
+    user
+    "systemd"
+    "user"
+    "services"
+    expectedUserService
+    "Install"
+    "WantedBy"
+  ] [ ] config;
+
+  lockTargetEnabled = lib.elem "lock.target" lockTargetWantedBy;
+
   activeLocker =
-    if panel == "noctalia" || noctaliaEnabled then
+    if panel == "noctalia" && noctaliaEnabled then
+      "noctalia"
+    else if panel == "waybar" && swaylockEnabled then
+      "swaylock"
+    else if noctaliaEnabled then
       "noctalia"
     else if swaylockEnabled then
       "swaylock"
@@ -66,15 +97,32 @@ in
       "noctalia"
       "swaylock"
     ];
-    default = "noctalia";
+    default = expectedLocker;
     description = ''
       Locker expected to handle idle/suspend and manual lock flows. Used for audit
       assertions in staged/enforced security phases.
     '';
   };
 
+  options.my.security.pam.targets = lib.mkOption {
+    type = with lib.types; listOf str;
+    default = [
+      "login"
+      "doas"
+      expectedPamService
+    ];
+    description = "PAM services that should receive additional auth controls (U2F/fingerprint).";
+  };
+
   config = lib.mkIf (phase >= 0) {
     my.security.locker.active = activeLocker;
+
+    services.systemd-lock-handler.enable = true;
+
+    security.pam.services = {
+      swaylock = { };
+      ${noctaliaPamService} = { };
+    };
 
     assertions = lib.mkIf (phase >= 1) [
       {
@@ -86,15 +134,19 @@ in
         message = "Locker audit: unable to detect an active locker (noctalia or swaylock).";
       }
       {
-        assertion = (activeLocker != "noctalia") || noctaliaLockOnSuspend;
-        message = "Locker audit: Noctalia is active but lockOnSuspend is disabled.";
-      }
-      {
         assertion =
           (activeLocker == config.my.security.locker.expected)
           || (config.my.security.locker.expected == "swaylock" && swaylockEnabled)
           || (config.my.security.locker.expected == "noctalia" && noctaliaEnabled);
         message = "Locker audit: active locker does not match expected locker.";
+      }
+      {
+        assertion = lib.elem expectedPamService config.my.security.pam.targets;
+        message = "Locker audit: my.security.pam.targets must include the active locker PAM service.";
+      }
+      {
+        assertion = lockTargetEnabled;
+        message = "Locker audit: expected lock service must be wanted by lock.target.";
       }
     ];
   };
