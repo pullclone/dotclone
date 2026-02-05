@@ -7,12 +7,42 @@ echo "🔍 NyxOS Optimization Testing & Validation"
 echo "=========================================="
 echo ""
 
+is_wsl() {
+    grep -qi microsoft /proc/version 2>/dev/null || \
+        grep -qi microsoft /proc/sys/kernel/osrelease 2>/dev/null
+}
+
+is_nixos() {
+    [ -r /etc/os-release ] && grep -q "^ID=nixos$" /etc/os-release
+}
+
+has_systemd() {
+    [ -d /run/systemd/system ]
+}
+
+if is_wsl; then
+    echo "SKIP (WSL): runtime optimization checks require a real NixOS systemd runtime."
+    exit 0
+fi
+
+if ! is_nixos; then
+    echo "SKIP (non-NixOS): runtime optimization checks require a NixOS runtime."
+    exit 0
+fi
+
+if ! has_systemd; then
+    echo "SKIP (no systemd): runtime optimization checks require systemd."
+    exit 0
+fi
+
 # Function to test a specific optimization
 test_optimization() {
     local name="$1"
     local command="$2"
     local expected="$3"
     local description="$4"
+    local result
+    local status
     
     echo "Testing: $name"
     echo "Description: $description"
@@ -20,10 +50,21 @@ test_optimization() {
     
     # Run the command
     result=$(eval "$command" 2>/dev/null)
-    
+    status=$?
+
     # Check if result matches expected
-    if [[ "$result" == *"$expected"* ]] || [[ -z "$expected" ]]; then
+    if [[ -z "$expected" ]]; then
+        if [[ $status -eq 0 && -n "$result" ]]; then
+            echo "✅ PASS: $result"
+        elif [[ $status -ne 0 ]]; then
+            echo "❌ FAIL: Command failed (exit $status)"
+        else
+            echo "❌ FAIL: Expected command output but got empty result"
+        fi
+    elif [[ $status -eq 0 && "$result" == *"$expected"* ]]; then
         echo "✅ PASS: $result"
+    elif [[ $status -ne 0 ]]; then
+        echo "❌ FAIL: Command failed (exit $status)"
     else
         echo "❌ FAIL: Expected '$expected', got '$result'"
     fi

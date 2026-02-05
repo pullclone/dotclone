@@ -13,15 +13,15 @@ This project is licensed under the Apache License 2.0.
 
 ## Contents
 
-- [Architecture](#-architecture)
-- [Dual-profile system](#-dual-profile-system)
-- [Features & tooling](#️-features--tooling)
-- [ZRAM & LatencyFleX profiles](#-zram--latencyflex-profiles)
-- [Install & configuration](#️-install--configuration)
-- [Keybindings (Niri)](#-keybindings-niri)
-- [Core package set](#-core-package-set)
-- [Performance, testing & monitoring](#-performance-testing--monitoring)
-- [Credits](#-credits)
+- [Architecture](#architecture)
+- [Dual-profile system](#dual-profile-system)
+- [Features & tooling](#features--tooling)
+- [ZRAM & LatencyFleX profiles](#system--latencyflex-profiles)
+- [Install & configuration](#install--configuration)
+- [Keybindings (Niri)](#keybindings-niri)
+- [Core package set](#core-package-set)
+- [Performance & monitoring](#performance--monitoring)
+- [Credits](#credits)
 
 ---
 
@@ -62,6 +62,8 @@ sudo nixos-rebuild switch --flake .#nyx
 ```
 
 ---
+
+## 🧰 Features & tooling
 
 
 ### 🖱️ Hardware & input
@@ -327,7 +329,7 @@ Available system‑wide (terminal + bindings):
 
 ---
 
-## ⌨️ Keybindings (Niri)
+## ⌨️ Keybindings (Niri)
 
 Bindings are normalized so muscle memory stays consistent across both profiles.
 

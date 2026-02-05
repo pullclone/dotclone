@@ -12,7 +12,6 @@ in
 
     # TPM2 LUKS tokens require systemd in initrd and LUKS2 metadata.
     boot.initrd.systemd.enable = true;
-    boot.initrd.luks.forceLuks2 = true;
 
     assertions = [
       {

@@ -42,8 +42,6 @@
     "net.ipv4.tcp_keepalive_time" = 300;
     "net.ipv4.tcp_keepalive_probes" = 5;
     "net.ipv4.tcp_keepalive_intvl" = 30;
-    "net.ipv6.conf.all.disable_ipv6" =
-      lib.mkDefault (if config.my.install.networking.ipv6.enable then 0 else 1);
   };
 
   # ==========================================
