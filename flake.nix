@@ -130,6 +130,7 @@
             ./modules/security/luks-gpg.nix
             ./modules/security/assertions.nix
             ./modules/ssh/default.nix
+            ./modules/ops/auto-upgrade.nix
 
             # 5. Main Policy Configuration
             ./configuration.nix
