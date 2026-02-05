@@ -245,7 +245,7 @@
               jq
               yq-go
               xplr
-              
+
               # Nix format & lint
               nixfmt-rfc-style
               nixfmt-tree

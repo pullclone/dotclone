@@ -11,23 +11,22 @@
   home.username = "ashy";
   home.homeDirectory = "/home/ashy";
 
-  imports =
-    [
-      # --- 1. CORE DEFINITIONS ---
-      ./core/options.nix
-      ./shell/shells.nix
-      ./niri/niri-shared.nix
+  imports = [
+    # --- 1. CORE DEFINITIONS ---
+    ./core/options.nix
+    ./shell/shells.nix
+    ./niri/niri-shared.nix
 
-      # --- 2. GLOBAL APPS & TERMINALS ---
-      ./apps/protonvpn.nix
-      ./apps/ssh-identity.nix
-      ./apps/brave-webapps.nix
-      ./apps/btop.nix
-      ./apps/cava.nix
-      ./terminals/kitty.nix
-      ./noctalia/default.nix
-      ./waybar/default.nix
-    ];
+    # --- 2. GLOBAL APPS & TERMINALS ---
+    ./apps/protonvpn.nix
+    ./apps/ssh-identity.nix
+    ./apps/brave-webapps.nix
+    ./apps/btop.nix
+    ./apps/cava.nix
+    ./terminals/kitty.nix
+    ./noctalia/default.nix
+    ./waybar/default.nix
+  ];
 
   # --- CONFIGURATION TOGGLES ---
   my.desktop = {

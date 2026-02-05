@@ -741,9 +741,7 @@ in
         message = "install answers: encryption.tpm2.enable requires encryption.mode = luks2.";
       }
       {
-        assertion =
-          (!encryption.tpm2.enable)
-          || (builtins.match "^[0-9]{6,}$" encryption.tpm2.pin != null);
+        assertion = (!encryption.tpm2.enable) || (builtins.match "^[0-9]{6,}$" encryption.tpm2.pin != null);
         message = "install answers: encryption.tpm2.pin must be at least 6 digits when TPM2 unlock is enabled.";
       }
       {

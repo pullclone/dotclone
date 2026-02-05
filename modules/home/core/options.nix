@@ -1,4 +1,8 @@
-{ lib, osConfig ? { }, ... }:
+{
+  lib,
+  osConfig ? { },
+  ...
+}:
 let
   inherit (lib) mkOption types mkEnableOption;
 in

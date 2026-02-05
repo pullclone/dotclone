@@ -44,28 +44,25 @@ let
   expectedLocker = if panel == "waybar" then "swaylock" else "noctalia";
 
   expectedPamService =
-    if expectedLocker == "swaylock" then
-      swaylockPamService
-    else
-      noctaliaPamService;
+    if expectedLocker == "swaylock" then swaylockPamService else noctaliaPamService;
 
-  expectedUserService =
-    if expectedLocker == "swaylock" then
-      "swaylock"
-    else
-      "noctalia-lock";
+  expectedUserService = if expectedLocker == "swaylock" then "swaylock" else "noctalia-lock";
 
-  lockTargetWantedBy = lib.attrByPath [
-    "home-manager"
-    "users"
-    user
-    "systemd"
-    "user"
-    "services"
-    expectedUserService
-    "Install"
-    "WantedBy"
-  ] [ ] config;
+  lockTargetWantedBy =
+    lib.attrByPath
+      [
+        "home-manager"
+        "users"
+        user
+        "systemd"
+        "user"
+        "services"
+        expectedUserService
+        "Install"
+        "WantedBy"
+      ]
+      [ ]
+      config;
 
   lockTargetEnabled = lib.elem "lock.target" lockTargetWantedBy;
 

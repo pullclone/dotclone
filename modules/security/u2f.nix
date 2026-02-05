@@ -59,7 +59,9 @@ in
     users.groups.${cfg.bypassGroup} = { };
 
     # Attach U2F to target PAM services.
-    security.pam.services = lib.genAttrs pamTargets (_: { u2fAuth = true; });
+    security.pam.services = lib.genAttrs pamTargets (_: {
+      u2fAuth = true;
+    });
 
     assertions = [
       {
