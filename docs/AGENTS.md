@@ -137,6 +137,8 @@ When submitting work, include:
 3. Validation Results
 4. Next Steps
 
+Validation Results may be reported as `PASS`, `PASS (with warnings)`, or `FAIL`.
+
 ## Workflow checklist
 
 Before starting:

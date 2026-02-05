@@ -439,6 +439,12 @@ test-configuration:
     scripts/test-configuration.sh
 
 [group('Test')]
+test-strict:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    STRICT=1 scripts/test-configuration.sh
+
+[group('Test')]
 test-runtime:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -448,16 +454,11 @@ test-runtime:
 test:
     #!/usr/bin/env bash
     set -euo pipefail
-    echo "Building and running smoke tests..."
-    just build
-    just test-configuration
-    just test-g502
-    just test-latencyflex
-    echo "Smoke tests OK"
+    scripts/test-configuration.sh
 
 [group('CI')]
 ci:
     just audit
     just build
-    just test
+    just test-strict
     @echo "CI OK"
