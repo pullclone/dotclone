@@ -1,4 +1,4 @@
-{ lib, ... }:
+{ lib, osConfig ? { }, ... }:
 let
   inherit (lib) mkOption types mkEnableOption;
 in
@@ -11,7 +11,7 @@ in
         "noctalia"
         "waybar"
       ];
-      default = "noctalia";
+      default = lib.attrByPath [ "my" "install" "desktop" "panel" ] "noctalia" osConfig;
       description = "Choose the panel/bar interface.";
     };
 

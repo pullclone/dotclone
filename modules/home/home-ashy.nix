@@ -11,29 +11,31 @@
   home.username = "ashy";
   home.homeDirectory = "/home/ashy";
 
-  imports = [
-    # --- 1. CORE DEFINITIONS ---
-    ./core/options.nix
-    ./shell/shells.nix
-    ./niri/niri-shared.nix
+  imports =
+    [
+      # --- 1. CORE DEFINITIONS ---
+      ./core/options.nix
+      ./shell/shells.nix
+      ./niri/niri-shared.nix
 
-    # --- 2. GLOBAL APPS & TERMINALS ---
-    ./apps/protonvpn.nix
-    ./apps/ssh-identity.nix
-    ./apps/brave-webapps.nix
-    ./apps/btop.nix
-    ./apps/cava.nix
-    ./terminals/kitty.nix
-
-    # --- 3. PANELS (Gated internally via mkIf) ---
-    ./noctalia/default.nix
-    ./waybar/default.nix
-  ];
+      # --- 2. GLOBAL APPS & TERMINALS ---
+      ./apps/protonvpn.nix
+      ./apps/ssh-identity.nix
+      ./apps/brave-webapps.nix
+      ./apps/btop.nix
+      ./apps/cava.nix
+      ./terminals/kitty.nix
+    ]
+    ++ lib.optionals (config.my.desktop.panel == "noctalia") [
+      ./noctalia/default.nix
+    ]
+    ++ lib.optionals (config.my.desktop.panel == "waybar") [
+      ./waybar/default.nix
+    ];
 
   # --- CONFIGURATION TOGGLES ---
   my.desktop = {
     enable = true;
-    panel = "noctalia"; # Change to "waybar" to switch
     terminal = "kitty";
   };
 
