@@ -237,11 +237,15 @@ Installer -> answers -> consumer map:
 | MAC mode/interface/address              | `mac.mode/interface/address`              | `modules/core/install-answers.nix` -> NetworkManager policy                |
 | Boot mode                               | `boot.mode`                               | `modules/boot/boot-profile.nix` (selects UKI vs Secure Boot)              |
 | Trust phase                             | `trust.phase`                             | Boot/Secure Boot gating                                                     |
+| Desktop panel                           | `desktop.panel`                           | Home Manager panel selection (planned)                                      |
 | Snapshot policy                         | `snapshots.*`                             | Snapshot services (planned)                                                 |
 | Trim policy                             | `storage.trim.*`                          | Storage maintenance (planned)                                               |
 | Encryption intent                       | `encryption.mode`                         | Future LUKS wiring                                                          |
 | Swap mode/size                          | `swap.mode/sizeGiB`                       | Swap provisioning                                                           |
+| IPv6 policy                             | `networking.ipv6.enable/tempAddresses`    | Network stack policy (planned)                                              |
+| TCP congestion control                  | `networking.tcp.congestionControl`        | Kernel tuning (planned)                                                     |
 | System profile                          | `profile.system`                          | Flake arg -> system profile selection                                       |
+| Auto-upgrade                            | `autoUpgrade.*`                           | Systemd auto-upgrade timer (planned)                                        |
 | Container stack                         | `my.programs.containers.enable`           | `modules/programs/containers.nix`                                           |
 
 ### Appendix G: Future component planning

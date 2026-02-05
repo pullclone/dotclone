@@ -615,7 +615,25 @@ done
 KEYBOARD_ENABLE="true"
 
 ###############################################################################
-# 1b) Hardware auth + SSH identity (facts)
+# 1b) Desktop panel
+###############################################################################
+
+echo ""
+echo "Desktop panel:"
+echo "  1) noctalia (default)"
+echo "  2) waybar"
+DESKTOP_PANEL="noctalia"
+while true; do
+  ask "Choice" "1" PANEL_CHOICE
+  case "$PANEL_CHOICE" in
+    1) DESKTOP_PANEL="noctalia"; break ;;
+    2) DESKTOP_PANEL="waybar"; break ;;
+    *) echo "That entry isn't valid. Choose 1 or 2." >&2 ;;
+  esac
+done
+
+###############################################################################
+# 1c) Hardware auth + SSH identity (facts)
 ###############################################################################
 
 echo ""
@@ -651,7 +669,7 @@ if [[ "$SSH_IDENTITY" == "fido2" && "$HWAUTH_FIDO2_PRESENT" != "true" ]]; then
 fi
 
 ###############################################################################
-# 1c) SSH policy (declarative profiles)
+# 1d) SSH policy (declarative profiles)
 ###############################################################################
 
 echo ""
@@ -756,6 +774,34 @@ while true; do
       break
       ;;
     *) echo "That entry isn't valid. Choose 1, 2, 3, or 4." >&2 ;;
+  esac
+done
+
+###############################################################################
+# 2b) Networking (IPv6 + TCP congestion control)
+###############################################################################
+
+echo ""
+echo "IPv6 (advanced):"
+ask_yes_no "Enable IPv6?" "y" IPV6_ENABLE
+IPV6_TEMPADDR="true"
+if [[ "$IPV6_ENABLE" == "true" ]]; then
+  ask_yes_no "Enable IPv6 privacy temp addresses?" "y" IPV6_TEMPADDR
+else
+  IPV6_TEMPADDR="false"
+fi
+
+echo ""
+echo "TCP congestion control:"
+echo "  1) cubic (default)"
+echo "  2) bbr"
+TCP_CC="cubic"
+while true; do
+  ask "Choice" "1" TCP_CC_CHOICE
+  case "$TCP_CC_CHOICE" in
+    1) TCP_CC="cubic"; break ;;
+    2) TCP_CC="bbr"; break ;;
+    *) echo "That entry isn't valid. Choose 1 or 2." >&2 ;;
   esac
 done
 
@@ -1007,7 +1053,32 @@ while true; do
 done
 
 ###############################################################################
-# 8b) Build target (flake output)
+# 8b) Auto-upgrade (optional)
+###############################################################################
+
+echo ""
+echo "Auto-upgrade (optional):"
+AUTOUPGRADE_ENABLE="false"
+AUTOUPGRADE_CADENCE="weekly"
+AUTOUPGRADE_ALLOW_REBOOT="false"
+ask_yes_no "Enable automatic system upgrades?" "n" AUTOUPGRADE_ENABLE
+if [[ "$AUTOUPGRADE_ENABLE" == "true" ]]; then
+  echo "Upgrade cadence:"
+  echo "  1) daily"
+  echo "  2) weekly"
+  while true; do
+    ask "Choice" "2" AUTOUPGRADE_CADENCE_CHOICE
+    case "$AUTOUPGRADE_CADENCE_CHOICE" in
+      1) AUTOUPGRADE_CADENCE="daily"; break ;;
+      2) AUTOUPGRADE_CADENCE="weekly"; break ;;
+      *) echo "That entry isn't valid. Choose 1 or 2." >&2 ;;
+    esac
+  done
+  ask_yes_no "Allow automatic reboot if required?" "n" AUTOUPGRADE_ALLOW_REBOOT
+fi
+
+###############################################################################
+# 8c) Build target (flake output)
 ###############################################################################
 
 echo ""
@@ -1026,7 +1097,7 @@ while true; do
 done
 
 ###############################################################################
-# 8c) Gaming options (optional)
+# 8d) Gaming options (optional)
 ###############################################################################
 
 echo ""
@@ -1392,10 +1463,24 @@ cat > "${ANSWERS_ROOT}/nyxos-install.nix" <<EOF
     preset = "${KEYBOARD_PRESET}";
   };
 
+  desktop = {
+    panel = "${DESKTOP_PANEL}";
+  };
+
   mac = {
     mode = "${MAC_MODE}";
     interface = "${MAC_INTF}";
     address = "${MAC_ADDR}";
+  };
+
+  networking = {
+    ipv6 = {
+      enable = ${IPV6_ENABLE};
+      tempAddresses = ${IPV6_TEMPADDR};
+    };
+    tcp = {
+      congestionControl = "${TCP_CC}";
+    };
   };
 
   boot = {
@@ -1465,6 +1550,12 @@ cat > "${ANSWERS_ROOT}/nyxos-install.nix" <<EOF
   };
 
   profile.system = "${SYSTEM_PROFILE}";
+
+  autoUpgrade = {
+    enable = ${AUTOUPGRADE_ENABLE};
+    cadence = "${AUTOUPGRADE_CADENCE}";
+    allowReboot = ${AUTOUPGRADE_ALLOW_REBOOT};
+  };
 
   gaming = {
     steam = ${GAME_STEAM};
