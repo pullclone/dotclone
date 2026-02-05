@@ -1,3 +1,6 @@
+set shell := ["bash", "-lc"]
+# WSL: /run/user/$UID may be missing; lint/check guard XDG_RUNTIME_DIR.
+
 export system_profile := env("SYSTEM_PROFILE", "balanced")
 export latencyflex_enable := env("LATENCYFLEX_ENABLE", "true")
 
@@ -38,9 +41,7 @@ default:
 
 [group('Nix')]
 check:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    nix flake check .
+    set -euo pipefail; if [ -z "${XDG_RUNTIME_DIR:-}" ] || [ ! -w "${XDG_RUNTIME_DIR:-}" ]; then export XDG_RUNTIME_DIR="/tmp/xdg-runtime-${UID}"; install -d -m 0700 "$XDG_RUNTIME_DIR"; fi; nix flake check .
 
 [group('Nix')]
 build:
@@ -302,13 +303,7 @@ show:
 
 [group('Lint')]
 lint-shell:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    if ! command -v shellcheck >/dev/null 2>&1; then
-        echo "shellcheck could not be found. Please install it."
-        exit 1
-    fi
-    find install-nyxos.sh scripts -iname "*.sh" -type f -exec shellcheck "{}" ';'
+    set -euo pipefail; if [ -z "${XDG_RUNTIME_DIR:-}" ] || [ ! -w "${XDG_RUNTIME_DIR:-}" ]; then export XDG_RUNTIME_DIR="/tmp/xdg-runtime-${UID}"; install -d -m 0700 "$XDG_RUNTIME_DIR"; fi; if ! command -v shellcheck >/dev/null 2>&1; then echo "shellcheck could not be found. Please install it."; exit 1; fi; find install-nyxos.sh scripts -iname "*.sh" -type f -exec shellcheck "{}" \;
 
 [group('Lint')]
 shellcheck-strict:
@@ -366,9 +361,7 @@ lint-nix-report:
 
 [group('Lint')]
 lint:
-    @just check
-    @just lint-shell
-    @echo "Lint OK"
+    @set -euo pipefail; if [ -z "${XDG_RUNTIME_DIR:-}" ] || [ ! -w "${XDG_RUNTIME_DIR:-}" ]; then export XDG_RUNTIME_DIR="/tmp/xdg-runtime-${UID}"; install -d -m 0700 "$XDG_RUNTIME_DIR"; fi; just check; just lint-shell; echo "Lint OK"
 
 [group('Audit')]
 audit:

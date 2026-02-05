@@ -8,6 +8,7 @@
 
 let
   cfg = config.my.desktop;
+  noctaliaPkg = inputs.noctalia.packages.${pkgs.stdenv.hostPlatform.system}.default;
 
   # Helper for cleaner Noctalia calls
   noctalia = cmd: {
@@ -56,7 +57,7 @@ in
     programs.noctalia-shell = with palette; {
       enable = true;
       systemd.enable = true; # Use the Home Manager service
-      package = inputs.noctalia.packages.${pkgs.stdenv.hostPlatform.system}.default;
+      package = noctaliaPkg;
 
       # Theming logic (Merged from old ui.nix / stylix.nix)
       colors = {
@@ -152,6 +153,18 @@ in
           kitty = false;
           niri = false;
         };
+      };
+    };
+
+    systemd.user.services.noctalia-lock = {
+      Unit = {
+        Description = "Noctalia lock (lock.target)";
+      };
+      Service = {
+        ExecStart = "${noctaliaPkg}/bin/noctalia-shell ipc call lock";
+      };
+      Install = {
+        WantedBy = [ "lock.target" ];
       };
     };
 

@@ -3,6 +3,7 @@
 let
   phase = config.my.security.phase;
   cfg = config.my.security.fingerprint;
+  pamTargets = builtins.filter (svc: svc != "doas") config.my.security.pam.targets;
 in
 {
   options.my.security.fingerprint = {
@@ -10,27 +11,25 @@ in
       type = lib.types.bool;
       default = false;
       description = ''
-        Enable fingerprint authentication via fprintd for selected PAM services.
-        Defaults to off in all phases; can be enabled in phase ≥1 for convenience
-        login/locker flows. Do not use for doas.
+        Enable fingerprint authentication via fprintd for PAM services listed in
+        my.security.pam.targets (excluding doas). Defaults to off in all phases;
+        can be enabled in phase ≥1 for convenience login/locker flows.
       '';
     };
 
-    pamServices = lib.mkOption {
-      type = with lib.types; listOf str;
-      default = [ ];
-      example = [
-        "login"
-        "swaylock"
-      ];
-      description = "PAM services to enable pam_fprintd for (do not include doas).";
-    };
   };
 
   config = lib.mkIf (phase >= 1 && cfg.enable) {
     services.fprintd.enable = true;
-    security.pam.services = lib.genAttrs cfg.pamServices (_: {
+    security.pam.services = lib.genAttrs pamTargets (_: {
       fprintAuth = true;
     });
+
+    assertions = [
+      {
+        assertion = !(builtins.elem "doas" config.my.security.pam.targets);
+        message = "Fingerprint auth should not target doas; remove it from my.security.pam.targets.";
+      }
+    ];
   };
 }

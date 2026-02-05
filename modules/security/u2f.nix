@@ -3,6 +3,7 @@
 let
   phase = config.my.security.phase;
   cfg = config.my.security.u2f;
+  pamTargets = config.my.security.pam.targets;
 
   defaultMode = if phase >= 2 then "required" else "optional";
   control = if cfg.mode == "required" then "required" else "sufficient";
@@ -40,23 +41,6 @@ in
       description = "Group for users exempt from U2F (break-glass path).";
     };
 
-    services = {
-      doas.enable = lib.mkOption {
-        type = lib.types.bool;
-        default = true;
-        description = "Enable U2F on doas (primary escalation surface).";
-      };
-      locker.enable = lib.mkOption {
-        type = lib.types.bool;
-        default = phase >= 2;
-        description = "Enable U2F on lockers (swaylock/Noctalia PAM services). Leave false until stable.";
-      };
-      login.enable = lib.mkOption {
-        type = lib.types.bool;
-        default = phase >= 2;
-        description = "Enable U2F on login/display-manager PAM. Leave false until stable.";
-      };
-    };
   };
 
   config = lib.mkIf (phase >= 1 && cfg.enable) {
@@ -75,9 +59,7 @@ in
     users.groups.${cfg.bypassGroup} = { };
 
     # Attach U2F to target PAM services.
-    security.pam.services.doas.u2fAuth = cfg.services.doas.enable;
-    security.pam.services.swaylock.u2fAuth = lib.mkIf cfg.services.locker.enable true;
-    security.pam.services.login.u2fAuth = lib.mkIf cfg.services.login.enable true;
+    security.pam.services = lib.genAttrs pamTargets (_: { u2fAuth = true; });
 
     assertions = [
       {

@@ -119,7 +119,6 @@ in
 
   networking.networkmanager.enable = true;
   networking.networkmanager.wifi.backend = "iwd";
-  networking.enableIPv6 = false;
 
   networking.firewall = {
     enable = true;

@@ -24,6 +24,16 @@ just audit
 just build
 ```
 
+## WSL note
+
+On NixOS-WSL, `/run/user/$UID` may be missing or unwritable. Prefer the
+guarded `just check` / `just lint` recipes, or set:
+
+```bash
+export XDG_RUNTIME_DIR="/tmp/xdg-runtime-$UID"
+install -d -m 0700 "$XDG_RUNTIME_DIR"
+```
+
 ## Switch (choose one)
 
 ### Using flake output directly (recommended)

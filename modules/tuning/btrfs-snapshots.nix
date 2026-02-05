@@ -9,6 +9,7 @@
 let
   snaps = config.my.install.snapshots or { };
   retention = snaps.retention or (-1);
+  schedule = snaps.schedule or "daily";
   remote =
     snaps.remote or {
       enable = false;
@@ -22,11 +23,8 @@ in
   imports = [ (modulesPath + "/services/backup/btrbk.nix") ];
 
   config = lib.mkMerge [
-    # Inert when retention = -1
-    (lib.mkIf (retention == -1) { })
-
-    # Explicitly disabled when retention = 0
-    (lib.mkIf (retention == 0) {
+    # Disabled when retention <= 0
+    (lib.mkIf (retention <= 0) {
       services.btrbk.instances = lib.mkForce { };
     })
 
@@ -47,7 +45,7 @@ in
       environment.systemPackages = [ pkgs.btrbk ];
 
       services.btrbk.instances.main = {
-        onCalendar = "daily";
+        onCalendar = schedule;
         settings =
           let
             base = {

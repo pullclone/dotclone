@@ -73,6 +73,46 @@ else
     echo "  ❌ FAIL: Home configuration issue"
 fi
 
+# Test 9: Nix eval checks (panel, IPv6, PAM, lock handler)
+echo "✓ Test 9: Nix eval checks (panel/IPv6/PAM/lock)"
+if command -v nix >/dev/null 2>&1; then
+    system_name="${SYSTEM:-nyx}"
+    panel=$(nix eval --raw ".#nixosConfigurations.${system_name}.config.my.install.desktop.panel" 2>/dev/null || true)
+    if [ "$panel" = "noctalia" ] || [ "$panel" = "waybar" ]; then
+        echo "  ✅ PASS: Panel selection is ${panel}"
+    else
+        echo "  ❌ FAIL: Panel selection invalid or eval failed (${panel:-empty})"
+    fi
+
+    ipv6=$(nix eval ".#nixosConfigurations.${system_name}.config.networking.enableIPv6" 2>/dev/null || true)
+    if [ "$ipv6" = "true" ] || [ "$ipv6" = "false" ]; then
+        echo "  ✅ PASS: IPv6 toggle evaluates to ${ipv6}"
+    else
+        echo "  ❌ FAIL: IPv6 toggle eval failed (${ipv6:-empty})"
+    fi
+
+    lock_handler=$(nix eval ".#nixosConfigurations.${system_name}.config.services.systemd-lock-handler.enable" 2>/dev/null || true)
+    if [ "$lock_handler" = "true" ]; then
+        echo "  ✅ PASS: systemd-lock-handler enabled"
+    else
+        echo "  ❌ FAIL: systemd-lock-handler not enabled (${lock_handler:-empty})"
+    fi
+
+    if nix eval ".#nixosConfigurations.${system_name}.config.security.pam.services.swaylock" >/dev/null 2>&1; then
+        echo "  ✅ PASS: PAM service 'swaylock' present"
+    else
+        echo "  ❌ FAIL: PAM service 'swaylock' missing"
+    fi
+
+    if nix eval ".#nixosConfigurations.${system_name}.config.security.pam.services.\"noctalia-shell\"" >/dev/null 2>&1; then
+        echo "  ✅ PASS: PAM service 'noctalia-shell' present"
+    else
+        echo "  ❌ FAIL: PAM service 'noctalia-shell' missing"
+    fi
+else
+    echo "  ! SKIP: nix not available; skipping eval checks"
+fi
+
 echo ""
 echo "📊 Configuration Summary:"
 echo "========================"

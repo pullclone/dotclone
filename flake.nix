@@ -108,9 +108,13 @@
             # 3. Installation Facts
             ./modules/core/install-answers.nix
             ./modules/core/keyboard-preset.nix
+            ./modules/networking/ipv6.nix
+            ./modules/networking/tcp.nix
 
             # 4. Domain Modules (Hardware & Tuning)
             ./modules/hardware/amd-gpu.nix
+            ./modules/hardware/intel-cpu.nix
+            ./modules/hardware/intel-gpu.nix
             ./modules/hardware/nvidia-gpu.nix
             ./modules/tuning/sysctl.nix
             (inputs.nixpkgs.outPath + "/nixos/modules/services/backup/btrbk.nix")
@@ -123,11 +127,13 @@
             ./modules/security/usbguard.nix
             ./modules/security/u2f.nix
             ./modules/security/fingerprint.nix
+            ./modules/security/tpm2.nix
             ./modules/security/aide.nix
             ./modules/security/lynis.nix
             ./modules/security/luks-gpg.nix
             ./modules/security/assertions.nix
             ./modules/ssh/default.nix
+            ./modules/ops/auto-upgrade.nix
 
             # 5. Main Policy Configuration
             ./configuration.nix
@@ -215,13 +221,17 @@
               ripgrep
               shellcheck
               shfmt
-              nixfmt-rfc-style
+              pkgs.nixfmt
               nixfmt-tree
               nixfmtTree
               statix
               deadnix
               findutils
             ];
+            shellHook = ''
+              export DOTCLONE_TOOLKIT_DEFAULT=1
+              echo "dotclone default devShell active."
+            '';
           };
 
           agent = pkgs.mkShell {
@@ -234,7 +244,8 @@
               findutils
               jq
               yq-go
-
+              xplr
+              
               # Nix format & lint
               nixfmt-rfc-style
               nixfmt-tree
@@ -256,6 +267,7 @@
             ];
 
             shellHook = ''
+              export DOTCLONE_TOOLKIT_AGENTDEV=1
               echo "dotclone agent devShell active."
               echo "Reminder: run 'just audit' before committing."
             '';

@@ -24,7 +24,29 @@ let
       enable = true;
       preset = "qwerty";
     };
+  desktop =
+    let
+      desktopAnswers = answers.desktop or { };
+    in
+    {
+      panel = desktopAnswers.panel or "noctalia";
+    };
   mac = answers.mac or { mode = "default"; };
+  networking =
+    let
+      net = answers.networking or { };
+      ipv6 = net.ipv6 or { };
+      tcp = net.tcp or { };
+    in
+    {
+      ipv6 = {
+        enable = ipv6.enable or true;
+        tempAddresses = ipv6.tempAddresses or true;
+      };
+      tcp = {
+        congestionControl = tcp.congestionControl or "cubic";
+      };
+    };
   boot = answers.boot or { mode = "uki"; };
   trust = answers.trust or { phase = "dev"; };
   hardwareAuth =
@@ -77,7 +99,19 @@ let
         allowDiscardsInLuks = true;
       };
     };
-  encryption = answers.encryption or { mode = "none"; };
+  encryption =
+    let
+      enc = answers.encryption or { };
+      tpm2 = enc.tpm2 or { };
+    in
+    {
+      mode = enc.mode or "none";
+      tpm2 = {
+        enable = tpm2.enable or false;
+        pin = tpm2.pin or "";
+        enrolled = tpm2.enrolled or false;
+      };
+    };
   luksGpg =
     answers.luksGpg or {
       enable = false;
@@ -107,6 +141,15 @@ let
       emulationstation = false;
     };
   profile = answers.profile or { system = "balanced"; };
+  autoUpgrade =
+    let
+      upgrade = answers.autoUpgrade or { };
+    in
+    {
+      enable = upgrade.enable or false;
+      cadence = upgrade.cadence or "weekly";
+      allowReboot = upgrade.allowReboot or false;
+    };
   hardware =
     let
       hw = answers.hardware or { };
@@ -166,10 +209,68 @@ in
       default = keyboard;
       description = "Keyboard layout facts from install answers.";
     };
+    desktop = lib.mkOption {
+      type = lib.types.submodule {
+        options = {
+          panel = lib.mkOption {
+            type = lib.types.enum [
+              "noctalia"
+              "waybar"
+            ];
+            default = desktop.panel;
+            description = "Desktop panel selection.";
+          };
+        };
+      };
+      default = desktop;
+      description = "Desktop UX selections from install answers.";
+    };
     mac = lib.mkOption {
       type = lib.types.attrs;
       default = mac;
       description = "MAC address randomisation policy.";
+    };
+    networking = lib.mkOption {
+      type = lib.types.submodule {
+        options = {
+          ipv6 = lib.mkOption {
+            type = lib.types.submodule {
+              options = {
+                enable = lib.mkOption {
+                  type = lib.types.bool;
+                  default = networking.ipv6.enable;
+                  description = "Enable IPv6.";
+                };
+                tempAddresses = lib.mkOption {
+                  type = lib.types.bool;
+                  default = networking.ipv6.tempAddresses;
+                  description = "Enable IPv6 privacy temp addresses.";
+                };
+              };
+            };
+            default = networking.ipv6;
+            description = "IPv6 policy facts.";
+          };
+          tcp = lib.mkOption {
+            type = lib.types.submodule {
+              options = {
+                congestionControl = lib.mkOption {
+                  type = lib.types.enum [
+                    "cubic"
+                    "bbr"
+                  ];
+                  default = networking.tcp.congestionControl;
+                  description = "TCP congestion control algorithm.";
+                };
+              };
+            };
+            default = networking.tcp;
+            description = "TCP tuning facts.";
+          };
+        };
+      };
+      default = networking;
+      description = "Networking policy facts from install answers.";
     };
     boot.mode = lib.mkOption {
       type = lib.types.enum [
@@ -312,6 +413,29 @@ in
         Encryption intent: “none” for unencrypted root, “luks2” to signal LUKS2 should be used by an encrypted installer.
       '';
     };
+    encryption.tpm2 = lib.mkOption {
+      type = lib.types.submodule {
+        options = {
+          enable = lib.mkOption {
+            type = lib.types.bool;
+            default = encryption.tpm2.enable;
+            description = "Whether to enroll the LUKS key into the TPM and enable TPM unlocking.";
+          };
+          pin = lib.mkOption {
+            type = lib.types.str;
+            default = encryption.tpm2.pin;
+            description = "Numeric TPM2 PIN used for TPM unlock (min 6 digits).";
+          };
+          enrolled = lib.mkOption {
+            type = lib.types.bool;
+            default = encryption.tpm2.enrolled;
+            description = "Whether TPM2 enrollment was completed during install.";
+          };
+        };
+      };
+      default = encryption.tpm2;
+      description = "TPM2 unlock settings captured at install time.";
+    };
     luksGpg = lib.mkOption {
       type = lib.types.submodule {
         options = {
@@ -421,6 +545,32 @@ in
       ];
       default = profile.system;
       description = "System tuning profile.";
+    };
+    autoUpgrade = lib.mkOption {
+      type = lib.types.submodule {
+        options = {
+          enable = lib.mkOption {
+            type = lib.types.bool;
+            default = autoUpgrade.enable;
+            description = "Enable automatic system upgrades.";
+          };
+          cadence = lib.mkOption {
+            type = lib.types.enum [
+              "daily"
+              "weekly"
+            ];
+            default = autoUpgrade.cadence;
+            description = "Auto-upgrade cadence.";
+          };
+          allowReboot = lib.mkOption {
+            type = lib.types.bool;
+            default = autoUpgrade.allowReboot;
+            description = "Allow automatic reboot after upgrades.";
+          };
+        };
+      };
+      default = autoUpgrade;
+      description = "Auto-upgrade policy captured at install time.";
     };
     hardware = lib.mkOption {
       type = lib.types.submodule {
@@ -536,12 +686,15 @@ in
         hostName
         timeZone
         keyboard
+        desktop
         mac
+        networking
         snapshots
         encryption
         luksGpg
         swap
         profile
+        autoUpgrade
         hardware
         nvidia
         hardwareAuth
@@ -566,6 +719,39 @@ in
       {
         assertion = swap.sizeGiB >= 0;
         message = "install answers: swap.sizeGiB must be non-negative";
+      }
+      {
+        assertion = lib.elem desktop.panel [
+          "noctalia"
+          "waybar"
+        ];
+        message = "install answers: desktop.panel must be noctalia or waybar.";
+      }
+      {
+        assertion =
+          (!autoUpgrade.enable)
+          || (lib.elem autoUpgrade.cadence [
+            "daily"
+            "weekly"
+          ]);
+        message = "install answers: autoUpgrade.cadence must be daily or weekly when autoUpgrade is enabled.";
+      }
+      {
+        assertion = (!encryption.tpm2.enable) || (encryption.mode == "luks2");
+        message = "install answers: encryption.tpm2.enable requires encryption.mode = luks2.";
+      }
+      {
+        assertion =
+          (!encryption.tpm2.enable)
+          || (builtins.match "^[0-9]{6,}$" encryption.tpm2.pin != null);
+        message = "install answers: encryption.tpm2.pin must be at least 6 digits when TPM2 unlock is enabled.";
+      }
+      {
+        assertion = lib.elem networking.tcp.congestionControl [
+          "cubic"
+          "bbr"
+        ];
+        message = "install answers: networking.tcp.congestionControl must be cubic or bbr.";
       }
       {
         assertion =

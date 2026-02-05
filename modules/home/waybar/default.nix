@@ -7,6 +7,7 @@
 
 let
   cfg = config.my.desktop;
+  swaylockPkg = pkgs.swaylock-effects;
 in
 {
   imports = [
@@ -444,7 +445,7 @@ in
     # 6. Swaylock Configuration
     programs.swaylock = {
       enable = true;
-      package = pkgs.swaylock-effects;
+      package = swaylockPkg;
       settings = {
         clock = true;
         indicator = true;
@@ -472,6 +473,18 @@ in
         text-color = "f5c2e7";
 
         fade-in = 0.1;
+      };
+    };
+
+    systemd.user.services.swaylock = {
+      Unit = {
+        Description = "Swaylock (lock.target)";
+      };
+      Service = {
+        ExecStart = "${swaylockPkg}/bin/swaylock";
+      };
+      Install = {
+        WantedBy = [ "lock.target" ];
       };
     };
 

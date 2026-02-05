@@ -44,6 +44,25 @@ require_int() {
   return 0
 }
 
+require_numeric_pin() {
+  local name="$1"
+  local value="$2"
+  local min_len="${3:-6}"
+  if [[ -z "$value" ]]; then
+    echo "That entry isn't valid. $name cannot be empty." >&2
+    return 1
+  fi
+  if ! [[ "$value" =~ ^[0-9]+$ ]]; then
+    echo "That entry isn't valid. $name must be numeric (got: $value)." >&2
+    return 1
+  fi
+  if (( ${#value} < min_len )); then
+    echo "That entry isn't valid. $name must be at least $min_len digits." >&2
+    return 1
+  fi
+  return 0
+}
+
 normalize_timezone() {
   local tz="$1"
   local sign hour minute flipped offset_key
@@ -615,7 +634,25 @@ done
 KEYBOARD_ENABLE="true"
 
 ###############################################################################
-# 1b) Hardware auth + SSH identity (facts)
+# 1b) Desktop panel
+###############################################################################
+
+echo ""
+echo "Desktop panel:"
+echo "  1) noctalia (default)"
+echo "  2) waybar"
+DESKTOP_PANEL="noctalia"
+while true; do
+  ask "Choice" "1" PANEL_CHOICE
+  case "$PANEL_CHOICE" in
+    1) DESKTOP_PANEL="noctalia"; break ;;
+    2) DESKTOP_PANEL="waybar"; break ;;
+    *) echo "That entry isn't valid. Choose 1 or 2." >&2 ;;
+  esac
+done
+
+###############################################################################
+# 1c) Hardware auth + SSH identity (facts)
 ###############################################################################
 
 echo ""
@@ -651,7 +688,7 @@ if [[ "$SSH_IDENTITY" == "fido2" && "$HWAUTH_FIDO2_PRESENT" != "true" ]]; then
 fi
 
 ###############################################################################
-# 1c) SSH policy (declarative profiles)
+# 1d) SSH policy (declarative profiles)
 ###############################################################################
 
 echo ""
@@ -756,6 +793,34 @@ while true; do
       break
       ;;
     *) echo "That entry isn't valid. Choose 1, 2, 3, or 4." >&2 ;;
+  esac
+done
+
+###############################################################################
+# 2b) Networking (IPv6 + TCP congestion control)
+###############################################################################
+
+echo ""
+echo "IPv6 (advanced):"
+ask_yes_no "Enable IPv6?" "y" IPV6_ENABLE
+IPV6_TEMPADDR="true"
+if [[ "$IPV6_ENABLE" == "true" ]]; then
+  ask_yes_no "Enable IPv6 privacy temp addresses?" "y" IPV6_TEMPADDR
+else
+  IPV6_TEMPADDR="false"
+fi
+
+echo ""
+echo "TCP congestion control:"
+echo "  1) cubic (default)"
+echo "  2) bbr"
+TCP_CC="cubic"
+while true; do
+  ask "Choice" "1" TCP_CC_CHOICE
+  case "$TCP_CC_CHOICE" in
+    1) TCP_CC="cubic"; break ;;
+    2) TCP_CC="bbr"; break ;;
+    *) echo "That entry isn't valid. Choose 1 or 2." >&2 ;;
   esac
 done
 
@@ -910,6 +975,32 @@ if [[ "$LUKS_GPG_ENABLE" == "true" ]]; then
   done
 fi
 
+###############################################################################
+# 6c) TPM2 unlock (optional)
+###############################################################################
+
+TPM2_ENABLE="false"
+TPM2_PIN=""
+TPM2_ENROLLED="false"
+if [[ "$ENC_MODE" == "luks2" ]]; then
+  echo ""
+  echo "TPM2 unlock (optional):"
+  ask_yes_no "Use TPM2 + PIN to unlock the encrypted disk?" "n" TPM2_ENABLE
+  if [[ "$TPM2_ENABLE" == "true" ]]; then
+    echo "Note: The PIN is stored in /etc/nixos/nyxos-install.nix."
+    while true; do
+      read -r -s -p "Enter numeric TPM2 PIN (min 6 digits): " TPM2_PIN
+      echo ""
+      if require_numeric_pin "TPM2 PIN" "$TPM2_PIN" 6; then
+        break
+      fi
+    done
+  fi
+else
+  echo ""
+  echo "Note: TPM2 unlock requires LUKS2; skipping TPM2 enrollment."
+fi
+
 LUKS_MAPPER_NAME="${LUKS_GPG_MAPPER}"
 if [[ -z "$LUKS_MAPPER_NAME" ]]; then
   LUKS_MAPPER_NAME="root"
@@ -1007,7 +1098,32 @@ while true; do
 done
 
 ###############################################################################
-# 8b) Build target (flake output)
+# 8b) Auto-upgrade (optional)
+###############################################################################
+
+echo ""
+echo "Auto-upgrade (optional):"
+AUTOUPGRADE_ENABLE="false"
+AUTOUPGRADE_CADENCE="weekly"
+AUTOUPGRADE_ALLOW_REBOOT="false"
+ask_yes_no "Enable automatic system upgrades?" "n" AUTOUPGRADE_ENABLE
+if [[ "$AUTOUPGRADE_ENABLE" == "true" ]]; then
+  echo "Upgrade cadence:"
+  echo "  1) daily"
+  echo "  2) weekly"
+  while true; do
+    ask "Choice" "2" AUTOUPGRADE_CADENCE_CHOICE
+    case "$AUTOUPGRADE_CADENCE_CHOICE" in
+      1) AUTOUPGRADE_CADENCE="daily"; break ;;
+      2) AUTOUPGRADE_CADENCE="weekly"; break ;;
+      *) echo "That entry isn't valid. Choose 1 or 2." >&2 ;;
+    esac
+  done
+  ask_yes_no "Allow automatic reboot if required?" "n" AUTOUPGRADE_ALLOW_REBOOT
+fi
+
+###############################################################################
+# 8c) Build target (flake output)
 ###############################################################################
 
 echo ""
@@ -1026,7 +1142,7 @@ while true; do
 done
 
 ###############################################################################
-# 8c) Gaming options (optional)
+# 8d) Gaming options (optional)
 ###############################################################################
 
 echo ""
@@ -1276,6 +1392,24 @@ if [[ "$ENC_MODE" == "luks2" ]]; then
   if [[ -z "$LUKS_GPG_DEVICE" || "$LUKS_GPG_DEVICE" == "/dev/disk/by-label/nixos" ]]; then
     LUKS_GPG_DEVICE="/dev/disk/by-uuid/${LUKS_UUID}"
   fi
+  if [[ "$TPM2_ENABLE" == "true" ]]; then
+    if ! has_command systemd-cryptenroll; then
+      echo "❌ systemd-cryptenroll is required for TPM2 enrollment but is not available." >&2
+      exit 1
+    fi
+    if [[ -z "$LUKS_UUID" ]]; then
+      echo "❌ Unable to resolve LUKS UUID for TPM2 enrollment." >&2
+      exit 1
+    fi
+    echo ""
+    echo "Enrolling TPM2 token (PCRs 7+14)..."
+    systemd-cryptenroll \
+      --tpm2-device=auto \
+      --tpm2-pcrs=7+14 \
+      --tpm2-pin="$TPM2_PIN" \
+      "/dev/disk/by-uuid/${LUKS_UUID}"
+    TPM2_ENROLLED="true"
+  fi
 fi
 
 mkfs.btrfs -f -L nixos "$ROOT_DEVICE"
@@ -1392,10 +1526,24 @@ cat > "${ANSWERS_ROOT}/nyxos-install.nix" <<EOF
     preset = "${KEYBOARD_PRESET}";
   };
 
+  desktop = {
+    panel = "${DESKTOP_PANEL}";
+  };
+
   mac = {
     mode = "${MAC_MODE}";
     interface = "${MAC_INTF}";
     address = "${MAC_ADDR}";
+  };
+
+  networking = {
+    ipv6 = {
+      enable = ${IPV6_ENABLE};
+      tempAddresses = ${IPV6_TEMPADDR};
+    };
+    tcp = {
+      congestionControl = "${TCP_CC}";
+    };
   };
 
   boot = {
@@ -1448,6 +1596,11 @@ cat > "${ANSWERS_ROOT}/nyxos-install.nix" <<EOF
 
   encryption = {
     mode = "${ENC_MODE}";
+    tpm2 = {
+      enable = ${TPM2_ENABLE};
+      pin = "${TPM2_PIN}";
+      enrolled = ${TPM2_ENROLLED};
+    };
   };
 
   luksGpg = {
@@ -1465,6 +1618,12 @@ cat > "${ANSWERS_ROOT}/nyxos-install.nix" <<EOF
   };
 
   profile.system = "${SYSTEM_PROFILE}";
+
+  autoUpgrade = {
+    enable = ${AUTOUPGRADE_ENABLE};
+    cadence = "${AUTOUPGRADE_CADENCE}";
+    allowReboot = ${AUTOUPGRADE_ALLOW_REBOOT};
+  };
 
   gaming = {
     steam = ${GAME_STEAM};

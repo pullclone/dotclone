@@ -59,10 +59,10 @@ assertion[\[1\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/boot/bo
   and Secure Boot is selected, the build may require firmware Secure
   Boot to be enabled and the signing path to be present; TPM checks are
   deferred until this phase.
-- **TPM Unlock (Enforced, Manual Enrollment)** -- In enforced trust
-  phase, TPM+PIN unlock is expected to be available for encrypted
-  installs, but enrollment is manual. The passphrase must remain as a
-  fallback. Manual command (adjust UUID):  
+- **TPM Unlock (Enforced)** -- In enforced trust phase, TPM+PIN unlock is
+  expected to be available for encrypted installs. Enrollment can be
+  performed by the installer when `encryption.tpm2.enable = true`; the
+  passphrase must remain as a fallback. Manual command (adjust UUID):  
   `systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=7+14 --tpm2-with-pin=yes /dev/disk/by-uuid/XXXX`
 - **UKI Profile** -- When `my.boot.uki.enable = true`, the following
   must hold:
@@ -105,6 +105,10 @@ normalized by `modules/core/install-answers.nix` and re-exported via
   that the installer provisions a LUKS2 container with Btrfs inside; use
   `none` for an unencrypted root. The initrd unlock path depends on this
   selection.
+- **TPM2 Facts** -- When `my.install.encryption.tpm2.enable = true`, a
+  numeric `tpm2.pin` (min 6 digits) must be provided and the encryption
+  mode must be `luks2`. The installer may record whether enrollment
+  completed via `tpm2.enrolled`.
 - **MAC Address Mode** -- The `mac.mode` attribute must be one of
   `default`, `random`, `stable`, or `fixed` and drive the NetworkManager
   configuration[\[9\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/core/install-answers.nix#L25-L32).
@@ -151,6 +155,17 @@ normalized by `modules/core/install-answers.nix` and re-exported via
   (enforced by `modules/core/keyboard-preset.nix`). When enabled, the
   preset is applied to console/TTY, XKB sessions, and the SDDM greeter
   (Wayland via Weston keymap or X11 via setup commands).
+- **Desktop Panel Fact** -- `my.install.desktop.panel` must be `noctalia`
+  or `waybar` and drives Home Manager panel selection.
+- **IPv6 Facts** -- `my.install.networking.ipv6.enable` and
+  `my.install.networking.ipv6.tempAddresses` must be booleans. IPv6 is
+  enabled by default; when disabled, system IPv6 is turned off and the
+  sysctl disable flag is set.
+- **TCP Congestion Control Fact** -- `my.install.networking.tcp.congestionControl`
+  must be `cubic` or `bbr`.
+- **Auto-Upgrade Facts** -- `my.install.autoUpgrade.enable` and
+  `my.install.autoUpgrade.allowReboot` must be booleans; when enabled,
+  `autoUpgrade.cadence` must be `daily` or `weekly`.
 - **Initrd GPG Unlock** -- When `my.security.luks.gpg.enable = true`,
   the system must be in `encryption.mode = "luks2"`, the decrypted
   keyfile must be written to tmpfs under `/run`, and the LUKS device
@@ -317,7 +332,8 @@ these steps:
   build fails.[\[18\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/security/access.nix#L1-L49)
 - **Locker Exclusivity (Phase ≥1)** -- Exactly one locker may be active;
   Noctalia and swaylock must not both be enabled, the active locker must
-  be detectable, and Noctalia must lock on suspend when selected.[\[19\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/security/locker-pam.nix#L1-L72)
+  be detectable, and the active locker must be wired to `lock.target`
+  with a matching PAM service listed in `my.security.pam.targets`.[\[19\]](https://github.com/pullclone/dotclone/blob/HEAD/modules/security/locker-pam.nix#L1-L72)
 - **USBGuard (Phase ≥1)** -- USBGuard enables in staged/enforced phases,
   defaults to audit/allow, supports soft enforcement via
   `my.security.usbguard.softEnforce`, and requires break-glass to be
