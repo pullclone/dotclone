@@ -377,7 +377,14 @@ audit:
     just shellcheck-strict
     scripts/check-docs.sh
     scripts/audit-repo.sh
+    just secrets-scan
     just shellcheck-advisory
+
+[group('Security')]
+secrets-scan:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    scripts/secrets-scan.sh
 
 [group('Templates')]
 audit-templates:

@@ -4,3 +4,9 @@
 result
 result-*
 LatencyFleX.sha256
+
+# Secrets hygiene
+*.key
+*.pem
+/persist/keys/
+nyxos-install.nix
