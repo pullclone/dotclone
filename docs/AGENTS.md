@@ -152,6 +152,7 @@ During work:
 
 Before submitting:
 - Run `just ci`.
+- Run `nix develop --command just fmt` before pushing.
 - Update `docs/CONFIG_MAP.md` and `docs/ASSERTIONS.md` as needed.
 - Prepare PR description and checklist.
 

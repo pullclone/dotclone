@@ -8,6 +8,9 @@ on:
 jobs:
   audit:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -20,6 +23,8 @@ jobs:
 
       - name: Enable Magic Nix Cache
         uses: DeterminateSystems/magic-nix-cache-action@v12
+        with:
+          use-flakehub: false
 
       - name: Run audit gate
         run: nix develop --command just audit

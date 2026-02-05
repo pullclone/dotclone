@@ -330,6 +330,12 @@ shellcheck-advisory:
     shellcheck -x $files || true
 
 [group('Format')]
+fmt:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    just fmt-nix
+
+[group('Format')]
 fmt-shell:
     #!/usr/bin/env bash
     set -euo pipefail
