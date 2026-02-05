@@ -26,6 +26,54 @@ map. At a high level:
 - `profiles/`: system and ZRAM profile composition
 - `scripts/`: audit, lint, and maintenance helpers
 
+## Tandem Development: main + feature/with-sudo (Worktree Strategy)
+
+We develop on **both** `main` and `feature/with-sudo` concurrently using **git worktree**.
+
+### Rationale
+- Prevent drift between branches.
+- Avoid cherry-pick-only workflows and reduce conflict churn.
+- Ensure CI/audit parity across both branches.
+
+### Required Setup
+Create two worktrees from an existing clone:
+
+```bash
+git fetch origin
+git worktree prune
+
+mkdir -p ../dotclone-wt
+git worktree add ../dotclone-wt/main main
+git worktree add ../dotclone-wt/with-sudo feature/with-sudo
+
+git worktree list
+```
+
+### Patch Scope Rules
+
+Every change MUST declare scope:
+
+* **[both]** apply to both branches
+* **[main only]** apply only to `main`
+* **[with-sudo only]** apply only to `feature/with-sudo`
+
+If scope is not declared, assume **[both]**.
+
+### Verification Rules
+
+After implementing any change, run at minimum in BOTH worktrees:
+
+```bash
+nix develop --command just audit
+```
+
+If additional checks are part of the repo’s standard workflow (flake checks/builds, etc.), run them on BOTH branches as well.
+
+### Branch Divergence Policy
+
+Branch-specific behavior is allowed only when it is intentional and documented (e.g., sudo behavior).
+Any divergence must be explained in the patch notes / commit message.
+
 ## Golden rules
 
 1. Deterministic and pure: use flakes (`nix flake check .`, `nix build .#...`),
