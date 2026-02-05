@@ -2,8 +2,18 @@
 # shellcheck disable=SC2034
 set -euo pipefail
 
+# Bail out on WSL/WSL2
+if grep -qiE '(Microsoft|WSL)' /proc/version; then
+  echo "❌ WSL is not supported by this installer.  Please use a NixOS VM or bare metal." >&2
+  exit 1
+fi
+
 echo "🌟 NyxOS Installer (Repo-Based)"
 echo "================================="
+
+if ! ping -c1 -W2 1.1.1.1 >/dev/null 2>&1; then
+  echo "⚠️  Network appears offline.  Continuing in offline mode; downloads may fail." >&2
+fi
 
 ###############################################################################
 # Helpers
@@ -375,6 +385,11 @@ detect_gpu_from_lspci() {
   local has_amd="false"
   local has_intel="false"
 
+  if ! has_command lspci; then
+    echo "${has_nvidia},${has_amd},${has_intel},${primary}"
+    return 0
+  fi
+
   while IFS= read -r line; do
     if echo "$line" | grep -Eqi "\\[10de:"; then
       has_nvidia="true"
@@ -437,6 +452,9 @@ pci_to_xorg_busid() {
 
 first_pci_of_lspci() {
   # $1 = vendor regex (NVIDIA|Intel|AMD|ATI)
+  if ! has_command lspci; then
+    return 1
+  fi
   lspci -D | grep -Ei "(VGA|3D|Display).*$1" | awk "NR==1{print \$1}"
 }
 
@@ -1477,6 +1495,9 @@ EOF
       read -r -p "Press Enter once finished with keyfile setup..." _
       echo "Verify /mnt/persist/keys/root.key.gpg exists and is encrypted before continuing."
     fi
+
+    # Ensure no plaintext key material remains on disk
+    [ -n "${TMP_KEY:-}" ] && shred -u "$TMP_KEY" || true
   else
     echo "WARNING: Keyfile setup was skipped. Ensure you add an encrypted keyfile and LUKS keyslot post-install; misconfiguration can lock you out."
   fi
@@ -1598,7 +1619,6 @@ cat > "${ANSWERS_ROOT}/nyxos-install.nix" <<EOF
     mode = "${ENC_MODE}";
     tpm2 = {
       enable = ${TPM2_ENABLE};
-      pin = "${TPM2_PIN}";
       enrolled = ${TPM2_ENROLLED};
     };
   };
