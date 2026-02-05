@@ -25,11 +25,7 @@
       ./apps/btop.nix
       ./apps/cava.nix
       ./terminals/kitty.nix
-    ]
-    ++ lib.optionals (config.my.desktop.panel == "noctalia") [
       ./noctalia/default.nix
-    ]
-    ++ lib.optionals (config.my.desktop.panel == "waybar") [
       ./waybar/default.nix
     ];
 
