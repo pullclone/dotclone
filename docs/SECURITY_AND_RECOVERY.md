@@ -70,6 +70,14 @@ Recommended workflow for security changes:
 - Set `my.security.breakglass.enable = true` only after verifying access.
 - Store credentials offline with LUKS recovery material.
 
+## Sudo fallback (optional)
+
+By default, `doas` is the primary escalation path and `sudo` is disabled.
+To reduce lockout risk, you can enable a temporary sudo fallback:
+
+- Set `my.security.access.sudoFallback.enable = true`.
+- Sudo remains installed even when disabled, which helps in emergency shells.
+
 ## Quick recovery (system still boots)
 
 1. Roll back the phase: set `my.security.phase = 0` (or temporarily set

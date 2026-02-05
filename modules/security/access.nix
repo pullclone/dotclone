@@ -1,4 +1,9 @@
-{ config, lib, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   cfg = config.my.security.access;
@@ -19,6 +24,15 @@ in
         Keep this list minimal; at least one admin must remain to avoid lockout.
       '';
     };
+    sudoFallback.enable = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      example = true;
+      description = ''
+        When true, sudo will be enabled for admin users alongside doas.
+        Even when false, the sudo package remains installed for emergency shells.
+      '';
+    };
   };
 
   config = lib.mkIf (phase >= 1) {
@@ -33,8 +47,10 @@ in
       }
     ];
 
+    environment.systemPackages = [ pkgs.sudo ];
+
     security = {
-      sudo.enable = lib.mkForce false;
+      sudo.enable = lib.mkForce cfg.sudoFallback.enable;
       doas = {
         enable = lib.mkForce true;
         extraRules = lib.mkForce [
