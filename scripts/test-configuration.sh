@@ -4,10 +4,10 @@ echo "🔍 NyxOS Configuration Test"
 echo "================================"
 echo ""
 
-# Test 1: Check for ashy user (no dmail)
+# Test 1: Check for install-driven user (no dmail)
 echo "✓ Test 1: Username consistency"
-if grep -q "users.users.ashy" configuration.nix && ! grep -q "users.users.dmail" configuration.nix; then
-    echo "  ✅ PASS: Only 'ashy' user found, no 'dmail' references"
+if grep -q 'users.users."${config.my.install.userName}"' configuration.nix && ! grep -q "users.users.dmail" configuration.nix; then
+    echo "  ✅ PASS: User derives from install answers, no 'dmail' references"
 else
     echo "  ❌ FAIL: User configuration issue detected"
 fi
@@ -67,8 +67,8 @@ fi
 
 # Test 8: Check home configuration
 echo "✓ Test 8: Home configuration"
-if [ -f "home-ashy.nix" ] && ! [ -f "home-dmail.nix" ]; then
-    echo "  ✅ PASS: home-ashy.nix exists, home-dmail.nix removed"
+if [ -f "modules/home/home-ashy.nix" ] && ! [ -f "modules/home/home-dmail.nix" ]; then
+    echo "  ✅ PASS: modules/home/home-ashy.nix exists, modules/home/home-dmail.nix absent"
 else
     echo "  ❌ FAIL: Home configuration issue"
 fi
@@ -120,7 +120,7 @@ echo ""
 echo "Files checked:"
 echo "  ✓ configuration.nix"
 echo "  ✓ flake.nix"
-echo "  ✓ home-ashy.nix"
+echo "  ✓ modules/home/home-ashy.nix"
 echo ""
 echo "All tests completed. Review results above."
 echo "If all tests show ✅ PASS, your configuration is ready!"

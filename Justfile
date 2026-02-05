@@ -433,11 +433,24 @@ test-latencyflex:
     echo "LatencyFleX smoke test OK"
 
 [group('Test')]
+test-configuration:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    scripts/test-configuration.sh
+
+[group('Test')]
+test-runtime:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    scripts/test-optimizations.sh
+
+[group('Test')]
 test:
     #!/usr/bin/env bash
     set -euo pipefail
     echo "Building and running smoke tests..."
     just build
+    just test-configuration
     just test-g502
     just test-latencyflex
     echo "Smoke tests OK"
