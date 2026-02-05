@@ -113,6 +113,8 @@
 
             # 4. Domain Modules (Hardware & Tuning)
             ./modules/hardware/amd-gpu.nix
+            ./modules/hardware/intel-cpu.nix
+            ./modules/hardware/intel-gpu.nix
             ./modules/hardware/nvidia-gpu.nix
             ./modules/tuning/sysctl.nix
             (inputs.nixpkgs.outPath + "/nixos/modules/services/backup/btrbk.nix")
