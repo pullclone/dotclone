@@ -46,6 +46,9 @@ This document explains what `just audit` checks and how to interpret failures.
   and `my.ssh.knownHosts.enable`.
 - System trust roots live in NixOS `programs.ssh.knownHosts`; client UX lives
   in Home Manager via the SSH templates.
+- New preset selector: set `my.ssh.profile = "hardened"` or `"developer"` for
+  secure defaults. Use `my.ssh.profile = "custom"` to manage
+  `my.ssh.client.*` directly.
 
 ### SSH host key pinning (git providers & custom hosts)
 
