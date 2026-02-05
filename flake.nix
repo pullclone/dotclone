@@ -215,13 +215,17 @@
               ripgrep
               shellcheck
               shfmt
-              nixfmt-rfc-style
+              pkgs.nixfmt
               nixfmt-tree
               nixfmtTree
               statix
               deadnix
               findutils
             ];
+            shellHook = ''
+              export DOTCLONE_TOOLKIT_DEFAULT=1
+              echo "dotclone default devShell active."
+            '';
           };
 
           agent = pkgs.mkShell {
@@ -234,7 +238,8 @@
               findutils
               jq
               yq-go
-
+              xplr
+              
               # Nix format & lint
               nixfmt-rfc-style
               nixfmt-tree
@@ -256,6 +261,7 @@
             ];
 
             shellHook = ''
+              export DOTCLONE_TOOLKIT_AGENTDEV=1
               echo "dotclone agent devShell active."
               echo "Reminder: run 'just audit' before committing."
             '';
