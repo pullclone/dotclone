@@ -320,13 +320,11 @@ in
               message = "my.ssh.knownHosts.ca.enable is true, but no CA bundles are defined.";
             }
             {
-              assertion =
-                lib.all (bundle: bundle.patterns != [ ]) (lib.attrValues cfg.knownHosts.ca.bundles);
+              assertion = lib.all (bundle: bundle.patterns != [ ]) (lib.attrValues cfg.knownHosts.ca.bundles);
               message = "Each my.ssh.knownHosts.ca.bundles entry must define non-empty patterns.";
             }
             {
-              assertion =
-                lib.all (bundle: bundle.publicKey != "") (lib.attrValues cfg.knownHosts.ca.bundles);
+              assertion = lib.all (bundle: bundle.publicKey != "") (lib.attrValues cfg.knownHosts.ca.bundles);
               message = "Each my.ssh.knownHosts.ca.bundles entry must define a non-empty publicKey.";
             }
             {
