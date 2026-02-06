@@ -78,11 +78,6 @@ To reduce lockout risk, you can enable a temporary sudo fallback:
 - Set `my.security.access.sudoFallback.enable = true`.
 - Sudo remains installed even when disabled, which helps in emergency shells.
 
-On the `feature/with-sudo` branch, sudo fallback is enabled by default to
-support tooling that assumes `sudo` is present. This increases the attack
-surface compared to main; do not merge that branch into main unless you
-accept the trade-off.
-
 ## Quick recovery (system still boots)
 
 1. Roll back the phase: set `my.security.phase = 0` (or temporarily set
@@ -126,11 +121,53 @@ accept the trade-off.
 
 - Stage risky changes with `just sec-test <target>` and reboot to escape.
 - Practice booting the previous generation from the bootloader menu.
-- For USBGuard recovery, regenerate rules and rebuild:
 
-  ```bash
-  doas usbguard generate-policy > /etc/usbguard/rules.conf
-  ```
+## USBGuard recovery and regeneration
+
+- Temporary boot override (one boot): add `systemd.mask=usbguard.service` in the
+  bootloader kernel command line.
+- Config override: set `my.security.usbguard.enable = false;` (or
+  `my.security.usbguard.softEnforce = false;`) and rebuild.
+- Persist-backed policy path (recommended):
+  `my.security.usbguard.policyPath = "/persist/etc/usbguard/rules.conf";`
+
+### Regenerate policy safely
+
+1. Boot with USBGuard masked (or set `softEnforce = false`), then log in on a
+   local TTY.
+2. Regenerate policy to persist:
+
+   ```bash
+   doas /etc/nixos/scripts/usbguard-generate-policy.sh /persist/etc/usbguard/rules.conf
+   ```
+
+3. Rebuild in test mode first:
+
+   ```bash
+   doas nixos-rebuild test --flake .#<target>
+   ```
+
+4. Re-enable enforcement only after confirming keyboard/mouse access.
+
+### Keyboard/mouse blocked checklist
+
+1. Try switching to a local TTY (`Ctrl+Alt+F3`).
+2. Boot previous generation, or use `systemd.mask=usbguard.service` once.
+3. Set `my.security.usbguard.softEnforce = false;` and rebuild.
+4. Regenerate policy on persist, test, then re-enable enforcement.
+
+### Learn mode (phase-gated)
+
+Learn mode is only valid in phase 0/1 with break-glass enabled:
+
+```nix
+my.security.usbguard = {
+  policyPath = "/persist/etc/usbguard/rules.conf";
+  learn.enable = true;
+  learn.durationMinutes = 10;
+  softEnforce = false;
+};
+```
 
 ## Boot troubleshooting flags (document only)
 
