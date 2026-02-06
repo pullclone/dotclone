@@ -36,7 +36,8 @@ in
     auto-optimise-store = true;
   };
 
-  my.security.access.sudoFallback.enable = true;
+  # SSH defaults (secure preset unless explicitly overridden).
+  my.ssh.profile = lib.mkDefault "hardened";
 
   # Kernel modules
   boot.kernelModules = [
