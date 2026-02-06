@@ -23,6 +23,17 @@ in
     description = "Enable periodic Lynis audit timer.";
   };
 
+  options.my.security.lynis.frequency = lib.mkOption {
+    type = lib.types.enum [
+      "daily"
+      "weekly"
+      "monthly"
+      "off"
+    ];
+    default = "weekly";
+    description = "How often to run Lynis audits when the timer is enabled. Set to \"off\" to disable.";
+  };
+
   config = lib.mkIf (phase >= 0 && cfg.enable) {
     environment.systemPackages = [ pkgs.lynis ];
 
@@ -49,13 +60,14 @@ in
       };
     };
 
-    systemd.timers.lynis-audit = lib.mkIf cfg.timer.enable {
-      wantedBy = [ "timers.target" ];
-      timerConfig = {
-        OnCalendar = "weekly";
+    systemd.timers.lynis-audit = {
+      enable = cfg.timer.enable && cfg.frequency != "off";
+      wantedBy = lib.optionals (cfg.timer.enable && cfg.frequency != "off") [ "timers.target" ];
+      timerConfig = lib.optionalAttrs (cfg.timer.enable && cfg.frequency != "off") {
+        OnCalendar = cfg.frequency;
         Persistent = true;
       };
-      unitConfig.Description = "Weekly Lynis audit";
+      unitConfig.Description = "Scheduled Lynis audit";
     };
   };
 }

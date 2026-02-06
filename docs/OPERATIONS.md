@@ -58,6 +58,26 @@ just switch-latency-lfx-off
   support described in the NixOS manual (`switch-to-configuration`
   internals).
 
+## Security timer frequency knobs
+
+Both integrity/audit modules expose timer frequency controls:
+
+- `my.security.aide.frequency = "daily" | "weekly" | "monthly" | "off"`
+- `my.security.lynis.frequency = "daily" | "weekly" | "monthly" | "off"`
+
+Mapping is direct to `systemd.timers.<name>.timerConfig.OnCalendar`.
+Using `"off"` disables only the timer; service units remain available
+for manual runs.
+
+Lynis also still requires `my.security.lynis.timer.enable = true` for
+periodic execution.
+
+Recommended laptop defaults (lower battery + IO impact):
+
+- `my.security.aide.frequency = "weekly"`
+- `my.security.lynis.frequency = "monthly"` (with
+  `my.security.lynis.timer.enable = true`)
+
 ## End state checklist (all green)
 
 - [ ] Single owner for Niri/Noctalia options (no collisions)
