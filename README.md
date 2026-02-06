@@ -15,12 +15,12 @@ This project is licensed under the Apache License 2.0.
 
 - [Architecture](#architecture)
 - [Dual-profile system](#dual-profile-system)
-- [Features & tooling](#features--tooling)
-- [ZRAM & LatencyFleX profiles](#system--latencyflex-profiles)
-- [Install & configuration](#install--configuration)
+- [Features & tooling](#features-tooling)
+- [ZRAM & LatencyFleX profiles](#system-latencyflex-profiles)
+- [Install & configuration](#install-configuration)
 - [Keybindings (Niri)](#keybindings-niri)
 - [Core package set](#core-package-set)
-- [Performance & monitoring](#performance--monitoring)
+- [Performance & monitoring](#performance-monitoring)
 - [Credits](#credits)
 
 ---
