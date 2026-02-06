@@ -128,6 +128,38 @@ Repository protections enforce PR-based merges into `main` and `variant/with-sud
 - Keep branch names short, kebab-case, and topic-driven.
 - Do **not** include batch numbers (e.g., avoid `batch-*`); they add noise and do not reflect repo conventions.
 
+## Upgrade tooling safety: validation vs. mutation
+
+`just upgrade` and `scripts/upgrade.sh` are **intentional mutation tools**. They update inputs and may modify `flake.lock`.
+
+They must **never** be run as part of routine validation, review, or PR preparation.
+
+### Validation commands (non-mutating)
+
+During review and CI parity checks, agents must restrict themselves to:
+
+- `just audit`
+- `just test-strict`
+- `nix flake check .`
+
+These commands must not modify `flake.lock`.
+
+### Upgrade commands (maintainer-only, opt-in)
+
+Only run upgrade tooling when you explicitly intend to update inputs:
+
+- `just upgrade`
+- `scripts/upgrade.sh`
+
+Before running upgrade commands:
+
+1. Ensure the working tree is clean.
+2. Expect `flake.lock` changes.
+3. Review diffs manually.
+4. Commit lockfile updates intentionally.
+
+Accidental lockfile mutation during validation is considered a workflow error.
+
 ## Golden rules
 
 1. Deterministic and pure: use flakes (`nix flake check .`, `nix build .#...`),
