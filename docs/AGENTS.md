@@ -100,6 +100,34 @@ Repository protections enforce PR-based merges into `main` and `variant/with-sud
 **Default:** use **Squash and merge** for most PRs (clean history, one commit per change).  
 **Use Rebase and merge** only when you intentionally want to preserve a linear sequence of meaningful commits.
 
+## Protected branches: PR-first workflow (agent-safe)
+
+`main` and `variant/with-sudo` are protected (PR-only). **Do not commit on protected branches and then try to push.**
+
+### Correct workflow
+
+1. Start from an up-to-date protected base:
+   - `git switch main && git pull --ff-only`
+   - or `git switch variant/with-sudo && git pull --ff-only`
+
+2. Create a feature branch **before** committing:
+   - `git switch -c <type>/<topic>-main`
+   - `git switch -c <type>/<topic>-with-sudo` (when targeting the variant)
+
+3. Commit on the feature branch and push:
+   - `git push -u origin <branch>`
+
+4. Open a PR with `gh`:
+   - `gh pr create --base <base> --head <branch> ...`
+
+5. Merge using **Squash** (default) or **Rebase** (only if preserving meaningful commit sequences).
+
+### Naming conventions
+
+- Use `feat/`, `fix/`, `docs/`, `chore/` prefixes.
+- Keep branch names short, kebab-case, and topic-driven.
+- Do **not** include batch numbers (e.g., avoid `batch-*`); they add noise and do not reflect repo conventions.
+
 ## Golden rules
 
 1. Deterministic and pure: use flakes (`nix flake check .`, `nix build .#...`),
