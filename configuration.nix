@@ -36,6 +36,9 @@ in
     auto-optimise-store = true;
   };
 
+  # SSH defaults (secure preset unless explicitly overridden).
+  my.ssh.profile = lib.mkDefault "hardened";
+
   # Kernel modules
   boot.kernelModules = [
     "i2c-dev"
