@@ -43,6 +43,17 @@ in
     description = "Enable AIDE integrity monitoring (phase-aware, safe to toggle in phase 0+).";
   };
 
+  options.my.security.aide.frequency = lib.mkOption {
+    type = lib.types.enum [
+      "daily"
+      "weekly"
+      "monthly"
+      "off"
+    ];
+    default = "weekly";
+    description = "How often to run AIDE checks. Set to \"off\" to disable the timer.";
+  };
+
   config = lib.mkIf (phase >= 0 && cfg.enable) {
     environment.systemPackages = [ pkgs.aide ];
     environment.etc."aide.conf".text = aideConf;
@@ -92,12 +103,13 @@ in
     };
 
     systemd.timers.aide-check = {
-      wantedBy = [ "timers.target" ];
-      timerConfig = {
-        OnCalendar = "weekly";
+      enable = cfg.frequency != "off";
+      wantedBy = lib.optionals (cfg.frequency != "off") [ "timers.target" ];
+      timerConfig = lib.optionalAttrs (cfg.frequency != "off") {
+        OnCalendar = cfg.frequency;
         Persistent = true;
       };
-      unitConfig.Description = "Weekly AIDE integrity check";
+      unitConfig.Description = "Scheduled AIDE integrity check";
     };
   };
 }
