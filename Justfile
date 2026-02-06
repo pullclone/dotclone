@@ -35,6 +35,18 @@ env-ci:
     @echo 'Use this in constrained environments:'
     @echo '  NIX_REMOTE=daemon NIX_CONFIG="sandbox = false" just ci'
 
+[group('Maintenance')]
+upgrade *args:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    scripts/upgrade.sh --apply {{args}}
+
+[group('Maintenance')]
+upgrade-dry *args:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    scripts/upgrade.sh --dry-run {{args}}
+
 [private]
 default:
     @just --list
