@@ -55,6 +55,35 @@ jobs:
           # Show result
           df -h
 
+      - name: Disk preflight (before cleanup)
+        run: |
+          set -euxo pipefail
+          df -h
+          sudo du -sh /usr/local/lib/android /usr/share/dotnet /opt/ghc /opt/hostedtoolcache 2>/dev/null || true
+
+      - name: Free disk space (GitHub runner)
+        run: |
+          set -euxo pipefail
+
+          # Big, safe wins on ubuntu runners:
+          sudo rm -rf /usr/local/lib/android || true
+          sudo rm -rf /usr/share/dotnet || true
+          sudo rm -rf /opt/ghc || true
+
+          # Toolcache is huge; removing it is usually safe unless your workflow needs it
+          sudo rm -rf /opt/hostedtoolcache || true
+
+          # Remove docker images/volumes if present (often large)
+          sudo docker system prune -af || true
+          sudo docker volume prune -f || true
+
+          # Clean apt caches
+          sudo apt-get clean || true
+          sudo rm -rf /var/lib/apt/lists/* || true
+
+          # Show result
+          df -h
+
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@c5a866b6ab867e88becbed4467b93592bce69f8a # v11 (2026-02-05)
         with:
@@ -152,6 +181,35 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v4 (2026-02-05)
+
+      - name: Disk preflight (before cleanup)
+        run: |
+          set -euxo pipefail
+          df -h
+          sudo du -sh /usr/local/lib/android /usr/share/dotnet /opt/ghc /opt/hostedtoolcache 2>/dev/null || true
+
+      - name: Free disk space (GitHub runner)
+        run: |
+          set -euxo pipefail
+
+          # Big, safe wins on ubuntu runners:
+          sudo rm -rf /usr/local/lib/android || true
+          sudo rm -rf /usr/share/dotnet || true
+          sudo rm -rf /opt/ghc || true
+
+          # Toolcache is huge; removing it is usually safe unless your workflow needs it
+          sudo rm -rf /opt/hostedtoolcache || true
+
+          # Remove docker images/volumes if present (often large)
+          sudo docker system prune -af || true
+          sudo docker volume prune -f || true
+
+          # Clean apt caches
+          sudo apt-get clean || true
+          sudo rm -rf /var/lib/apt/lists/* || true
+
+          # Show result
+          df -h
 
       - name: Disk preflight (before cleanup)
         run: |
