@@ -2,6 +2,8 @@
 # shellcheck disable=SC2034
 set -euo pipefail
 
+INSTALLER_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+
 # Bail out on WSL/WSL2
 if grep -qiE '(Microsoft|WSL)' /proc/version; then
   echo "❌ WSL is not supported by this installer.  Please use a NixOS VM or bare metal." >&2
@@ -364,6 +366,39 @@ compute_part_prefix() {
 
 has_command() {
   command -v "$1" >/dev/null 2>&1
+}
+
+installer_usbguard_policy_target_from_runtime_path() {
+  local runtime_path="$1"
+  if [[ "$runtime_path" != /persist/* ]]; then
+    echo "⚠️  Refusing USBGuard policy path outside /persist in install answers: ${runtime_path}" >&2
+    return 1
+  fi
+  echo "/mnt${runtime_path}"
+}
+
+generate_usbguard_policy_installer() {
+  local target="$1"
+  local script_path="${INSTALLER_ROOT}/scripts/usbguard-generate-policy.sh"
+  local target_dir
+
+  if [[ "$target" != /mnt/persist/* ]]; then
+    echo "⚠️  Refusing USBGuard policy destination outside /mnt/persist: ${target}" >&2
+    return 1
+  fi
+
+  if ! has_command usbguard; then
+    return 2
+  fi
+
+  if [[ ! -x "$script_path" ]]; then
+    return 3
+  fi
+
+  target_dir="$(dirname "$target")"
+  install -d -m 0700 "$target_dir"
+
+  "$script_path" "$target"
 }
 
 choose_ram_tmp_base() {
@@ -985,6 +1020,22 @@ while true; do
 done
 
 ###############################################################################
+# 3b) USBGuard policy generation (optional)
+###############################################################################
+
+echo ""
+echo "USBGuard install policy:"
+ask_yes_no "Enable USBGuard in install answers?" "y" USBGUARD_ENABLE_FROM_ANSWERS
+USBGUARD_POLICY_PATH="/persist/etc/usbguard/rules.conf"
+USBGUARD_POLICY_GENERATED="false"
+USBGUARD_GEN_DEFAULT="n"
+if [[ "$USBGUARD_ENABLE_FROM_ANSWERS" == "true" ]]; then
+  USBGUARD_GEN_DEFAULT="y"
+fi
+ask_yes_no "Generate USBGuard policy now?" "$USBGUARD_GEN_DEFAULT" USBGUARD_GENERATE_POLICY_NOW
+echo "USBGuard policy destination (deterministic): /mnt/persist/etc/usbguard/rules.conf"
+
+###############################################################################
 # 4) Snapshots (btrbk retention)
 ###############################################################################
 
@@ -1563,6 +1614,38 @@ if [[ -n "$PERSIST_PART" ]]; then
   chmod 700 /mnt/persist/keys
 fi
 
+if [[ "$USBGUARD_GENERATE_POLICY_NOW" == "true" ]]; then
+  echo ""
+  echo "USBGuard policy generation (install-time):"
+  USBGUARD_POLICY_TARGET=""
+  if ! USBGUARD_POLICY_TARGET="$(installer_usbguard_policy_target_from_runtime_path "$USBGUARD_POLICY_PATH")"; then
+    echo "⚠️  Skipping USBGuard policy generation due to unsafe policy path: ${USBGUARD_POLICY_PATH}" >&2
+  else
+    mkdir -p /mnt/persist
+    if generate_usbguard_policy_installer "$USBGUARD_POLICY_TARGET"; then
+      USBGUARD_POLICY_GENERATED="true"
+      echo "USBGuard policy generated at ${USBGUARD_POLICY_TARGET}."
+    else
+      rc=$?
+      case "$rc" in
+        2)
+          echo "⚠️  usbguard is not available in the installer environment. Skipping generation." >&2
+          ;;
+        3)
+          echo "⚠️  scripts/usbguard-generate-policy.sh is missing or not executable. Skipping generation." >&2
+          ;;
+        *)
+          echo "⚠️  USBGuard policy generation failed during install. Continuing without blocking install." >&2
+          ;;
+      esac
+      echo "You can generate the policy after first boot:"
+      echo "  doas /etc/nixos/scripts/usbguard-generate-policy.sh ${USBGUARD_POLICY_PATH}"
+      echo "Or use learn mode (phase 0/1 + breakglass):"
+      echo "  my.security.usbguard = { policyPath = \"${USBGUARD_POLICY_PATH}\"; learn.enable = true; };"
+    fi
+  fi
+fi
+
 if [[ "$LUKS_GPG_ENABLE" == "true" && "$ENC_MODE" == "luks2" ]]; then
   INSTALLER_KEYFILE_TARGET=""
   if ! INSTALLER_KEYFILE_TARGET="$(installer_keyfile_target_from_runtime_path "$LUKS_GPG_KEYFILE")"; then
@@ -1704,6 +1787,14 @@ cat > "${ANSWERS_ROOT}/nyxos-install.nix" <<EOF
   };
 
   trust.phase = "${TRUST_PHASE}";
+
+  security = {
+    usbguard = {
+      enable = ${USBGUARD_ENABLE_FROM_ANSWERS};
+      policyPath = "${USBGUARD_POLICY_PATH}";
+      generatedAtInstall = ${USBGUARD_POLICY_GENERATED};
+    };
+  };
 
   hardwareAuth = {
     trezor = {
