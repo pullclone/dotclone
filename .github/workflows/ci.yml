@@ -189,6 +189,8 @@ jobs:
             experimental-features = nix-command flakes
 
       - name: Enable Magic Nix Cache
+        # PRs can opt in via CI_ENABLE_MAGIC_CACHE_PR; default is deterministic no-cache.
+        if: ${{ github.event_name != 'pull_request' || vars.CI_ENABLE_MAGIC_CACHE_PR == 'true' }}
         continue-on-error: true
         uses: DeterminateSystems/magic-nix-cache-action@565684385bcd71bad329742eefe8d12f2e765b39 # v12 (2026-02-05)
         with:
