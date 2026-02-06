@@ -164,6 +164,12 @@
         };
     in
     {
+      checks.${system} = {
+        nyx-phase0 = import ./tests/phase0.nix { inherit nixpkgs system; };
+        nyx-phase1 = import ./tests/phase1.nix { inherit nixpkgs system; };
+        nyx-breakglass-required = import ./tests/breakglass-required.nix { inherit nixpkgs system; };
+      };
+
       formatter.${system} = nixpkgs.legacyPackages.${system}.nixfmt-rfc-style;
 
       packages.${system} =
