@@ -8,6 +8,11 @@
     home-manager.url = "github:nix-community/home-manager/release-25.11";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
 
+    sops-nix = {
+      url = "github:Mic92/sops-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # Added Lanzaboote for Secure Boot support
     lanzaboote = {
       url = "github:nix-community/lanzaboote/v1.0.0";
@@ -119,6 +124,7 @@
             ./modules/tuning/sysctl.nix
             (inputs.nixpkgs.outPath + "/nixos/modules/services/backup/btrbk.nix")
             ./modules/tuning/btrfs-snapshots.nix
+            inputs.sops-nix.nixosModules.sops
             ./modules/security/phase.nix
             ./modules/security/access.nix
             ./modules/security/locker-pam.nix
@@ -130,6 +136,7 @@
             ./modules/security/tpm2.nix
             ./modules/security/aide.nix
             ./modules/security/lynis.nix
+            ./modules/security/secrets.nix
             ./modules/security/luks-gpg.nix
             ./modules/security/assertions.nix
             ./modules/ssh/default.nix

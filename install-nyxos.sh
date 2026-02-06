@@ -236,7 +236,7 @@ list_timezones() {
     echo "❌ zoneinfo directory not found." >&2
     return 1
   }
-  tmp="$(mktemp /tmp/nyxos-tzlist.XXXXXX)"
+  tmp="$(mktemp "${NYX_TMPDIR}/nyxos-tzlist.XXXXXX")"
   {
     echo "IANA (Region/City)"
     echo "-------------------"
@@ -333,7 +333,7 @@ list_timezones_etc() {
     echo "❌ zoneinfo directory not found." >&2
     return 1
   }
-  tmp="$(mktemp /tmp/nyxos-tzlist.XXXXXX)"
+  tmp="$(mktemp "${NYX_TMPDIR}/nyxos-tzlist.XXXXXX")"
   {
     echo "Etc/*"
     echo "-----"
@@ -364,6 +364,83 @@ compute_part_prefix() {
 
 has_command() {
   command -v "$1" >/dev/null 2>&1
+}
+
+choose_ram_tmp_base() {
+  local base
+  for base in /dev/shm /run /tmp; do
+    if [[ -d "$base" && -w "$base" ]]; then
+      echo "$base"
+      return 0
+    fi
+  done
+  return 1
+}
+
+secure_delete_file() {
+  local path="$1"
+  if [[ ! -e "$path" && ! -L "$path" ]]; then
+    return 0
+  fi
+  if [[ -f "$path" ]] && has_command shred; then
+    shred -u "$path" >/dev/null 2>&1 || rm -f "$path" >/dev/null 2>&1 || true
+  else
+    rm -f "$path" >/dev/null 2>&1 || true
+  fi
+}
+
+cleanup_nyx_tmpdir() {
+  local path
+  if [[ -z "${NYX_TMPDIR:-}" || ! -d "$NYX_TMPDIR" ]]; then
+    return 0
+  fi
+
+  while IFS= read -r -d '' path; do
+    secure_delete_file "$path"
+  done < <(find "$NYX_TMPDIR" -type f -print0 2>/dev/null || true)
+
+  while IFS= read -r -d '' path; do
+    rm -f "$path" >/dev/null 2>&1 || true
+  done < <(find "$NYX_TMPDIR" -type l -print0 2>/dev/null || true)
+
+  rm -rf "$NYX_TMPDIR" >/dev/null 2>&1 || true
+}
+
+init_nyx_tmpdir() {
+  local base
+  base="$(choose_ram_tmp_base)" || {
+    echo "❌ Could not find a writable temporary directory (/dev/shm, /run, or /tmp)." >&2
+    exit 1
+  }
+  NYX_TMPDIR="$(mktemp -d "${base%/}/nyxos-installer.XXXXXX")"
+  chmod 700 "$NYX_TMPDIR" 2>/dev/null || true
+}
+
+installer_keyfile_target_from_runtime_path() {
+  local runtime_path="$1"
+  if [[ "$runtime_path" != /persist/* ]]; then
+    echo "⚠️  Refusing keyfile destination outside /persist in install facts: ${runtime_path}" >&2
+    return 1
+  fi
+  echo "/mnt${runtime_path}"
+}
+
+enforce_installer_persist_keyfile_target() {
+  local target="$1"
+  if [[ "$target" != /mnt/persist/* ]]; then
+    echo "⚠️  Refusing keyfile destination outside /mnt/persist in installer context: ${target}" >&2
+    return 1
+  fi
+  return 0
+}
+
+prepare_installer_persist_keyfile_target() {
+  local target="$1"
+  local key_dir
+  enforce_installer_persist_keyfile_target "$target" || return 1
+  key_dir="$(dirname "$target")"
+  install -d -m 0700 "$key_dir"
+  chown root:root "$key_dir"
 }
 
 detect_cpu_vendor() {
@@ -512,6 +589,10 @@ detect_igpu_busid() {
   fi
   return 1
 }
+
+NYX_TMPDIR=""
+init_nyx_tmpdir
+trap cleanup_nyx_tmpdir EXIT INT TERM
 
 RUN_MODE="install"
 RUN_MODE_FORCED="false"
@@ -1034,7 +1115,7 @@ if [[ "$ENC_MODE" == "luks2" ]]; then
   echo "TPM2 unlock (optional):"
   ask_yes_no "Use TPM2 + PIN to unlock the encrypted disk?" "n" TPM2_ENABLE
   if [[ "$TPM2_ENABLE" == "true" ]]; then
-    echo "Note: The PIN is stored in /etc/nixos/nyxos-install.nix."
+    echo "Note: The PIN is used for enrollment only and is not written to /etc/nixos/nyxos-install.nix."
     while true; do
       read -r -s -p "Enter numeric TPM2 PIN (min 6 digits): " TPM2_PIN
       echo ""
@@ -1483,6 +1564,16 @@ if [[ -n "$PERSIST_PART" ]]; then
 fi
 
 if [[ "$LUKS_GPG_ENABLE" == "true" && "$ENC_MODE" == "luks2" ]]; then
+  INSTALLER_KEYFILE_TARGET=""
+  if ! INSTALLER_KEYFILE_TARGET="$(installer_keyfile_target_from_runtime_path "$LUKS_GPG_KEYFILE")"; then
+    echo "❌ Refusing to continue with an unsafe keyfile destination in installer context." >&2
+    exit 1
+  fi
+  if ! enforce_installer_persist_keyfile_target "$INSTALLER_KEYFILE_TARGET"; then
+    echo "❌ Refusing to continue with an unsafe keyfile destination in installer context." >&2
+    exit 1
+  fi
+
   echo ""
   echo "LUKS GPG keyfile setup:"
   mkdir -p /mnt/persist
@@ -1495,11 +1586,13 @@ if [[ "$LUKS_GPG_ENABLE" == "true" && "$ENC_MODE" == "luks2" ]]; then
   if [[ "$PAUSE_KEYFILE" == "true" ]]; then
     cat <<EOF
 Suggested steps (manual):
-  install -d -m 0700 /mnt/persist/keys
-  dd if=/dev/urandom of=/tmp/root.key bs=1 count=4096 status=none
-  cryptsetup luksAddKey "${ROOT_PART}" /tmp/root.key
-  gpg --encrypt --recipient "<YOUR_KEYID>" --output /mnt/persist/keys/root.key.gpg /tmp/root.key
-  shred -u /tmp/root.key
+  install -d -m 0700 "$(dirname "$INSTALLER_KEYFILE_TARGET")"
+  dd if=/dev/urandom of="${NYX_TMPDIR}/root.key" bs=1 count=4096 status=none
+  cryptsetup luksAddKey "${ROOT_PART}" "${NYX_TMPDIR}/root.key"
+  gpg --encrypt --recipient "<YOUR_KEYID>" --output "${INSTALLER_KEYFILE_TARGET}" "${NYX_TMPDIR}/root.key"
+  shred -u "${NYX_TMPDIR}/root.key"
+  chown root:root "${INSTALLER_KEYFILE_TARGET}"
+  chmod 600 "${INSTALLER_KEYFILE_TARGET}"
   NOTE: Do not store plaintext key material on disk; only the encrypted .gpg file under /persist/keys.
 EOF
 
@@ -1512,21 +1605,31 @@ EOF
         fi
         echo "That entry isn't valid. GPG recipient is required." >&2
       done
-      install -d -m 0700 /mnt/persist/keys
-      TMP_KEY="$(mktemp /tmp/nyxos-luks-key.XXXXXX)"
+      prepare_installer_persist_keyfile_target "$INSTALLER_KEYFILE_TARGET"
+      TMP_KEY="$(mktemp "${NYX_TMPDIR}/nyxos-luks-key.XXXXXX")"
       dd if=/dev/urandom of="$TMP_KEY" bs=1 count=4096 status=none
       cryptsetup luksAddKey "$ROOT_PART" "$TMP_KEY"
       gpg --batch --yes --encrypt --recipient "$GPG_RECIPIENT" \
-        --output /mnt/persist/keys/root.key.gpg "$TMP_KEY"
-      shred -u "$TMP_KEY"
-      echo "Encrypted keyfile written to /mnt/persist/keys/root.key.gpg"
+        --output "$INSTALLER_KEYFILE_TARGET" "$TMP_KEY"
+      chown root:root "$INSTALLER_KEYFILE_TARGET"
+      chmod 600 "$INSTALLER_KEYFILE_TARGET"
+      secure_delete_file "$TMP_KEY"
+      echo "Encrypted keyfile written to $INSTALLER_KEYFILE_TARGET"
     else
       read -r -p "Press Enter once finished with keyfile setup..." _
-      echo "Verify /mnt/persist/keys/root.key.gpg exists and is encrypted before continuing."
+      echo "Verify $INSTALLER_KEYFILE_TARGET exists and is encrypted before continuing."
+      if [[ -f "$INSTALLER_KEYFILE_TARGET" ]]; then
+        chown root:root "$INSTALLER_KEYFILE_TARGET"
+        chmod 600 "$INSTALLER_KEYFILE_TARGET"
+      else
+        echo "WARNING: Expected encrypted keyfile not found at $INSTALLER_KEYFILE_TARGET." >&2
+      fi
     fi
 
     # Ensure no plaintext key material remains on disk
-    [ -n "${TMP_KEY:-}" ] && shred -u "$TMP_KEY" || true
+    if [[ -n "${TMP_KEY:-}" ]]; then
+      secure_delete_file "$TMP_KEY"
+    fi
   else
     echo "WARNING: Keyfile setup was skipped. Ensure you add an encrypted keyfile and LUKS keyslot post-install; misconfiguration can lock you out."
   fi
