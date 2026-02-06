@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-cd "$repo_root"
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+cd "$REPO_ROOT"
 
 SYSTEM="${SYSTEM:-nyx}"
 
 rg_nix() {
-  rg --glob "*.nix" --glob "!templates/**" "$@"
+  rg "$@" -g "*.nix" --glob "!templates/**" "$REPO_ROOT" | sed "s#^${REPO_ROOT}/##"
 }
 
 require_cmd() {
@@ -112,16 +112,36 @@ if [ "${#niri_enabled_files[@]}" -gt 0 ] && [ "${#niri_settings_files[@]}" -eq 0
 fi
 
 echo "==> contract: Noctalia ownership and compatibility"
-mapfile -t noctalia_service_files < <(rg_nix -l "services\\.noctalia-shell\\.enable" || true)
-mapfile -t noctalia_systemd_files < <(rg_nix -l "programs\\.noctalia-shell" || true)
-if [ "${#noctalia_service_files[@]}" -gt 0 ] && [ "${#noctalia_systemd_files[@]}" -gt 0 ]; then
-  echo "Noctalia enablement detected via both services.noctalia-shell.enable and programs.noctalia-shell.systemd.enable:"
-  printf ' services: %s\n' "${noctalia_service_files[@]}"
-  printf ' programs: %s\n' "${noctalia_systemd_files[@]}"
+mapfile -t noctalia_service_files < <(
+  {
+    rg_nix -l "services\\.noctalia-shell\\.enable" || true
+    rg_nix -l "services\\.\"noctalia-shell\"\\.enable" || true
+  } | sort -u
+)
+mapfile -t noctalia_hm_files < <(
+  {
+    rg_nix -l "programs\\.noctalia-shell" || true
+    rg_nix -l "programs\\.\"noctalia-shell\"" || true
+  } | sort -u
+)
+if [ "${#noctalia_service_files[@]}" -gt 0 ] && [ "${#noctalia_hm_files[@]}" -gt 0 ]; then
+  echo "Noctalia enablement detected via both NixOS and Home Manager ownership paths."
+  echo "searched under: $REPO_ROOT"
+  echo "NixOS matches (services.noctalia-shell.enable | services.\"noctalia-shell\".enable):"
+  printf ' - %s\n' "${noctalia_service_files[@]}"
+  echo "Home Manager matches (programs.noctalia-shell | programs.\"noctalia-shell\"):"
+  printf ' - %s\n' "${noctalia_hm_files[@]}"
   exit 1
 fi
-if [ "${#noctalia_service_files[@]}" -eq 0 ] && [ "${#noctalia_systemd_files[@]}" -eq 0 ]; then
-  echo "Noctalia enablement missing; expected exactly one service path (prefer programs.noctalia-shell.systemd.enable)"
+if [ "${#noctalia_service_files[@]}" -eq 0 ] && [ "${#noctalia_hm_files[@]}" -eq 0 ]; then
+  echo "Noctalia enablement missing; expected exactly one service path (prefer programs.noctalia-shell.systemd.enable)."
+  echo "searched under: $REPO_ROOT"
+  echo "Accepted Home Manager patterns:"
+  echo " - programs.noctalia-shell"
+  echo " - programs.\"noctalia-shell\""
+  echo "Accepted NixOS patterns:"
+  echo " - services.noctalia-shell.enable"
+  echo " - services.\"noctalia-shell\".enable"
   exit 1
 fi
 
@@ -146,7 +166,9 @@ if [ "${#noctalia_pkg_refs[@]}" -gt 0 ]; then
 fi
 
 echo "==> contract: forbid plaintext key material in repo"
-mapfile -t key_files < <(rg --files -g "*.key" -g "*.pem" -g "*.p12" -g "*.pfx" -g "*.der" -g "*.csr" --glob "!templates/**" || true)
+mapfile -t key_files < <(
+  rg --files -g "*.key" -g "*.pem" -g "*.p12" -g "*.pfx" -g "*.der" -g "*.csr" --glob "!templates/**" "$REPO_ROOT" | sed "s#^${REPO_ROOT}/##" || true
+)
 if [ "${#key_files[@]}" -gt 0 ]; then
   echo "Plaintext key material detected (remove from repo):"
   printf ' - %s\n' "${key_files[@]}"
