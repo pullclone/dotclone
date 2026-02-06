@@ -133,6 +133,8 @@ Repository protections enforce PR-based merges into `main` and `variant/with-sud
 `just upgrade` and `scripts/upgrade.sh` are **intentional mutation tools**. They update inputs and may modify `flake.lock`.
 
 They must **never** be run as part of routine validation, review, or PR preparation.
+Avoid backticks in shell-evaluated command strings (for example, anything run via `bash -lc`).
+When using `gh pr create --body` via `bash -lc`, use plain text or escaped backticks.
 
 ### Validation commands (non-mutating)
 

@@ -3,22 +3,32 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: scripts/upgrade.sh [--force] [--dry-run]
+Usage: scripts/upgrade.sh [--apply|--dry-run] [--force]
 
 Update flake inputs and run upgrade validation gates.
 
 Options:
+  --apply    Apply input updates (runs `nix flake update`).
   --force    Continue even when the git working tree is dirty.
-  --dry-run  Print commands without executing update/check steps.
+  --dry-run  Non-mutating mode; print commands without executing.
   -h, --help Show this help.
+
+Examples:
+  scripts/upgrade.sh --dry-run
+  scripts/upgrade.sh --apply
+  scripts/upgrade.sh --apply --force
 EOF
 }
 
 force=false
 dry_run=false
+apply=false
 
 while (($# > 0)); do
   case "$1" in
+    --apply)
+      apply=true
+      ;;
     --force)
       force=true
       ;;
@@ -46,8 +56,22 @@ fi
 repo_root="$(git rev-parse --show-toplevel)"
 cd "${repo_root}"
 
+if [[ "${dry_run}" == "true" ]] && [[ "${apply}" == "true" ]]; then
+  echo "--dry-run overrides --apply"
+  apply=false
+fi
+
 echo "==> Git status"
 git status --short --branch
+
+if [[ "${apply}" != "true" ]] && [[ "${dry_run}" != "true" ]]; then
+  echo "Refusing to mutate flake.lock without --apply" >&2
+  usage >&2
+  echo "Use one of:" >&2
+  echo "  scripts/upgrade.sh --dry-run" >&2
+  echo "  scripts/upgrade.sh --apply" >&2
+  exit 2
+fi
 
 if [[ -n "$(git status --porcelain)" ]] && [[ "${force}" != "true" ]]; then
   echo "Refusing to run on a dirty working tree." >&2
@@ -70,8 +94,12 @@ run_cmd() {
   "$@"
 }
 
-echo "==> Updating flake inputs"
-run_cmd nix flake update
+if [[ "${apply}" == "true" ]]; then
+  echo "==> Updating flake inputs"
+  run_cmd nix flake update
+else
+  echo "==> Skipping flake input update (non-mutating mode)"
+fi
 
 echo "==> Running quality gates in pinned toolchain"
 run_cmd nix develop -c just audit
