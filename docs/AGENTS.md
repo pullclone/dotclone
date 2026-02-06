@@ -26,9 +26,9 @@ map. At a high level:
 - `profiles/`: system and ZRAM profile composition
 - `scripts/`: audit, lint, and maintenance helpers
 
-## Tandem Development: main + feature/with-sudo (Worktree Strategy)
+## Tandem Development: main + variant/with-sudo (Worktree Strategy)
 
-We develop on **both** `main` and `feature/with-sudo` concurrently using **git worktree**.
+We develop on **both** `main` and `variant/with-sudo` concurrently using **git worktree**.
 
 ### Rationale
 - Prevent drift between branches.
@@ -44,7 +44,7 @@ git worktree prune
 
 mkdir -p ../dotclone-wt
 git worktree add ../dotclone-wt/main main
-git worktree add ../dotclone-wt/with-sudo feature/with-sudo
+git worktree add ../dotclone-wt/with-sudo variant/with-sudo
 
 git worktree list
 ```
@@ -55,7 +55,7 @@ Every change MUST declare scope:
 
 * **[both]** apply to both branches
 * **[main only]** apply only to `main`
-* **[with-sudo only]** apply only to `feature/with-sudo`
+* **[with-sudo only]** apply only to `variant/with-sudo`
 
 If scope is not declared, assume **[both]**.
 
@@ -73,6 +73,32 @@ If additional checks are part of the repo’s standard workflow (flake checks/bu
 
 Branch-specific behavior is allowed only when it is intentional and documented (e.g., sudo behavior).
 Any divergence must be explained in the patch notes / commit message.
+
+## Branch Topology (Long-Lived Variants)
+
+This repository intentionally maintains **two long-lived variants** in parallel:
+
+- **`main` (default)**: the baseline configuration. This branch intentionally omits `sudo`/root-oriented tooling as a design choice.
+- **`variant/with-sudo`**: a supported alternative configuration where `sudo` is available as an explicit feature path.
+
+### Important: this is not a feature branch
+
+`variant/with-sudo` is **not** intended to be merged into `main`. It exists as a persistent, concurrently developed option.
+
+### Sharing changes between variants
+
+When a change should exist in both variants, port it **intentionally**:
+- Prefer **cherry-picking** specific commits between branches, or
+- Re-apply the change manually when the surrounding context differs.
+
+Avoid “merge the variant into main” workflows; that defeats the purpose of keeping the two variants meaningfully distinct.
+
+### How to land changes (GitHub merge policy)
+
+Repository protections enforce PR-based merges into `main` and `variant/with-sudo`, and only **squash** or **rebase** merges are allowed (no merge commits).
+
+**Default:** use **Squash and merge** for most PRs (clean history, one commit per change).  
+**Use Rebase and merge** only when you intentionally want to preserve a linear sequence of meaningful commits.
 
 ## Golden rules
 
