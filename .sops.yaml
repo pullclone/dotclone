@@ -1,0 +1,5 @@
+# Replace this throwaway example recipient with your own age public recipient(s)
+# before storing real secrets.
+creation_rules:
+  - path_regex: ^secrets/.*\.sops$
+    age: age1lv2wuzd3adzxw4hlq800v070uvp4kr8025sdqr26jzta0au9ep4qxqr7zx
