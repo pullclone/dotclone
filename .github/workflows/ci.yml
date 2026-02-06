@@ -13,7 +13,7 @@ jobs:
       contents: read
       id-token: write
     concurrency:
-      group: ci-${{ github.ref }}
+      group: ci-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}-${{ matrix.system_profile }}-${{ matrix.latencyflex_enable }}
       cancel-in-progress: true
     strategy:
       matrix:
@@ -140,7 +140,7 @@ jobs:
     permissions:
       contents: read
     concurrency:
-      group: ci-${{ github.ref }}
+      group: ci-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}-${{ matrix.system_profile }}-${{ matrix.latencyflex_enable }}
       cancel-in-progress: true
     strategy:
       matrix:
@@ -189,6 +189,7 @@ jobs:
             experimental-features = nix-command flakes
 
       - name: Enable Magic Nix Cache
+        continue-on-error: true
         uses: DeterminateSystems/magic-nix-cache-action@e1c1dae8e170ed20fd2e6aaf9979ca2d3905d636 # v12 (2026-02-05)
         with:
           use-flakehub: false
