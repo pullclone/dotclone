@@ -713,50 +713,79 @@ echo ""
 echo "Declarative SSH profile policy:"
 ask_yes_no "Enable declarative SSH profiles?" "y" SSH_POLICY_ENABLE
 
-SSH_PROFILE="base"
+SSH_PROFILE_PRESET="hardened"
+SSH_PROFILE="hardened"
 SSH_FEATURES=()
 SSH_FEATURES_NIX="[ ]"
 SSH_KNOWNHOSTS_ENABLE="true"
 SSH_ONEPASSWORD_ENABLE="false"
+SSH_ALLOW_INSECURE="false"
 
 if [[ "$SSH_POLICY_ENABLE" == "true" ]]; then
   echo ""
-  echo "Choose SSH client profile:"
-  echo "  1) base      (strict baseline)"
+  echo "Choose SSH profile preset:"
+  echo "  1) hardened  (recommended, strictest client posture)"
   echo "  2) developer (multiplexing + convenience)"
-  echo "  3) hardened  (strictest client posture)"
-  echo "  4) home      (personal convenience)"
-  echo "  5) ci        (automation / non-interactive)"
+  echo "  3) custom    (choose a client profile + features)"
   while true; do
-    ask "Choice" "1" SSH_PROFILE_CHOICE
-    case "$SSH_PROFILE_CHOICE" in
-      1) SSH_PROFILE="base"; break ;;
-      2) SSH_PROFILE="developer"; break ;;
-      3) SSH_PROFILE="hardened"; break ;;
-      4) SSH_PROFILE="home"; break ;;
-      5) SSH_PROFILE="ci"; break ;;
-      *) echo "That entry isn't valid. Choose 1 to 5." >&2 ;;
+    ask "Choice" "1" SSH_PROFILE_PRESET_CHOICE
+    case "$SSH_PROFILE_PRESET_CHOICE" in
+      1) SSH_PROFILE_PRESET="hardened"; SSH_PROFILE="hardened"; break ;;
+      2) SSH_PROFILE_PRESET="developer"; SSH_PROFILE="developer"; break ;;
+      3) SSH_PROFILE_PRESET="custom"; break ;;
+      *) echo "That entry isn't valid. Choose 1 to 3." >&2 ;;
     esac
   done
 
-  echo ""
-  echo "Optional SSH feature bundles (all default to no):"
-  ask_yes_no "Enable git host presets?" "n" SSH_FEATURE_GIT
-  ask_yes_no "Enable bastion/jump host patterns?" "n" SSH_FEATURE_BASTION
-  ask_yes_no "Enable cloud host patterns?" "n" SSH_FEATURE_CLOUD
-  ask_yes_no "Enable corporate/Kerberos patterns?" "n" SSH_FEATURE_CORP
-  ask_yes_no "Enable legacy crypto exceptions?" "n" SSH_FEATURE_LEGACY
-  ask_yes_no "Enable unreliable network tuning?" "n" SSH_FEATURE_UNRELIABLE
+  if [[ "$SSH_PROFILE_PRESET" == "custom" ]]; then
+    echo ""
+    echo "Choose SSH client profile:"
+    echo "  1) base      (strict baseline)"
+    echo "  2) developer (multiplexing + convenience)"
+    echo "  3) hardened  (strictest client posture)"
+    echo "  4) home      (personal convenience)"
+    echo "  5) ci        (automation / non-interactive)"
+    while true; do
+      ask "Choice" "1" SSH_PROFILE_CHOICE
+      case "$SSH_PROFILE_CHOICE" in
+        1) SSH_PROFILE="base"; break ;;
+        2) SSH_PROFILE="developer"; break ;;
+        3) SSH_PROFILE="hardened"; break ;;
+        4) SSH_PROFILE="home"; break ;;
+        5) SSH_PROFILE="ci"; break ;;
+        *) echo "That entry isn't valid. Choose 1 to 5." >&2 ;;
+      esac
+    done
 
-  if [[ "$SSH_FEATURE_GIT" == "true" ]]; then SSH_FEATURES+=( "git-hosts" ); fi
-  if [[ "$SSH_FEATURE_BASTION" == "true" ]]; then SSH_FEATURES+=( "bastion" ); fi
-  if [[ "$SSH_FEATURE_CLOUD" == "true" ]]; then SSH_FEATURES+=( "cloud" ); fi
-  if [[ "$SSH_FEATURE_CORP" == "true" ]]; then SSH_FEATURES+=( "corporate" ); fi
-  if [[ "$SSH_FEATURE_LEGACY" == "true" ]]; then SSH_FEATURES+=( "legacy" ); fi
-  if [[ "$SSH_FEATURE_UNRELIABLE" == "true" ]]; then SSH_FEATURES+=( "unreliable" ); fi
+    echo ""
+    echo "Optional SSH feature bundles (all default to no):"
+    ask_yes_no "Enable git host presets?" "n" SSH_FEATURE_GIT
+    ask_yes_no "Enable bastion/jump host patterns?" "n" SSH_FEATURE_BASTION
+    ask_yes_no "Enable cloud host patterns?" "n" SSH_FEATURE_CLOUD
+    ask_yes_no "Enable corporate/Kerberos patterns?" "n" SSH_FEATURE_CORP
+    ask_yes_no "Enable legacy crypto exceptions?" "n" SSH_FEATURE_LEGACY
+    ask_yes_no "Enable unreliable network tuning?" "n" SSH_FEATURE_UNRELIABLE
 
-  if ((${#SSH_FEATURES[@]})); then
-    SSH_FEATURES_NIX="[ $(printf '\"%s\" ' "${SSH_FEATURES[@]}") ]"
+    if [[ "$SSH_FEATURE_LEGACY" == "true" || "$SSH_FEATURE_UNRELIABLE" == "true" ]]; then
+      echo ""
+      echo "You selected insecure SSH bundles (legacy/unreliable)."
+      ask_yes_no "Acknowledge and allow insecure SSH bundles?" "n" SSH_ALLOW_INSECURE
+      if [[ "$SSH_ALLOW_INSECURE" != "true" ]]; then
+        SSH_FEATURE_LEGACY="false"
+        SSH_FEATURE_UNRELIABLE="false"
+      fi
+    fi
+
+    if [[ "$SSH_FEATURE_GIT" == "true" ]]; then SSH_FEATURES+=( "git-hosts" ); fi
+    if [[ "$SSH_FEATURE_BASTION" == "true" ]]; then SSH_FEATURES+=( "bastion" ); fi
+    if [[ "$SSH_FEATURE_CLOUD" == "true" ]]; then SSH_FEATURES+=( "cloud" ); fi
+    if [[ "$SSH_FEATURE_CORP" == "true" ]]; then SSH_FEATURES+=( "corporate" ); fi
+    if [[ "$SSH_FEATURE_LEGACY" == "true" ]]; then SSH_FEATURES+=( "legacy" ); fi
+    if [[ "$SSH_FEATURE_UNRELIABLE" == "true" ]]; then SSH_FEATURES+=( "unreliable" ); fi
+
+    if ((${#SSH_FEATURES[@]})); then
+      SSH_FEATURES_NIX="[ $(printf '\"%s\" ' "${SSH_FEATURES[@]}") ]"
+    fi
   fi
 
   echo ""
@@ -1589,6 +1618,8 @@ cat > "${ANSWERS_ROOT}/nyxos-install.nix" <<EOF
 
   my.ssh = {
     enable = ${SSH_POLICY_ENABLE};
+    profile = "${SSH_PROFILE_PRESET}";
+    allowInsecure = ${SSH_ALLOW_INSECURE};
 
     client = {
       profile = "${SSH_PROFILE}";
