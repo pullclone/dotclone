@@ -39,7 +39,13 @@ env-ci:
 upgrade *args:
     #!/usr/bin/env bash
     set -euo pipefail
-    scripts/upgrade.sh {{args}}
+    scripts/upgrade.sh --apply {{args}}
+
+[group('Maintenance')]
+upgrade-dry *args:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    scripts/upgrade.sh --dry-run {{args}}
 
 [private]
 default:
