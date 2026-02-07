@@ -212,6 +212,7 @@
           nixfmt = nixpkgs.legacyPackages.${system}.nixfmt-rfc-style;
           statix = nixpkgs.legacyPackages.${system}.statix;
           deadnix = nixpkgs.legacyPackages.${system}.deadnix;
+          gitleaks = nixpkgs.legacyPackages.${system}.gitleaks;
         }
         // toplevelAttrs;
 
