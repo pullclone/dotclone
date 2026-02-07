@@ -10,7 +10,7 @@ Update flake inputs and run upgrade validation gates.
 Options:
   --apply    Apply input updates (runs `nix flake update`).
   --force    Continue even when the git working tree is dirty.
-  --dry-run  Non-mutating mode; print commands without executing.
+  --dry-run  Non-mutating mode; skip input updates but still run validation gates.
   -h, --help Show this help.
 
 Examples:
@@ -83,35 +83,20 @@ if [[ -n "$(git status --porcelain)" ]] && [[ "${force}" == "true" ]]; then
   echo "WARNING: continuing on a dirty tree due to --force."
 fi
 
-run_cmd() {
-  if [[ "${dry_run}" == "true" ]]; then
-    printf '[dry-run]'
-    printf ' %q' "$@"
-    printf '\n'
-    return 0
-  fi
-
-  "$@"
-}
-
 if [[ "${apply}" == "true" ]]; then
   echo "==> Updating flake inputs"
-  run_cmd nix flake update
+  nix flake update
 else
   echo "==> Skipping flake input update (non-mutating mode)"
 fi
 
 echo "==> Running quality gates in pinned toolchain"
-run_cmd nix develop -c just audit
-run_cmd nix develop -c just test-strict
-run_cmd nix develop -c nix flake check .
+nix develop -c just audit
+nix develop -c just test-strict
+nix develop -c nix flake check .
 
 echo "==> flake.lock diff summary"
-if [[ "${dry_run}" == "true" ]]; then
-  echo "[dry-run] git diff --stat flake.lock"
-else
-  git diff --stat flake.lock || true
-fi
+git diff --stat flake.lock || true
 
 cat <<'EOF'
 
