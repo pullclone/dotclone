@@ -56,7 +56,7 @@ jobs:
           df -h
 
       - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@c5a866b6ab867e88becbed4467b93592bce69f8a # v11 (2026-02-05)
+        uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v11 (2026-02-05)
         with:
           extra-conf: |
             experimental-features = nix-command flakes
@@ -183,7 +183,7 @@ jobs:
           df -h
 
       - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@c5a866b6ab867e88becbed4467b93592bce69f8a # v11 (2026-02-05)
+        uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v11 (2026-02-05)
         with:
           extra-conf: |
             experimental-features = nix-command flakes
