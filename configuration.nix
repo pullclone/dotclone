@@ -44,6 +44,9 @@ in
     "i2c-dev"
     "spi-dev"
   ];
+  boot.extraModulePackages = lib.optionals (config.boot.kernelPackages.wireguard != null) [
+    config.boot.kernelPackages.wireguard
+  ];
 
   # NOTE: Bootloader, Kernel Params, and Microcode are now handled
   # by modules/boot-profile.nix and modules/hardware/amd-gpu.nix
@@ -398,6 +401,7 @@ in
       lla
       skim
       mtr
+      wireguard-tools
       rsync
       which
       whois

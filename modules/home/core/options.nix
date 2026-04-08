@@ -28,12 +28,6 @@ in
     };
   };
 
-  options.my.home.apps.protonvpn.enable = mkOption {
-    type = types.bool;
-    default = true;
-    description = "Enable ProtonVPN GUI (Home Manager).";
-  };
-
   options.my.identity.ssh.identity = mkOption {
     type = types.enum [
       "file"

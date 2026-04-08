@@ -61,6 +61,7 @@ appendices.
     │   └── ssh/                        # Declarative SSH client/server templates
     ├── scripts/                        # Maintenance and test scripts
     │   ├── audit-repo.sh               # Contract + flake/build audit
+    │   ├── flake-check-stable.sh       # Serialized flake check + failure triage wrapper
     │   ├── test-configuration.sh       # Static sanity checks against configuration files
     │   └── test-optimizations.sh       # Runtime optimization checks (optional)
     └── modules/                        # Reusable modules (domain-driven)
@@ -128,7 +129,7 @@ appendices.
 - `modules/programs/gaming.nix`: optional gaming stack based on install facts.
 - `modules/home/apps/ssh-identity.nix`: SSH identity wiring from install facts.
 - `modules/home/apps/trezor-agent.nix`: optional trezor-agent service.
-- `modules/home/apps/protonvpn.nix`: optional ProtonVPN GUI.
+- `configuration.nix`: system-level WireGuard tooling (`wireguard-tools`).
 - `modules/boot/uki.nix`: Bootspec with NyxOS UKI extension.
 - `profiles/`: system + ZRAM profiles (finite outputs).
 - `pkgs/latencyflex.nix`: LatencyFleX derivation and manifest.
@@ -139,6 +140,8 @@ appendices.
 - `docs/SECURITY_AND_RECOVERY.md`: security phases and recovery guidance.
 - `docs/REPRODUCIBILITY.md`: release provenance snippet.
 - `scripts/audit-locker.sh`: locker/PAM audit helper.
+- `scripts/flake-check-stable.sh`: crash-resistant `nix flake check` wrapper
+  with explicit tuning flags and likely-cause triage.
 - `scripts/usbguard-generate-policy.sh`: USBGuard allowlist generator.
 - `scripts/rsi-launcher.sh`: helper wrapper for RSI launcher or Lutris setup.
 - `templates/research/`: opt-in research flake with pinned devShell.

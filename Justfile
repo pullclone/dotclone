@@ -34,6 +34,8 @@ bootstrap:
 env-ci:
     @echo 'Use this in constrained environments:'
     @echo '  NIX_REMOTE=daemon NIX_CONFIG="sandbox = false" just ci'
+    @echo 'Serialized flake checks with crash triage:'
+    @echo '  just flake-check-stable'
 
 [group('Maintenance')]
 upgrade *args:
@@ -54,6 +56,12 @@ default:
 [group('Nix')]
 check:
     set -euo pipefail; if [ -z "${XDG_RUNTIME_DIR:-}" ] || [ ! -w "${XDG_RUNTIME_DIR:-}" ]; then export XDG_RUNTIME_DIR="/tmp/xdg-runtime-${UID}"; install -d -m 0700 "$XDG_RUNTIME_DIR"; fi; nix flake check .
+
+[group('Nix')]
+flake-check-stable *args:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    scripts/flake-check-stable.sh . {{args}}
 
 [group('Nix')]
 build:
@@ -193,19 +201,18 @@ build-uki target:
     echo "UKI bootspec built at ./result"
 
 [group('Apps')]
-app-protonvpn-check target="nyx":
+app-wireguard-check target="nyx":
     #!/usr/bin/env bash
     set -euo pipefail
-    nix eval ".#nixosConfigurations.{{ target }}.config.home-manager.users.ashy.my.home.apps.protonvpn.enable"
+    nix eval --raw ".#nixosConfigurations.{{ target }}.pkgs.wireguard-tools.pname"
 
 [group('Apps')]
-app-protonvpn-enable target="nyx":
+app-wireguard-enable target="nyx":
     #!/usr/bin/env bash
     set -euo pipefail
-    echo "To enable ProtonVPN GUI:"
-    echo "  1) Set my.install.protonvpn.enable = true (install answers) or"
-    echo "  2) Override home-manager.users.ashy.my.home.apps.protonvpn.enable = true"
-    echo "Then rebuild: just sec-preview {{ target }} ; just sec-test {{ target }}"
+    echo "WireGuard tooling is enabled at the system level."
+    echo "Place interface configs in /etc/wireguard (for example wg0.conf), then use wg-quick."
+    echo "Rebuild if needed: just sec-preview {{ target }} ; just sec-test {{ target }}"
 
 [group('Observability')]
 aide-init:

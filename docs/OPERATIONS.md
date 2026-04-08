@@ -24,6 +24,53 @@ just audit
 just build
 ```
 
+## Crash-resistant flake checks (IO and memory pressure)
+
+Use the stable wrapper when `nix flake check` is failing under heavy
+load:
+
+```bash
+just flake-check-stable
+```
+
+The wrapper (`scripts/flake-check-stable.sh`) applies explicit tuning
+flags that were effective in prior failing runs:
+
+- `--option max-jobs 1` (serialize build/eval pressure)
+- `--option cores 1` (reduce per-builder CPU+RAM demand)
+- `--option keep-outputs false` (lower retained store paths)
+- `--option keep-derivations false` (lower retained metadata/store growth)
+- `--option fallback true` (retry around transient substituter misses)
+- `--option connect-timeout 15` (fail fast on stalled network paths)
+
+You can override these with environment variables:
+
+```bash
+NIX_FLAKE_CHECK_MAX_JOBS=1 \
+NIX_FLAKE_CHECK_CORES=1 \
+NIX_FLAKE_CHECK_KEEP_OUTPUTS=false \
+NIX_FLAKE_CHECK_KEEP_DERIVATIONS=false \
+just flake-check-stable
+```
+
+### Failure cause matrix (observed patterns)
+
+- Daemon socket permission errors:
+  `cannot connect to socket ... daemon-socket ... Operation not permitted`
+  usually means sandbox/permission boundaries blocked Nix daemon access.
+- Disk/store pressure:
+  `No space left on device` usually indicates `/nix/store` churn; reduced
+  retention flags and garbage collection were effective.
+- Memory pressure / OOM:
+  `Cannot allocate memory`, `oom-killer`, `exit code 137` mapped to overly
+  concurrent checks; serialized flags were effective.
+- Network/substituter instability:
+  timeout/TLS/download failures improved with `fallback=true`, conservative
+  timeout, and retry.
+
+On failure, the wrapper prints a likely-cause summary and log tail, and
+writes a full timestamped log under `/tmp` by default.
+
 ## WSL note
 
 On NixOS-WSL, `/run/user/$UID` may be missing or unwritable. Prefer the
